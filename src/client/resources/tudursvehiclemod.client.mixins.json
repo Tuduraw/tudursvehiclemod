@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.example.tudursvehiclemod.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "CameraMixin",
+    "PlayerLookRateMixin",
+    "LivingEntityRenderStateMixin",
+    "LivingEntityRendererMixin",
+    "BipedEntityModelMixin",
+    "HeldItemRendererMixin",
+    "RenderLayerFactoryInvoker",
+    "WorldRendererLightmapMixin",
+    "EntityRendererLightMixin",
+    "ClientPlayNetworkHandlerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

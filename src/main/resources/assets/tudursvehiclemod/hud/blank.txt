@@ -1,0 +1,1 @@
+; Per a direct request that a parachute show no HUD at all - intentionally empty, no draw commands.

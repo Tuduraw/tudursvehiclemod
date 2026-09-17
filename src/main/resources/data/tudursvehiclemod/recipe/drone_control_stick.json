@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:observer",
+    "minecraft:egg",
+    "minecraft:stick"
+  ],
+  "result": {
+    "id": "tudursvehiclemod:drone_control_stick",
+    "count": 1
+  }
+}

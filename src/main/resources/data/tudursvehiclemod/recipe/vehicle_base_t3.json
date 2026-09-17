@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:diamond",
+    "minecraft:diamond",
+    "minecraft:iron_block",
+    "minecraft:iron_block",
+    "minecraft:iron_block",
+    "minecraft:iron_block",
+    "minecraft:redstone_block",
+    "minecraft:redstone_block"
+  ],
+  "result": {
+    "id": "tudursvehiclemod:vehicle_base_t3",
+    "count": 1
+  }
+}

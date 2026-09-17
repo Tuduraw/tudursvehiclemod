@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "tudursvehiclemod:block/fuel_refiner" }
+  }
+}

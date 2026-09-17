@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "tudursvehiclemod:item/static_emplacement_spawner",
+    "layer1": "tudursvehiclemod:item/tier_border_t3"
+  }
+}

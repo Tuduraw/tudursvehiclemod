@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "I": "minecraft:iron_block",
+    "S": "tudursvehiclemod:drone_control_stick"
+  },
+  "pattern": [
+    "I I",
+    " S ",
+    "I I"
+  ],
+  "result": {
+    "id": "tudursvehiclemod:drone_center",
+    "count": 1
+  }
+}

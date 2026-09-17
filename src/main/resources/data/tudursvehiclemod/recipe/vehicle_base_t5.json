@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:netherite_ingot",
+    "minecraft:netherite_ingot",
+    "minecraft:diamond_block",
+    "minecraft:diamond_block",
+    "minecraft:diamond_block",
+    "minecraft:diamond_block",
+    "minecraft:nether_star"
+  ],
+  "result": {
+    "id": "tudursvehiclemod:vehicle_base_t5",
+    "count": 1
+  }
+}

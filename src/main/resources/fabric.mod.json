@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "tudursvehiclemod",
+  "version": "${version}",
+  "name": "Tudur's Vehicle Mod",
+  "description": "Asset-driven vehicle framework: define vehicles as OBJ model + JSON data, no recompiling needed to add new ones.",
+  "authors": [ "Tuduraw" ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/tudursvehiclemod/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [ "com.example.tudursvehiclemod.VehicleMod" ],
+    "client": [ "com.example.tudursvehiclemod.client.VehicleModClient" ]
+  },
+  "mixins": [
+    {
+      "config": "tudursvehiclemod.mixins.json",
+      "environment": "*"
+    },
+    {
+      "config": "tudursvehiclemod.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.0",
+    "fabric-api": "*",
+    "minecraft": "1.21.11",
+    "java": ">=21"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "up": "tudursvehiclemod:block/fuel_refiner_top",
+    "down": "tudursvehiclemod:block/fuel_refiner_bottom",
+    "north": "tudursvehiclemod:block/fuel_refiner_front",
+    "south": "tudursvehiclemod:block/fuel_refiner_side",
+    "east": "tudursvehiclemod:block/fuel_refiner_side",
+    "west": "tudursvehiclemod:block/fuel_refiner_side",
+    "particle": "tudursvehiclemod:block/fuel_refiner_side"
+  }
+}

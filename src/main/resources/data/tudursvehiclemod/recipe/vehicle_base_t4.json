@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:diamond",
+    "minecraft:diamond",
+    "minecraft:diamond",
+    "minecraft:diamond",
+    "minecraft:gold_block",
+    "minecraft:gold_block",
+    "minecraft:emerald_block"
+  ],
+  "result": {
+    "id": "tudursvehiclemod:vehicle_base_t4",
+    "count": 1
+  }
+}

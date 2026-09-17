@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.example.tudursvehiclemod.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "PassengerDamageFactorMixin",
+    "VehicleMoveIgnoreMixin",
+    "ProjectileVehicleHitMixin",
+    "ExplosionKnockbackMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

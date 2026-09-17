@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "F": "minecraft:furnace",
+    "P": "minecraft:piston"
+  },
+  "pattern": [
+    "FFF",
+    "FPF",
+    "FFF"
+  ],
+  "result": {
+    "id": "tudursvehiclemod:fuel_refiner",
+    "count": 1
+  }
+}

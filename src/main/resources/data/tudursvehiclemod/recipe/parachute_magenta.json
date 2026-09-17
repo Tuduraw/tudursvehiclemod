@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "W": "minecraft:magenta_wool",
+    "T": "minecraft:string",
+    "L": "minecraft:leather_chestplate"
+  },
+  "pattern": [
+    "WWW",
+    "T T",
+    " L "
+  ],
+  "result": {
+    "id": "tudursvehiclemod:parachute",
+    "count": 1,
+    "components": {
+      "minecraft:dyed_color": 13061821
+    }
+  }
+}

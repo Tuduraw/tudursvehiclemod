@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "up": "tudursvehiclemod:block/station_top",
+    "down": "tudursvehiclemod:block/station_bottom",
+    "side": "tudursvehiclemod:block/station_side",
+    "particle": "tudursvehiclemod:block/station_side"
+  }
+}

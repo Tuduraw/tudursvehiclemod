@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "up": "tudursvehiclemod:block/vehicle_converter_top",
+    "down": "tudursvehiclemod:block/vehicle_converter_bottom",
+    "side": "tudursvehiclemod:block/vehicle_converter_side",
+    "particle": "tudursvehiclemod:block/vehicle_converter_side"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "entity_type": "tudursvehiclemod:parachute",
+  "model": "tudursvehiclemod:models/obj/parachute.obj",
+  "texture": "tudursvehiclemod:textures/entity/parachute.png",
+  "display_name": "Parachute",
+  "hud": "blank",
+  "scale": 1.0,
+  "width": 0.0,
+  "height": 0.0,
+  "max_health": 20.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.0,
+  "force_bounding_box": false,
+  "seats": [
+    { "name": "rider", "offset_x": 0.0, "offset_y": 0.0, "offset_z": 0.0, "driver": true }
+  ]
+}

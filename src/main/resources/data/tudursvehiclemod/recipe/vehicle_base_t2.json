@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:iron_block",
+    "minecraft:iron_block",
+    "minecraft:iron_block",
+    "minecraft:iron_block",
+    "minecraft:redstone",
+    "minecraft:redstone"
+  ],
+  "result": {
+    "id": "tudursvehiclemod:vehicle_base_t2",
+    "count": 1
+  }
+}

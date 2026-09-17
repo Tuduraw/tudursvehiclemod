@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "tudursvehiclemod:block/vehicle_converter"
+    }
+  }
+}
