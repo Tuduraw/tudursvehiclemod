@@ -304,11 +304,13 @@ public class VehicleModClient implements ClientModInitializer {
 				category
 		));
 
-		// Defaults to Left Shift.
+		// Defaults to Left Ctrl, NOT Left Shift: Left Shift is vanilla's own sneak
+		// binding, which dismounts, so binding descend there makes the two fight
+		// each other for anyone on default vanilla controls.
 		descendKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.tudursvehiclemod.descend",
 				InputUtil.Type.KEYSYM,
-				GLFW.GLFW_KEY_LEFT_SHIFT,
+				GLFW.GLFW_KEY_LEFT_CONTROL,
 				category
 		));
 

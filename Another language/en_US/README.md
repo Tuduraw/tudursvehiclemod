@@ -195,7 +195,7 @@ handing an item back, to prevent duplication.
 | T | Switch seat (previous) |
 | Alt+Y | Switch between a carrier-launched aircraft and the launching carrier |
 | Left Alt | Free look (view stops following the vehicle while held) |
-| Left Shift | Descend (helicopter/VTOL; sneak is taken by dismounting) |
+| Left Ctrl | Descend (helicopter/VTOL). Not Left Shift, since sneak - vanilla's own Left Shift - is what dismounts |
 | V | Switch a VTOL between helicopter and aircraft mode |
 | H | Open/close hatches and canopies |
 | G | Manually retract/extend landing gear |
@@ -258,7 +258,7 @@ the view is always free (as with aircraft free-look).
   unlike a ship's), and buoyancy is a continuous spring toward just below
   the searched water surface rather than a ship's own three-step discrete
   gravity switch (the discrete version oscillated near the surface)
-- **Submerged mode**: W/S throttle, A/D yaw, Space nose-up, Left Shift
+- **Submerged mode**: W/S throttle, A/D yaw, Space nose-up, Left Ctrl
   nose-down, Up/Down arrows ascend/descend without changing attitude.
   Pitch auto-levels after 5 seconds of no input (disable with manual
   mode). Roll always returns to 0 underwater
