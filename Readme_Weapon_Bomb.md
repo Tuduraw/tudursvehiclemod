@@ -9,39 +9,31 @@
 
 真下に投下する爆弾です。以下の制約・挙動があります:
 
-- **発射制限**: 機体の姿勢がほぼ水平(ピッチ・ロールいずれも±15度以内)で
-  なければ使用できません
-- 発射後は機体の速度を引き継いだ状態で開始し、`Gravity`に従って落下します
-  (固定初速は使用しません)
-- 水面に接触した瞬間に爆発します(`Explosion`/`ExplosionInWater`のいずれかが
-  設定されていれば)
+- 発射後は機体の速度を引き継いだ状態で開始し、`Gravity`に従って落下します。
+- 水面に接触した瞬間に爆発します。水中に沈降させたい場合はDepth(後述)を使用してください。
 
 **例**:
 ```
-DisplayName = Mk82 500lb Bomb
+DisplayName = 500lb Bomb
 Type = Bomb
-Power = 40
+Power = 100
 Gravity = -0.05
-Explosion = 4
-ExplosionBlock = 4
-Round = 4
-ReloadTime = 200
+Explosion = 8
+ExplosionBlock = 8
+Round = 2
+ReloadTime = 800
 ```
 
 ### `Destruct`
 - **書式**: 真偽値(既定値: `false`)
-- **説明**: `true`にすると、使用と同時に発射元の機体自身が自爆します。この
-  機体が無人機(UAV)ヘリコプターの場合のみ効果があります。
+- **説明**: `true`にすると、使用と同時に発射元の機体自身が自爆します。この機体が無人機(UAV)ヘリコプターの場合のみ効果があります。
 - **例**: `Destruct = true`
 
 ---
 
 ## `Depth`
 
-`Bomb`と全く同じ挙動・発射制限(姿勢制限含む)ですが、**水面での爆発が
-発生しません**。水中を沈み続け、実際に固体ブロック・エンティティに命中した
-場合(または他の信管設定)にのみ爆発します。`Bomb`の水面貫通版として使用
-してください。MCヘリ原作には存在しない、本プロジェクト独自のType名です。
+`Bomb`と全く同じ挙動・発射制限(姿勢制限含む)ですが、**水面での爆発が発生しません**。水中を沈み続け、実際に固体ブロック・エンティティに命中した場合(または他の信管設定)にのみ爆発します。`Bomb`の水面貫通版として使用してください。MCヘリには存在しない、本Mod独自のType名です。
 
 **例**(対潜爆弾):
 ```
@@ -50,7 +42,7 @@ Type = Depth
 Power = 30
 Gravity = -0.03
 Explosion = 3
-ExplosionInWater = 3
+ExplosionInWater = 8
 Round = 8
 ```
 
@@ -64,8 +56,8 @@ Round = 8
 **例**:
 ```
 Type = Bomb
-Bomblet = 25
-BombletSTime = 5
-BombletDiff = 0.7
-ModelBomblet = cbc
+Bomblet = 30
+BombletSTime = 6
+BombletDiff = 0.8
+ModelBomblet = samplebomblet
 ```
