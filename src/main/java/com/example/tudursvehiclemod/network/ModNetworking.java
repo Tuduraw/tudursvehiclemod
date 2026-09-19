@@ -647,21 +647,12 @@ public class ModNetworking {
 		ServerPlayNetworking.registerGlobalReceiver(
 				com.example.tudursvehiclemod.network.MobDropTriggerPayload.ID, (payload, context) ->
 				context.server().execute(() -> {
-					org.slf4j.LoggerFactory.getLogger("VehicleMod/Entity").info(
-							"[ParachuteDebug] MobDropTriggerPayload received from {}", context.player().getName().getString());
 					Entity effectiveVehicle = com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$getEffectiveVehicle(context.player());
 					if (effectiveVehicle instanceof AbstractVehicleEntity vehicle) {
 						int seatIndex = vehicle.tudursvehiclemod$getAssignedSeatIndex(context.player());
-						org.slf4j.LoggerFactory.getLogger("VehicleMod/Entity").info(
-								"[ParachuteDebug] MobDropTriggerPayload: effective vehicle is {}, requester's own assigned seat index={} (must be 0 to proceed)",
-								vehicle.getClass().getSimpleName(), seatIndex);
 						if (seatIndex == 0) {
 							vehicle.tudursvehiclemod$tryTriggerMobDrop();
 						}
-					} else {
-						org.slf4j.LoggerFactory.getLogger("VehicleMod/Entity").info(
-								"[ParachuteDebug] MobDropTriggerPayload: tudursvehiclemod$getEffectiveVehicle() returned {} (not an AbstractVehicleEntity at all)",
-								effectiveVehicle == null ? "null" : effectiveVehicle.getClass().getSimpleName());
 					}
 				}));
 

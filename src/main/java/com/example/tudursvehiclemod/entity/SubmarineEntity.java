@@ -274,11 +274,13 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		float targetRate = pitchUp ? -DIVE_PITCH_RATE_PER_TICK : (pitchDown ? DIVE_PITCH_RATE_PER_TICK : 0f);
 		this.smoothedPitchRate += (targetRate - this.smoothedPitchRate) * PITCH_RATE_SMOOTHING;
 
-		if (pitchUp || pitchDown) {
+		if (pitchUp || pitchDown || this.isManualMode()) {
 			this.noPitchInputTicks = 0;
-			float newPitch = MathHelper.clamp(this.getPitch() + this.smoothedPitchRate,
-					-MAX_DIVE_PITCH_DEGREES, MAX_DIVE_PITCH_DEGREES);
-			this.setPitch(newPitch);
+			if (pitchUp || pitchDown) {
+				float newPitch = MathHelper.clamp(this.getPitch() + this.smoothedPitchRate,
+						-MAX_DIVE_PITCH_DEGREES, MAX_DIVE_PITCH_DEGREES);
+				this.setPitch(newPitch);
+			}
 		} else {
 			this.noPitchInputTicks++;
 			if (this.noPitchInputTicks >= LEVEL_ASSIST_GRACE_TICKS) {

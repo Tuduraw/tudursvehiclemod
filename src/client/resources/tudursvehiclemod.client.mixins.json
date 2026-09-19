@@ -12,8 +12,7 @@
     "HeldItemRendererMixin",
     "RenderLayerFactoryInvoker",
     "WorldRendererLightmapMixin",
-    "EntityRendererLightMixin",
-    "ClientPlayNetworkHandlerMixin"
+    "EntityRendererLightMixin"
   ],
   "injectors": {
     "defaultRequire": 1

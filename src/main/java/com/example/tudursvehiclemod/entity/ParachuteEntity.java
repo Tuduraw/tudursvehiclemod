@@ -99,9 +99,6 @@ public class ParachuteEntity extends AbstractVehicleEntity {
 	protected void updateVehicleMovement(VehicleDefinition def) {
 		int currentPassengerCount = this.tudursvehiclemod$getRealPassengerList().size();
 		if (currentPassengerCount != this.lastKnownPassengerCount) {
-			org.slf4j.LoggerFactory.getLogger("VehicleMod/Entity").info(
-					"[ParachuteDebug] ParachuteEntity {} tick: passenger count changed {} -> {} (age={}, landedTicks={})",
-						this.getUuid(), this.lastKnownPassengerCount, currentPassengerCount, this.age, this.landedTicks);
 			this.lastKnownPassengerCount = currentPassengerCount;
 		}
 		// Per LANDED_DISMOUNT_DELAY_TICKS' own doc: once this entity has fully finished its own landing sequence, it's an inert, vacant leftover - no descent physics run at all any more, it just sits exactly where it settled until someone actually interacts with it (recovery), it auto-itemizes/discards after VACANT_AUTO_ITEMIZE_TICKS, or it happens to be destroyed by ordinary vehicle damage.
@@ -145,11 +142,6 @@ public class ParachuteEntity extends AbstractVehicleEntity {
 			this.setVelocity(newHorizontalX, newVerticalSpeed, newHorizontalZ);
 			this.move(MovementType.SELF, this.getVelocity());
 			if (this.isOnGround()) {
-				if (!this.getEntityWorld().isClient()) {
-					org.slf4j.LoggerFactory.getLogger("VehicleMod/Entity").info(
-							"[ParachuteDebug] ParachuteEntity {} isOnGround became true at age={} (position={}, passengers={})",
-							this.getUuid(), this.age, this.getEntityPos(), this.tudursvehiclemod$getRealPassengerList().size());
-				}
 				this.landedTicks = 0;
 			}
 			return;
@@ -204,15 +196,10 @@ public class ParachuteEntity extends AbstractVehicleEntity {
 		}, net.minecraft.util.math.BlockPos.ofFloored(position.x, position.y, position.z),
 				net.minecraft.entity.SpawnReason.TRIGGERED, false, false);
 		if (spawned == null) {
-			org.slf4j.LoggerFactory.getLogger("VehicleMod/Entity").info(
-					"[ParachuteDebug] spawnAndMount: EntityType.create() returned null - the parachute vehicle definition may have failed to resolve");
 			return;
 		}
 		spawned.setPosition(position.x, position.y, position.z);
 		world.spawnEntity(spawned);
 		boolean mounted = spawned instanceof AbstractVehicleEntity vehicle && vehicle.tudursvehiclemod$mountToSeat(rider, 0);
-		org.slf4j.LoggerFactory.getLogger("VehicleMod/Entity").info(
-				"[ParachuteDebug] spawnAndMount: spawned ParachuteEntity {} at {}, mountToSeat(rider={}, seat 0) succeeded={}",
-				spawned.getUuid(), position, rider.getClass().getSimpleName(), mounted);
 	}
 }
