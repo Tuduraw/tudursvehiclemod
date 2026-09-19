@@ -10,6 +10,11 @@ MCヘリコプターやFlan's Modのような「乗り物MOD」を、**JSON定�
 
 > **重要**: アドオンパックの作成にあたっては、他者が権利を有するモデル・データの取り扱いについて`GUIDELINES.md`を必ず確認してください。MCヘリ向けに公開されている拡張パックの変換にも制限があります。
 
+リンク：
+CurseForge(Tudur's Vehicle Mod配布ページ) - https://www.curseforge.com/minecraft/mc-mods/tudurs-vehicle
+バイクアドオンmod(アドオンModの実装例) - https://github.com/Tuduraw/motorcycleaddon
+サンプルアドオンパック(拡張パックの実装例) - https://github.com/Tuduraw/sample_pack_for_tudurs_vehicle
+
 このドキュメント(`README.md`)は開発者向けのアーキテクチャ資料です。**アドオンパック製作者向けの、設定可能な全項目の詳細な一覧**は以下を参照してください:
 
 - `GUIDELINES.md` — 利用ガイドライン(権利の取り扱い・表現に関する注意)
