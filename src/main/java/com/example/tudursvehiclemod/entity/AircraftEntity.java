@@ -306,6 +306,16 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		return new Quaternionf(this.orientation);
 	}
 
+	/** Render-interpolated counterpart - see AbstractVehicleEntity's own tudursvehiclemod$getBodyOrientation(float)
+	 * doc for why this overload exists at all. Same slerp getYaw(float)/getPitch(float) already use,
+	 * so the renderer's own mesh transform gets exactly the same smooth, gimbal-free interpolation
+	 * those two already provide per-axis - now delivered as one combined rotation instead of three
+	 * independently-extracted (and therefore independently gimbal-sensitive) angles. */
+	@Override
+	public Quaternionf tudursvehiclemod$getBodyOrientation(float tickDelta) {
+		return new Quaternionf(this.prevOrientation).slerp(this.orientation, tickDelta);
+	}
+
 	@Override
 	protected void onPilotMounted() {
 		super.onPilotMounted();

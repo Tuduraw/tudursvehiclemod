@@ -59,6 +59,21 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 		state.renderYOffset = entity.getRenderYOffset(tickProgress);
 		float sinkingRoll = entity.tudursvehiclemod$getSinkingRenderRoll(tickProgress);
 		state.roll = Float.isNaN(sinkingRoll) ? entity.getRoll(tickProgress) : sinkingRoll;
+		// Sinking's own attitude is a closed-form yaw/pitch/roll triple (see the sinkingPitch/
+		// sinkingRoll doc above), never a quaternion of its own - composing state's own already-
+		// resolved three angles here (rather than calling entity.tudursvehiclemod$getBodyOrientation(float),
+		// which for AircraftEntity/VtolEntity would ignore the sinking override entirely and return
+		// their own still-live flight orientation instead) is what keeps a sinking aircraft settling
+		// flat exactly as sinkingPitch/sinkingRoll intend, instead of hanging in whatever attitude it
+		// was destroyed at.
+		if (!Float.isNaN(sinkingPitch) || !Float.isNaN(sinkingRoll)) {
+			state.bodyOrientation = new org.joml.Quaternionf()
+					.rotationY((float) Math.toRadians(-state.yaw))
+					.rotateX((float) Math.toRadians(state.pitch))
+					.rotateZ((float) Math.toRadians(state.roll));
+		} else {
+			state.bodyOrientation = entity.tudursvehiclemod$getBodyOrientation(tickProgress);
+		}
 		state.spinningParts = def.spinningParts();
 		if (!def.spinningParts().isEmpty()) {
 			java.util.Map<String, Float> phase = new java.util.HashMap<>();
@@ -246,12 +261,15 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 		// since "up" should mean the same thing regardless of the
 		// vehicle's own current yaw/pitch/roll.
 		matrices.translate(0.0, state.renderYOffset, 0.0);
-		// Model space forward is +Z (MC Heli's own convention, and what this project's OBJ pipeline assumes).
-		matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-state.yaw));
-		// Nose up/down - only meaningfully non-zero for aircraft/helicopter/submarine, which set their pitch from the pilot's view direction (see followPilotView()), and now also Recoil's own real physical kick (see AbstractVehicleEntity's own tudursvehiclemod$updateRecoilShakePhysics() doc) - baked directly into this vehicle's own actual pitch, so no separate render-only handling is needed here at all.
-		matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(state.pitch));
-		// Cosmetic bank/tilt (aircraft/helicopters only.
-		matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(state.roll));
+		// Model space forward is +Z (MC Heli's own convention, and what this project's OBJ pipeline
+		// assumes). One combined rotation rather than three separate yaw/pitch/roll multiplies -
+		// see VehicleRenderState's own bodyOrientation doc, and AbstractVehicleEntity's own
+		// tudursvehiclemod$getBodyOrientation(float) doc, for why: for Car/Ship/Submarine/Helicopter
+		// this is built from exactly the same three angles the old code multiplied in directly
+		// (identical rendered result), but for AircraftEntity/VtolEntity it is that class's own
+		// already-interpolated native quaternion, with no yaw/pitch/roll decomposition - and
+		// therefore no gimbal-lock-adjacent jitter - in between.
+		matrices.multiply(state.bodyOrientation);
 		matrices.scale(state.scale, state.scale, state.scale);
 
 		ObjModelLoader.get(state.model).ifPresent(model -> {
@@ -689,36 +707,58 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 	private static final float WAKE_STERN_TILE_SIZE = 1.6f;
 	/** Smaller than the main bow/stern tiles, for a subtler "just looks about right" turbulent band along the hull's own sides (see AbstractVehicleEntity's own tudursvehiclemod$updateWakeTrail() doc for how these points are generated). */
 	private static final float WAKE_SIDE_TILE_SIZE = 0.7f;
-	/** A tile's own texture/tint stays at this fixed alpha (0-255) for its ENTIRE life, right up until it is removed at its own despawn tick - it does not fade with age. The prior graduated per-age-band fade required genuine alpha blending to look right; run through this mod's own cutout-style render layer (used here for the same water-sorting reasons the vehicle's own translucent parts use it - true alpha blending sorts poorly against water) a fading alpha doesn't fade at all, it just disappears outright once below the pipeline's own cutout threshold. The sinking motion (see tudursvehiclemod$renderWakeTiles()'s own sink-phase doc) is what now carries the "fading away" effect instead - a tile visually recedes by sinking, not by becoming transparent. */
-	private static final int WAKE_TILE_ALPHA = 160;
+	/** Age bands for fading tiles (renderTriangles only takes one tint color per batch). */
+	private static final int WAKE_TILE_AGE_BANDS = 4;
+	/** Peak alpha (0-255) for the newest band; fades to 0 for the oldest. */
+	private static final int WAKE_TILE_PEAK_ALPHA = 160;
 
-	/** Computes a wake tile's lateral offset distance. Two additive terms: (1) forward-speed-based divergence at a fixed wake angle (Kelvin-wake-inspired), and (2) for the inner side only, a rotational term from this point's own end's distance from the vehicle's rotation origin (rigid-body kinematics: lever arm x turn rate), scaled by WAKE_INNER_ROTATION_STRENGTH for visibility. Grows without bound for as long as the tile exists - that continued outward growth IS the Kelvin wake's own natural look, so nothing here caps it; the caller decides sink/despawn timing separately (anchored to maxAgeTicks, not to how far this has travelled - see that call site's own doc). See IMPLEMENTATION_NOTES.md "Wake Trail" section for full design history and rationale. */
-	private static double tudursvehiclemod$computeWakeOffsetDistance(long elapsedTicks, float referenceSpeed, double angleRad, boolean isInner, float leverArm, float innerBoostSigned) {
+	/** Computes a wake tile's lateral offset distance. Two additive terms: (1) forward-speed-based divergence at a fixed wake angle (Kelvin-wake-inspired), and (2) for the inner side only, a rotational term from this point's own end's distance from the vehicle's rotation origin (rigid-body kinematics: lever arm x turn rate), scaled by WAKE_INNER_ROTATION_STRENGTH for visibility. See IMPLEMENTATION_NOTES.md "Wake Trail" section for full design history and rationale. */
+	private static WakeOffsetResult tudursvehiclemod$computeWakeOffsetDistance(long elapsedTicks, float referenceSpeed, double angleRad, boolean isInner, float leverArm, float innerBoostSigned, float maxDistance) {
 		double rawDistance = elapsedTicks * referenceSpeed * Math.tan(angleRad);
 		if (isInner) {
 			double turnRateRadPerTick = Math.toRadians(Math.abs(innerBoostSigned));
 			rawDistance += elapsedTicks * leverArm * turnRateRadPerTick * WAKE_INNER_ROTATION_STRENGTH;
 		}
-		return rawDistance;
+		// RawDistance is allowed to keep growing past maxDistance - this overshoot drives sinkProgress (0 at the cap, growing from there), which tudursvehiclemod$renderWakeTiles() turns into a gradually increasing downward Y offset before finally despawning the tile.
+		// Per a further direct request ("タイルの沈降速度をゆるめ、代わりに下限をなくしてください" - slow down the tile's own sinking speed, and remove the lower bound instead): sinkProgress is no longer clamped to a max of 1 here - it keeps growing without bound as overshoot itself keeps growing, rather than settling at a fixed depth once it reaches the old cap. tudursvehiclemod$renderWakeTiles() now applies its own SLOWER rate to this unbounded value, and despawns only once it crosses its own separate, explicit threshold (WAKE_BOW_SINK_DESPAWN_PROGRESS) - a genuinely gradual, ongoing sink rather than "reach a fixed depth and idle there until removed."
+		// Per a further direct report ("目標距離到達で沈み始める際に..船体に対して並行の向きに切り替わりますが、これは不自然..到達距離は沈降および消滅に関連するトリガー発生位置とし、波としての動き自体は維持する" - upon reaching the target and starting to sink, the tile switches to a direction parallel to the hull, which looks unnatural; the target distance should only serve as the trigger for sinking/despawning, while the wave's own motion is preserved): the returned distance is no longer capped at maxDistance either - every tile that has reached its own target used to freeze at the exact same lateral offset from then on, so a whole run of "capped" tiles (all differently-aged, but all pinned to the identical maxDistance) visually flattened into a line running parallel to the hull's own path, instead of continuing the Kelvin wake's own natural outward-angling sweep. maxDistance is now used ONLY to compute sinkProgress (the sink/despawn trigger) below - the tile's own lateral (and, for inner tiles, backward) motion keeps growing with rawDistance exactly as it always did before reaching the target, uninterrupted.
+		double overshoot = rawDistance - maxDistance;
+		double sinkRange = maxDistance * WAKE_SINK_OVERSHOOT_FRACTION;
+		double sinkProgress = sinkRange > 0.0 ? overshoot / sinkRange : (overshoot > 0.0 ? 1.0 : 0.0);
+		sinkProgress = Math.max(0.0, sinkProgress);
+		return new WakeOffsetResult(rawDistance, sinkProgress);
 	}
 
-	/** The fraction of a wake tile's own effective max age (maxAgeTicks, i.e. the vehicle's own configured wake_trail_duration_ticks) spent BEFORE sinking begins - shared by bow, stern, and side alike (the sink itself starts at this point and grows without bound afterward - see WAKE_SINK_RATE_PER_TICK's own doc - rather than being confined to a fixed remaining fraction of the tile's own life). Time-anchored rather than distance-anchored so the full configured duration is always honored regardless of this vehicle's own speed - see tudursvehiclemod$renderWakeTiles()'s own doc for what this replaced for bow specifically, and why. */
-	private static final double WAKE_SINK_AGE_FRACTION = 0.15;
+	/** How far past maxDistance (as a fraction of maxDistance itself) rawDistance needs to grow, after reaching the cap, for sinkProgress to advance by 1 full unit - see tudursvehiclemod$computeWakeOffsetDistance()'s own doc. */
+	private static final double WAKE_SINK_OVERSHOOT_FRACTION = 0.15;
+
+	/** How far (world-space blocks) a bow tile sinks per unit of its own UNBOUNDED sinkProgress - see tudursvehiclemod$computeWakeOffsetDistance()'s own doc. Lowered from an earlier 0.5 (which was itself the fixed total depth reached at sinkProgress=1, under the old hard cap) - this is now a per-unit RATE instead, deliberately smaller so the same visual depth is reached more gradually, over a genuinely longer stretch of sinkProgress rather than instantly capping there. */
+	private static final double WAKE_SINK_RATE_PER_PROGRESS = 0.15;
+
+	/** SinkProgress itself no longer caps at 1 - a bow tile instead despawns once it crosses THIS separate, explicit threshold instead, several times further past the target than the old fixed cap, for a genuinely more gradual sink before finally disappearing. */
+	private static final double WAKE_BOW_SINK_DESPAWN_PROGRESS = 3.0;
+
+	/** The fraction of a stern/side tile's own effective max age spent BEFORE sinking begins at all - the sink itself starts at this point and grows without bound afterward (see WAKE_SINK_RATE_PER_TICK's own doc), rather than being confined to a fixed remaining fraction of the tile's own life. */
+	private static final double WAKE_STERN_SINK_AGE_FRACTION = 0.15;
 
 	/** The maximum magnitude (degrees, either direction) the stern chase's own linear turn-rate extrapolation is allowed to reach, regardless of how large gapDelayTicks x innerBoostSigned itself computes to. 180 degrees (half a full rotation) is already an extreme amount of sustained turning for this extrapolation's own short gapDelayTicks window to assume plausible - capping there avoids the worst-case wrap-past-a-full-rotation estimates a sharp, slow turn could otherwise produce. */
 	private static final float WAKE_STERN_CHASE_MAX_EXTRAPOLATION_DEG = 180f;
 
-	/** How far (world-space blocks) a stern/side/bow tile sinks per TICK once it's entered its own sink phase (see tudursvehiclemod$renderWakeTiles()'s own doc for how that start point and this rate combine into an unbounded, ongoing sink) - a genuine per-tick rate, not a value confined to any fixed window. */
+	/** How far (world-space blocks) a stern/side tile sinks per TICK once it's entered its own sink phase (see tudursvehiclemod$renderWakeTiles()'s own doc for how that start point and this rate combine into an unbounded, ongoing sink) - a genuine per-tick rate, not a value confined to any fixed window. */
 	private static final double WAKE_SINK_RATE_PER_TICK = 0.025;
 
-	/** How many ticks after entering its own sink phase a BOW or STERN tile takes to fully despawn (shared by both - see tudursvehiclemod$renderWakeTiles()'s own doc for how this combines with WAKE_SINK_RATE_PER_TICK). 200 ticks = 10 seconds, applied identically whether this vehicle is currently moving or stopped - neither has any stopped-specific special case at all (see tudursvehiclemod$renderWakeRibbon()'s own doc), unlike the side band. Kept within WAKE_SINK_AGE_FRACTION's own remaining share of a typical wakeTrailDurationTicks (roughly 300 ticks by default) so the sink animation still has room to complete before this vehicle's own normal age-based pruning removes it regardless - a vehicle configured with a notably shorter wakeTrailDurationTicks than the default may need this value revisited. */
-	private static final long WAKE_MAIN_SINK_DESPAWN_TICKS = 200;
+	/** How many ticks after entering its own sink phase a STERN tile takes to fully despawn - see tudursvehiclemod$renderWakeTiles()'s own doc for how this combines with WAKE_SINK_RATE_PER_TICK. 200 ticks = 10 seconds, applied identically whether this vehicle is currently moving or stopped - the stern no longer has any stopped-specific special case at all (see tudursvehiclemod$renderWakeRibbon()'s own doc), unlike the side band. Kept within WAKE_STERN_SINK_AGE_FRACTION's own remaining share of a typical wakeTrailDurationTicks (roughly 300 ticks by default) so a stern tile's own sink animation still has room to complete before this vehicle's own normal age-based pruning removes it regardless - a vehicle configured with a notably shorter wakeTrailDurationTicks than the default may need this value revisited. */
+	private static final long WAKE_STERN_SINK_DESPAWN_TICKS = 200;
 
 	/** Per a further direct request ("側面帯について、沈み始めてから1秒ほどで消滅するようにしたい" - the side band should disappear about 1 second after it starts sinking): how many ticks after entering its own sink phase a SIDE-BAND tile takes to fully despawn - see tudursvehiclemod$renderWakeTiles()'s own doc. 20 ticks = 1 second exactly, as requested. */
 	private static final long WAKE_SIDE_SINK_DESPAWN_TICKS = 20;
 
 	/** Multiplier on the inner side's rotational term. A tile reaches its own target distance at elapsedTicks = target / (leverArm x turnRate x this value) - raising this makes tiles reach their target SOONER (closer to the leading end, since less ship-travel-time has passed), lowering it makes them take LONGER (further toward the trailing end before despawning). Lowered from an earlier 2.0 per report ("手前に寄りすぎる" - the visible spread leans too far toward the leading end) - the earlier value reached the (also-enlarged) cap too quickly. */
 	private static final double WAKE_INNER_ROTATION_STRENGTH = 1.0;
+
+	/** distance: current lateral offset, no longer capped at the target either (see tudursvehiclemod$computeWakeOffsetDistance()'s own doc for why - the target is now purely a sink/despawn trigger, not a position clamp). sinkProgress: 0 while still growing normally, growing WITHOUT bound past that once the tile starts sinking. */
+	private record WakeOffsetResult(double distance, double sinkProgress) {
+	}
 
 	/** Rotates a local (x,z) offset by a yaw-only rotation (degrees) into a world-space direction, deduplicating the same inline cos/sin pattern that used to appear 4 separate times within tudursvehiclemod$renderWakeTiles() alone (the stern chase's own chase/creation offsets, plus the main tile's own perpX/Z and backwardX/Z basis vectors). Matches this project's own established local-to-world convention (compare AbstractVehicleEntity's own tudursvehiclemod$updateWakeTrail() perpPlusX/Z derivation) - yaw=0 pointing toward +Z local/world.
 	 *
@@ -734,6 +774,12 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 	/** Wake divergence angle (degrees). Exaggerated well past the real Kelvin angle (~19.5 deg) for visibility. */
 	private static final double WAKE_ANGLE_DEG = 30.0;
 
+	/** Global multiplier on the wake's target reaching distance. */
+	private static final float WAKE_DISTANCE_MULTIPLIER = 3.0f;
+
+	/** Extra multiplier on top of WAKE_DISTANCE_MULTIPLIER, for the inner side only - gives it more room to spread before hitting the despawn cap, reducing the "piling up at an early cap" look reported as too dense. */
+	private static final float WAKE_INNER_DISTANCE_MULTIPLIER = 1.5f;
+
 	/** Ratio of backward (toward-stern) drift to lateral drift, for the inner side only. Without this, a tile's own trajectory is purely perpendicular to its own creation yaw and never has any toward-stern character regardless of distance or elapsed time - per report, this was the actual issue, not timing. 0.7 gives a diagonal sweep (not purely sideways, not purely backward). */
 	private static final double WAKE_INNER_BACKWARD_RATIO = 0.7;
 
@@ -744,7 +790,10 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 		if (history.isEmpty()) {
 			return;
 		}
-		List<ObjModel.Vertex> tris = new java.util.ArrayList<>();
+		List<List<ObjModel.Vertex>> bands = new java.util.ArrayList<>();
+		for (int i = 0; i < WAKE_TILE_AGE_BANDS; i++) {
+			bands.add(new java.util.ArrayList<>());
+		}
 		float halfSize = tileSize * 0.5f;
 		// Four scratch arrays allocated ONCE per call to this method, reused across every tile in the loop below - replacing what used to be up to four freshly allocated double[] per tile per frame. Safe to share this way because each is fully consumed immediately after the rotate call that fills it, before the next one runs.
 		double[] perpScratch = new double[2];
@@ -753,6 +802,7 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 		double[] creationScratch = new double[2];
 		for (AbstractVehicleEntity.WakeHistoryPoint p : history) {
 			long elapsedTicks = currentWorldTick - p.tick();
+			float ageFraction = net.minecraft.util.math.MathHelper.clamp((float) elapsedTicks / (float) maxAgeTicks, 0f, 1f);
 			double lateralOffset = 0.0;
 			double backwardOffset = 0.0;
 			double sinkDepth = 0.0;
@@ -761,26 +811,36 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 			float edgeOffsetThisSide = side > 0 ? p.edgeOffsetPlus() : p.edgeOffsetMinus();
 			if (side != 0.0) {
 				boolean isInner = (p.innerBoostSigned() > 0 && side > 0) || (p.innerBoostSigned() < 0 && side < 0);
+				float effectiveMaxDistance = p.spreadDistance() * WAKE_DISTANCE_MULTIPLIER * (isInner ? WAKE_INNER_DISTANCE_MULTIPLIER : 1.0f);
 				double angleRad = Math.toRadians(WAKE_ANGLE_DEG);
-				// distance keeps growing unbounded for this tile's entire life - that continued outward
-				// growth IS the Kelvin-wake spreading look, not a bug.
-				double distance = tudursvehiclemod$computeWakeOffsetDistance(elapsedTicks, p.referenceSpeed(), angleRad, isInner, p.leverArm(), p.innerBoostSigned());
+				WakeOffsetResult result = tudursvehiclemod$computeWakeOffsetDistance(elapsedTicks, p.referenceSpeed(), angleRad, isInner, p.leverArm(), p.innerBoostSigned(), effectiveMaxDistance);
+				// Despawns only once this crosses WAKE_BOW_SINK_DESPAWN_PROGRESS now, not the old fixed 1.0 - sinkProgress itself keeps growing unbounded past that in the meantime.
+				if (result.sinkProgress() >= WAKE_BOW_SINK_DESPAWN_PROGRESS) {
+					continue;
+				}
+				sinkDepth = result.sinkProgress() * WAKE_SINK_RATE_PER_PROGRESS;
 				// Immediate baseline offset from this end's own actual edge position (see WakeHistoryPoint's own edgeOffsetPlus/edgeOffsetMinus doc) - added on top of, not replacing, the usual growth. 0 for stern tiles and for a genuinely pointed bow. Uses this side's own actual value (not a shared/averaged magnitude - see that same doc for why that used to cause an asymmetric overshoot on one side for a wide bow).
-				lateralOffset = (distance + edgeOffsetThisSide) * side;
+				lateralOffset = (result.distance() + edgeOffsetThisSide) * side;
 				if (isInner) {
 					// Inner tiles also drift toward the stern, proportional to their own lateral offset - without this, a tile's own trajectory is purely sideways and the wake shape has no toward-stern character at all, regardless of distance or elapsed time.
-					backwardOffset = distance * WAKE_INNER_BACKWARD_RATIO;
+					backwardOffset = result.distance() * WAKE_INNER_BACKWARD_RATIO;
 				}
 			} else {
-				// Per a further direct request (see WakeHistoryPoint's own sternGapDelayTicks doc for the fuller rationale): a STERN-band point's own sink-start timing (see the shared computation below) is delayed by this estimate of how long this hull's own actual stern tip takes to physically reach this same world position after this point's own creation. 0 for the side band (and for bow, entirely outside this branch), so this has no effect on either.
+				// Stern/side tiles have no target-reaching-distance concept at all (no lateral growth, side==0), so there's no overshoot to drive a sink from the way the bow's own does. Instead, this tile enters its own sink phase once its own age passes the last WAKE_STERN_SINK_AGE_FRACTION of maxAgeTicks, then sinks at a constant WAKE_SINK_RATE_PER_TICK (unbounded, no fixed depth cap), and finally despawns once ticksSinceSinkStart crosses sinkDespawnTicks - a value the caller passes in per element (stern gets a longer grace period, the side band a short, specific ~1s one - see tudursvehiclemod$renderWakeRibbon()'s own doc for the actual values each gets).
+				// Per a further direct request ("船尾側の航跡について..生成位置から実際の船尾までの距離分の補正を考慮できるようにしたい..移動速度から推定する" - see WakeHistoryPoint's own sternGapDelayTicks doc for the fuller rationale): a STERN-band point's own sink-start timing is delayed by this estimate of how long this hull's own actual stern tip takes to physically reach this same world position after this point's own creation. 0 for the side band, so this has no effect on it at all.
 				//
-				// This point's own local (pre-rotation) offset is re-rotated by an "effective yaw" (see below) instead of using the fixed world position recorded at creation - tracking a turn instead of assuming this hull travelled in a straight line, anchored at THIS point's own creation-time vehicle position (reconstructed by subtracting this point's own local offset, rotated by ITS OWN creation yaw, back out of its own recorded p.x()/p.z()) so it stays anchored where this specific point actually was rather than collapsing every same-age-band point onto the vehicle's own current position.
+				// This used to be recomputed HERE, every single frame, from p.sternGapDistance() / p.referenceSpeed() - but referenceSpeed keeps ratcheting upward for as long as this vehicle keeps accelerating after this point was already created, so this estimate kept shrinking unstably over this SAME point's own lifetime instead of staying fixed. Now read directly as the already-resolved, genuinely fixed sternGapDelayTicks field instead - no division, no live referenceSpeed dependency, here at all anymore.
+				long gapDelayTicks = (long) p.sternGapDelayTicks();
+				// Per a further direct request ("旋回時に対応するため..最大幅区間の船尾側終端までの遷移中は船側のYaw変化に連動するようにできますか。船尾側終端に達した時点で連動を解除し、従来どおりその場に残り続ける" - see WakeHistoryPoint's own sternLocalOffsetX/Z doc for the fuller rationale): this point's own local (pre-rotation) offset is re-rotated by an "effective yaw" (see below) instead of using the fixed world position recorded at creation - tracking a turn instead of assuming this hull travelled in a straight line.
 				//
-				// Freezes at an ESTIMATE of this vehicle's own yaw at the moment of detachment (extrapolated from this point's own creation yaw plus its own turn rate at that same moment, held constant across the gapDelayTicks window) once past gapDelayTicks, so a later, unrelated turn can no longer disturb an already-detached point.
+				// An earlier version anchored the re-rotated offset at this vehicle's own CURRENT position (originX/Z) - every point used that SAME current origin regardless of its own age, so several differently-aged points recorded at the SAME local band position (the band pattern repeats every generation) all collapsed onto the exact same world spot instead of trailing behind it. Fixed by anchoring at THIS point's own creation-time vehicle position instead - reconstructed by subtracting this point's own local offset, rotated by ITS OWN creation yaw (p.yaw()), back out of its own recorded p.x()/p.z(). Re-adding that same local offset rotated by the effective yaw gives a position that still corrects for a turn, but stays anchored where this specific point actually was - when the effective yaw equals p.yaw() this reduces exactly back to p.x()/p.z(), unchanged.
+				//
+				// Per a further direct report ("追随位置を保ったまま、追随終了時に静止すればよい話です。追随のない静止位置は視覚上不適切なため、追随処理を加えています" - keep the chase position and simply go static once chasing ends; the un-chased static position is itself visually inappropriate, which is exactly why chasing was added in the first place): a prior version applied this re-rotation unconditionally for this entire point's own life, expecting it to "settle" naturally once this vehicle's own yaw itself stopped changing. That assumption only held if this vehicle NEVER turned again afterward - a later, separate turn made EVERY existing stern point, however old, swing around again to match it, since nothing here ever stopped depending on the live current yaw at all.
+				//
+				// Per a further direct report ("追随処理が残存しつづけているように思います。追随終了処理が発動しているか確認してください" - the chase processing appears to keep persisting; check whether the chase-end processing is actually firing): confirmed - there was no genuine chase-end at all in that version. Fixed by gating on elapsedTicks < gapDelayTicks again (a genuine, permanent freeze the instant that's crossed), but this time avoiding the earlier "revert to the bad un-chased p.x()/p.z()" problem by freezing at an ESTIMATE of this vehicle's own yaw at the moment of detachment instead - extrapolated from this point's own creation yaw (p.yaw()) plus its own turn rate at that same moment (innerBoostSigned, already stored, degrees/tick), held constant across the (typically short) gapDelayTicks window. Reasonably close to the live yaw actually would have been right at that boundary (so the transition itself stays close to continuous) without requiring any new stored data or per-tick entity-side bookkeeping - and once past the threshold, this stops depending on the live currentYaw entirely, so a later, unrelated turn can no longer disturb it.
+				double localX = p.sternLocalOffsetX();
+				double localZ = p.sternLocalOffsetZ();
 				if (applySternChase) {
-					long gapDelayTicks = (long) p.sternGapDelayTicks();
-					double localX = p.sternLocalOffsetX();
-					double localZ = p.sternLocalOffsetZ();
 					float effectiveYawDeg;
 					if (elapsedTicks < gapDelayTicks) {
 						effectiveYawDeg = currentYaw;
@@ -796,25 +856,13 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 					effectiveX = creationVehicleX + chaseScratch[0];
 					effectiveZ = creationVehicleZ + chaseScratch[1];
 				}
+				long sinkStartTick = (long) ((1.0 - WAKE_STERN_SINK_AGE_FRACTION) * maxAgeTicks) + gapDelayTicks;
+				long ticksSinceSinkStart = Math.max(0L, elapsedTicks - sinkStartTick);
+				if (ticksSinceSinkStart >= sinkDespawnTicks) {
+					continue;
+				}
+				sinkDepth = ticksSinceSinkStart * WAKE_SINK_RATE_PER_TICK;
 			}
-			// Sink-then-despawn timing, UNIFIED across bow/stern/side: this tile enters its own sink
-			// phase once its own age passes the last WAKE_SINK_AGE_FRACTION of maxAgeTicks (offset by
-			// this point's own sternGapDelayTicks() - 0 for bow and side, a real value only for a
-			// genuine stern point), then sinks at a constant WAKE_SINK_RATE_PER_TICK (unbounded, no
-			// fixed depth cap), and finally despawns once past sinkDespawnTicks - a value the caller
-			// passes in per call (bow and stern share the same longer grace period, the side band its
-			// own short, specific ~1s one - see tudursvehiclemod$renderWakeRibbon()'s own doc for the
-			// actual values each gets). Previously bow ran its own separate, identically-valued copy of
-			// this same formula; unified here since a bow point's own gapDelayTicks is always 0, making
-			// the two formulas produce identical results in every case - one implementation instead of
-			// two that would otherwise need to be kept in sync by hand.
-			long gapDelayTicksForSink = (long) p.sternGapDelayTicks();
-			long sinkStartTick = (long) ((1.0 - WAKE_SINK_AGE_FRACTION) * maxAgeTicks) + gapDelayTicksForSink;
-			long ticksSinceSinkStart = Math.max(0L, elapsedTicks - sinkStartTick);
-			if (ticksSinceSinkStart >= sinkDespawnTicks) {
-				continue;
-			}
-			sinkDepth = ticksSinceSinkStart * WAKE_SINK_RATE_PER_TICK;
 			tudursvehiclemod$rotateYawOnly(1.0, 0.0, p.yaw(), perpScratch);
 			double perpX = perpScratch[0];
 			double perpZ = perpScratch[1];
@@ -828,6 +876,8 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 			float bx = tileX + halfSize, bz = tileZ - halfSize;
 			float cx = tileX + halfSize, cz = tileZ + halfSize;
 			float dx = tileX - halfSize, dz = tileZ + halfSize;
+			int band = net.minecraft.util.math.MathHelper.clamp((int) (ageFraction * WAKE_TILE_AGE_BANDS), 0, WAKE_TILE_AGE_BANDS - 1);
+			List<ObjModel.Vertex> tris = bands.get(band);
 			// Per a further direct report ("左右非対称な場合はわざわざ平均とせず、左右それぞれの角度を使用する" - use each side's own actual angle for an asymmetric hull, instead of averaging): picks p.moundSpreadAnglePlusDeg()/moundTiltPlusX/Z for side>0, or the Minus equivalents for side<0 - see AbstractVehicleEntity's own tudursvehiclemod$updateWakeTrail() doc for exactly how Plus/Minus was assigned to left/right at creation time. A symmetric hull naturally ends up with the same values on both sides anyway, so this changes nothing there.
 			float moundSpreadAngleDeg = side > 0 ? p.moundSpreadAnglePlusDeg() : p.moundSpreadAngleMinusDeg();
 			float moundTiltThisSideX = side > 0 ? p.moundTiltPlusX() : p.moundTiltMinusX();
@@ -863,57 +913,32 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 				float apexY = tileY + moundHeight;
 				float apexZ = moundTileZ + apexOffsetZ;
 				// Winding (corner, apex, nextCorner) for every one of the 4 sides - verified by hand to give an outward-and-upward-facing normal via the cross product below, unlike the flat tiles' own single hardcoded (0,1,0) (which a sloped pyramid face can't just reuse).
-				// Each face submitted BOTH ways (corner/apex swapped, reversing the winding) so the
-				// mound is visible from any angle - from directly below (a submarine looking up
-				// through the surface), not just from above/outside.
 				tudursvehiclemod$addMoundFace(tris, mx0, tileY, mz0, apexX, apexY, apexZ, mbx, tileY, mbz);
-				tudursvehiclemod$addMoundFace(tris, mbx, tileY, mbz, apexX, apexY, apexZ, mx0, tileY, mz0);
 				tudursvehiclemod$addMoundFace(tris, mbx, tileY, mbz, apexX, apexY, apexZ, mcx, tileY, mcz);
-				tudursvehiclemod$addMoundFace(tris, mcx, tileY, mcz, apexX, apexY, apexZ, mbx, tileY, mbz);
 				tudursvehiclemod$addMoundFace(tris, mcx, tileY, mcz, apexX, apexY, apexZ, mdx, tileY, mdz);
-				tudursvehiclemod$addMoundFace(tris, mdx, tileY, mdz, apexX, apexY, apexZ, mcx, tileY, mcz);
 				tudursvehiclemod$addMoundFace(tris, mdx, tileY, mdz, apexX, apexY, apexZ, mx0, tileY, mz0);
-				tudursvehiclemod$addMoundFace(tris, mx0, tileY, mz0, apexX, apexY, apexZ, mdx, tileY, mdz);
 			} else {
-				// The vertex WINDING ORDER, not any per-vertex normal value, is what a GPU's own
-				// face-culling test actually uses - a normal is shading data for the fragment shader,
-				// completely separate from culling. The previous order (a,b,c / a,c,d) produces a
-				// downward-facing triangle under the same cross-product convention
-				// tudursvehiclemod$addMoundFace() itself uses (verified: (0,-1,0)), which is back-facing
-				// as viewed from above and gets discarded by this pipeline's own culling (see
-				// DitherCutoutLayers' own doc) before texture/tint alpha even matters - independent of
-				// whatever normal was declared. Reversed here (a,c,b / a,d,c) so the winding itself is
-				// front-facing from above, which also happens to make the geometric normal (0,1,0) -
-				// this is why the mound has always rendered reliably (its own per-face winding was
-				// already verified by hand to be outward-and-upward-facing) while this flat tile has not.
-				//
-				// Per a further direct request: submitted BOTH ways (front-facing from above, AND its
-				// own mirror-image winding with the normal flipped) rather than only the one direction
-				// fixed above - a single-sided tile is still invisible from BELOW the water surface (a
-				// submarine looking up, say), which the earlier fix alone didn't address. Doubling the
-				// geometry this way is a per-draw, render-state-free way to guarantee visibility from any
-				// angle, without touching this pipeline's own shared cull setting (which the vehicle
-				// body's own geometry, sharing the same pipeline object, still needs left alone).
+				// Straight up (0,1,0) - a flat, horizontal tile needs no per-vertex normal variation at all, unlike the vehicle model's own curved-surface geometry.
 				tris.add(new ObjModel.Vertex(ax, tileY, az, 0f, 0f, 0f, 1f, 0f));
-				tris.add(new ObjModel.Vertex(cx, tileY, cz, 1f, 1f, 0f, 1f, 0f));
 				tris.add(new ObjModel.Vertex(bx, tileY, bz, 1f, 0f, 0f, 1f, 0f));
-				tris.add(new ObjModel.Vertex(ax, tileY, az, 0f, 0f, 0f, 1f, 0f));
-				tris.add(new ObjModel.Vertex(dx, tileY, dz, 0f, 1f, 0f, 1f, 0f));
 				tris.add(new ObjModel.Vertex(cx, tileY, cz, 1f, 1f, 0f, 1f, 0f));
-				tris.add(new ObjModel.Vertex(ax, tileY, az, 0f, 0f, 0f, -1f, 0f));
-				tris.add(new ObjModel.Vertex(bx, tileY, bz, 1f, 0f, 0f, -1f, 0f));
-				tris.add(new ObjModel.Vertex(cx, tileY, cz, 1f, 1f, 0f, -1f, 0f));
-				tris.add(new ObjModel.Vertex(ax, tileY, az, 0f, 0f, 0f, -1f, 0f));
-				tris.add(new ObjModel.Vertex(cx, tileY, cz, 1f, 1f, 0f, -1f, 0f));
-				tris.add(new ObjModel.Vertex(dx, tileY, dz, 0f, 1f, 0f, -1f, 0f));
+				tris.add(new ObjModel.Vertex(ax, tileY, az, 0f, 0f, 0f, 1f, 0f));
+				tris.add(new ObjModel.Vertex(cx, tileY, cz, 1f, 1f, 0f, 1f, 0f));
+				tris.add(new ObjModel.Vertex(dx, tileY, dz, 0f, 1f, 0f, 1f, 0f));
 			}
 		}
-		if (tris.isEmpty()) {
-			return;
+		for (int band = 0; band < WAKE_TILE_AGE_BANDS; band++) {
+			List<ObjModel.Vertex> tris = bands.get(band);
+			if (tris.isEmpty()) {
+				continue;
+			}
+			// band 0 = newest (highest alpha), WAKE_TILE_AGE_BANDS-1 = oldest (lowest, fading toward fully transparent).
+			float bandAgeFraction = (float) band / (float) (WAKE_TILE_AGE_BANDS - 1);
+			int alpha = Math.round(WAKE_TILE_PEAK_ALPHA * (1f - bandAgeFraction));
+			int tintColor = (alpha << 24) | 0xFFFFFF;
+			// These band lists are rebuilt from scratch on every single frame, which is exactly the geometry the List overload of renderTriangles() exists for - it computes normals on the spot and retains nothing past the frame. There is no longer any global normal cache for per-frame geometry to leak into at all (see ObjModel.Triangles' own doc), which is what previously pinned the heap at its ceiling by permanently retaining every band of every frame.
+			renderTriangles(queue, matrices, layer, tris, light, tintColor);
 		}
-		int tintColor = (WAKE_TILE_ALPHA << 24) | 0xFFFFFF;
-		// This list is rebuilt from scratch on every single frame, which is exactly the geometry the List overload of renderTriangles() exists for - it computes normals on the spot and retains nothing past the frame. There is no longer any global normal cache for per-frame geometry to leak into at all (see ObjModel.Triangles' own doc), which is what previously pinned the heap at its ceiling by permanently retaining every band of every frame.
-		renderTriangles(queue, matrices, layer, tris, light, tintColor);
 	}
 
 	/** List.copyOf() equivalent, except an EMPTY source returns the shared, immutable List.of() singleton rather than allocating a new (albeit tiny) list every single tick. The point isn't the saved allocation so much as making the no-wake case reliably drop whatever previous, potentially large snapshot this render state was still holding onto. */
@@ -927,14 +952,14 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 		RenderLayer layer = DitherCutoutLayers.entityDitherCutout(foamTexture);
 		List<AbstractVehicleEntity.WakeHistoryPoint> leadingHistory = state.wakeReversing ? state.wakeSternHistory : state.wakeBowHistory;
 		List<AbstractVehicleEntity.WakeHistoryPoint> trailingHistory = state.wakeReversing ? state.wakeBowHistory : state.wakeSternHistory;
-		// bow and stern now share the same sink-then-despawn timing (WAKE_MAIN_SINK_DESPAWN_TICKS) -
-		// see tudursvehiclemod$renderWakeTiles()'s own doc for the unified computation this feeds.
+		// sinkDespawnTicks (final argument) is unused for side!=0 (bow uses its own progress-based despawn instead - see WAKE_BOW_SINK_DESPAWN_PROGRESS), so 0 is passed here.
 		tudursvehiclemod$renderWakeTiles(leadingHistory, 1.0, WAKE_BOW_TILE_SIZE,
-				state.x, state.y, state.z, matrices, queue, layer, state.light, state.wakeTrailDurationTicks, state.currentWorldTick, false, state.wakeCurrentYaw, WAKE_MAIN_SINK_DESPAWN_TICKS);
+				state.x, state.y, state.z, matrices, queue, layer, state.light, state.wakeTrailDurationTicks, state.currentWorldTick, false, state.wakeCurrentYaw, 0);
 		tudursvehiclemod$renderWakeTiles(leadingHistory, -1.0, WAKE_BOW_TILE_SIZE,
-				state.x, state.y, state.z, matrices, queue, layer, state.light, state.wakeTrailDurationTicks, state.currentWorldTick, false, state.wakeCurrentYaw, WAKE_MAIN_SINK_DESPAWN_TICKS);
+				state.x, state.y, state.z, matrices, queue, layer, state.light, state.wakeTrailDurationTicks, state.currentWorldTick, false, state.wakeCurrentYaw, 0);
+		// The stern's own, longer sink-despawn grace period.
 		tudursvehiclemod$renderWakeTiles(trailingHistory, 0.0, WAKE_STERN_TILE_SIZE,
-				state.x, state.y, state.z, matrices, queue, layer, state.light, state.wakeTrailDurationTicks, state.currentWorldTick, true, state.wakeCurrentYaw, WAKE_MAIN_SINK_DESPAWN_TICKS);
+				state.x, state.y, state.z, matrices, queue, layer, state.light, state.wakeTrailDurationTicks, state.currentWorldTick, true, state.wakeCurrentYaw, WAKE_STERN_SINK_DESPAWN_TICKS);
 		// Rendered exactly like stern tiles (side 0.0, no lateral growth, ages and sinks the same way) - see AbstractVehicleEntity's own tudursvehiclemod$updateWakeTrail() doc for how these points are generated. Uses its own, smaller WAKE_SIDE_TILE_SIZE for a subtler look than the main bow/stern tiles. Per a further direct request ("側面帯について、沈み始めてから1秒ほどで消滅するようにしたい" - see WAKE_SIDE_SINK_DESPAWN_TICKS's own doc for the fuller rationale): the side band's own, short, specific sink-despawn window. applySternChase is false - the side band never chases a turn, per the design principle's own sole exception being the stern specifically.
 		tudursvehiclemod$renderWakeTiles(state.wakeSideHistory, 0.0, WAKE_SIDE_TILE_SIZE,
 				state.x, state.y, state.z, matrices, queue, layer, state.light, state.wakeTrailDurationTicks, state.currentWorldTick, false, state.wakeCurrentYaw, WAKE_SIDE_SINK_DESPAWN_TICKS);

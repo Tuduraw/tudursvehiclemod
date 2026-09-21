@@ -212,6 +212,15 @@ public class VtolEntity extends AircraftEntity {
 		return new Quaternionf(this.orientation);
 	}
 
+	/** Render-interpolated counterpart - see AbstractVehicleEntity's own tudursvehiclemod$getBodyOrientation(float)
+	 * doc for why this overload exists, and AircraftEntity's own identical override (this class's
+	 * own no-arg override above already matches that class's exactly, for the same reason: whatever
+	 * keeps {@code orientation} current regardless of helicopter/aircraft mode applies here too). */
+	@Override
+	public Quaternionf tudursvehiclemod$getBodyOrientation(float tickDelta) {
+		return new Quaternionf(this.prevOrientation).slerp(this.orientation, tickDelta);
+	}
+
 	@Override
 	public float getExcessPitchForCamera(float tickDelta) {
 		return 0f;

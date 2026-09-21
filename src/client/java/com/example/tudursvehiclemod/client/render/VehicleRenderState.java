@@ -18,8 +18,21 @@ public class VehicleRenderState extends EntityRenderState {
 	/** Purely cosmetic extra Y offset - see AbstractVehicleEntity's own getRenderYOffset() doc. Defaults to 0 (no effect) for every vehicle type except CarEntity. */
 	public float renderYOffset;
 
-	/** Purely cosmetic bank/tilt angle in degrees. */
+	/** Purely cosmetic bank/tilt angle in degrees. Still populated and still used for wake-trail
+	 * heading and any other purely-yaw-based cosmetic effect that doesn't drive the vehicle's own
+	 * mesh transform any more - see bodyOrientation's own doc for what replaced it there. */
 	public float roll;
+
+	/** The vehicle's own body rotation, as a single quaternion - what render() actually multiplies
+	 * onto the mesh transform now, replacing three separate RotationAxis multiplies built from
+	 * yaw/pitch/roll individually. See AbstractVehicleEntity's own
+	 * tudursvehiclemod$getBodyOrientation(float) doc for why: for AircraftEntity/VtolEntity, whose
+	 * own true attitude already IS a quaternion, decomposing it into yaw/pitch/roll only to
+	 * immediately recompose it here was a lossy round trip, and the source of a gimbal-lock-adjacent
+	 * rendering jitter whenever pitch neared +-90. Every other vehicle type's own default
+	 * implementation still composes this from yaw/pitch/roll, so this changes no rendered pixel for
+	 * Car/Ship/Submarine/Helicopter. */
+	public org.joml.Quaternionf bodyOrientation = new org.joml.Quaternionf();
 
 	/** Which named OBJ parts spin, and how. */
 	public java.util.List<com.example.tudursvehiclemod.asset.PartAnimation> spinningParts = java.util.List.of();
