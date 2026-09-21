@@ -39,6 +39,11 @@ public class VehicleRenderState extends EntityRenderState {
 	 * type that doesn't override it. */
 	public java.util.Map<String, org.joml.Matrix4f> customPartTransforms = java.util.Map.of();
 
+	/** AbstractVehicleEntity's own tudursvehiclemod$getBodyFrameOffset(), added to the rendered
+	 * position by VehicleEntityRenderer.getPositionOffset(). Zero for every vehicle that doesn't
+	 * override it. */
+	public net.minecraft.util.math.Vec3d bodyFrameOffset = net.minecraft.util.math.Vec3d.ZERO;
+
 	/** Which named OBJ parts spin, and how. */
 	public java.util.List<com.example.tudursvehiclemod.asset.PartAnimation> spinningParts = java.util.List.of();
 	/** part name -> current accumulated spin phase in degrees, captured this frame. */

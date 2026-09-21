@@ -34,6 +34,14 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 		return super.shouldRender(entity, frustum, x, y, z);
 	}
 
+	/** Shifts the whole rendered vehicle by its own body-frame offset (see AbstractVehicleEntity's
+	 * own tudursvehiclemod$getBodyFrameOffset() doc) - zero, i.e. unchanged, for every vehicle that
+	 * doesn't override it. */
+	@Override
+	public net.minecraft.util.math.Vec3d getPositionOffset(VehicleRenderState state) {
+		return super.getPositionOffset(state).add(state.bodyFrameOffset);
+	}
+
 	@Override
 	public VehicleRenderState createRenderState() {
 		return new VehicleRenderState();
@@ -75,6 +83,7 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 			state.bodyOrientation = entity.tudursvehiclemod$getBodyOrientation(tickProgress);
 		}
 		state.customPartTransforms = entity.tudursvehiclemod$getCustomPartTransforms(tickProgress);
+		state.bodyFrameOffset = entity.tudursvehiclemod$getBodyFrameOffset(tickProgress);
 		state.spinningParts = def.spinningParts();
 		if (!def.spinningParts().isEmpty()) {
 			java.util.Map<String, Float> phase = new java.util.HashMap<>();

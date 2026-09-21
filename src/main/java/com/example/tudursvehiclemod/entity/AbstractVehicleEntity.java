@@ -344,6 +344,21 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		return java.util.Map.of();
 	}
 
+	/** World-space translation of this vehicle's own BODY FRAME relative to its entity position - for
+	 * a vehicle whose body is drawn rotated about some pivot other than its own model origin (e.g. an
+	 * addon leaning a tall body about its middle), which a rotation alone
+	 * (tudursvehiclemod$getBodyOrientation()) can't express. Applied everywhere a body-local point is
+	 * placed in the world: the rendered position (VehicleEntityRenderer.getPositionOffset()), seat
+	 * positions (updatePassengerPosition()), the rider's eye/camera position (getRotatedEyePos()),
+	 * and weapon spawn positions (tudursvehiclemod$computeWeaponSpawnPos()) - so the model, riders
+	 * and muzzles all stay together.
+	 *
+	 * <p>Default: zero - every existing vehicle type is unaffected. Purely positional; never moves
+	 * the entity itself, its hitbox, or anything physics-related. */
+	public Vec3d tudursvehiclemod$getBodyFrameOffset(float tickDelta) {
+		return Vec3d.ZERO;
+	}
+
 	/** Render-interpolated counterpart of tudursvehiclemod$getBodyOrientation() - used ONLY by
 	 * VehicleEntityRenderer for the vehicle's own mesh transform, alongside (not instead of) the
 	 * no-arg version above, which every other caller (flare direction, mount direction,
@@ -4215,7 +4230,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		Vector3f mountOffsetVec = new Vector3f((float) weaponOffset.x, (float) weaponOffset.y, (float) weaponOffset.z);
 		bodyOrientation.transform(mountOffsetVec);
 		Vec3d mountOffset = new Vec3d(mountOffsetVec.x, mountOffsetVec.y, mountOffsetVec.z);
-		return new WeaponSpawnInfo(this.getEntityPos().add(mountOffset), currentOffset, associatedPart.map(com.example.tudursvehiclemod.asset.WeaponPart::part));
+		return new WeaponSpawnInfo(this.getEntityPos().add(this.tudursvehiclemod$getBodyFrameOffset(1.0f)).add(mountOffset),
+				currentOffset, associatedPart.map(com.example.tudursvehiclemod.asset.WeaponPart::part));
 	}
 
 	/** Converts a ship-local (localX, localY, localZ) offset - relative to addWeaponPos, in the SAME rotated reference frame the landing approach point already uses (this mothership's own current yaw + the weapon's own mount_yaw + yawOffsetDegrees) - into a world position. Shared by every Carrier feature that needs a "point relative to the ship, that moves/rotates with it" other than the route itself (which uses a separate, target-point-derived basis - see CarrierAircraftConfig's own doc for why these are deliberately different). */
@@ -8893,10 +8909,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		// own doc) value here keeps the passenger's own actual position in
 		// sync with what they're actually seeing, rather than snapping
 		// ahead of it.
+		Vec3d bodyFrameOffset = this.tudursvehiclemod$getBodyFrameOffset(1.0f);
 		double passengerY = this.getY() + this.getRenderYOffsetCurrent();
-		double targetX = this.getX() + local.x;
-		double targetY = passengerY + local.y;
-		double targetZ = this.getZ() + local.z;
+		double targetX = this.getX() + local.x + bodyFrameOffset.x;
+		double targetY = passengerY + local.y + bodyFrameOffset.y;
+		double targetZ = this.getZ() + local.z + bodyFrameOffset.z;
 		positionUpdater.accept(passenger, targetX, targetY, targetZ);
 	}
 
@@ -8960,7 +8977,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		Vec3d vehiclePos = new Vec3d(
 				MathHelper.lerp(tickDelta, this.lastRenderX, this.getX()),
 				MathHelper.lerp(tickDelta, this.lastRenderY, this.getY()) + renderYOffset,
-				MathHelper.lerp(tickDelta, this.lastRenderZ, this.getZ()));
+				MathHelper.lerp(tickDelta, this.lastRenderZ, this.getZ()))
+				.add(this.tudursvehiclemod$getBodyFrameOffset(tickDelta));
 		return new Vec3d(vehiclePos.x + local.x, vehiclePos.y + local.y, vehiclePos.z + local.z);
 	}
 
