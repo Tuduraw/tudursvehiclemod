@@ -326,6 +326,24 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				.rotateZ((float) Math.toRadians(this.getRoll()));
 	}
 
+	/** Free-form, per-OBJ-group transforms this vehicle wants applied when drawn - a general escape
+	 * hatch for animation the fixed part types (weapon/toggle/spinning/wheel parts) can't express,
+	 * such as multi-joint limbs where a shin must follow a thigh which must follow a hip, to any depth.
+	 *
+	 * <p>Keyed by OBJ group name. Each matrix is in MODEL space (model units, before this vehicle's
+	 * own {@code scale}), applied on top of the body transform exactly where the renderer draws every
+	 * other animated part, and must already contain the part's WHOLE chain (e.g. for a shin:
+	 * hip rotation about the hip pivot, then knee rotation about the knee pivot) - the renderer applies
+	 * it as-is and knows nothing about joints, pivots or parents. A group listed here is removed from
+	 * the static mesh and drawn only with its transform. Groups also claimed by another part list
+	 * (a weapon part, toggle part, ...) should not be listed here.
+	 *
+	 * <p>Default: none - every existing vehicle type renders exactly as before. Client-side render
+	 * data only; nothing here affects collision, physics or networking. */
+	public java.util.Map<String, org.joml.Matrix4f> tudursvehiclemod$getCustomPartTransforms(float tickDelta) {
+		return java.util.Map.of();
+	}
+
 	/** Render-interpolated counterpart of tudursvehiclemod$getBodyOrientation() - used ONLY by
 	 * VehicleEntityRenderer for the vehicle's own mesh transform, alongside (not instead of) the
 	 * no-arg version above, which every other caller (flare direction, mount direction,

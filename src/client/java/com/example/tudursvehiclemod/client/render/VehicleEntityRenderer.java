@@ -74,6 +74,7 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 		} else {
 			state.bodyOrientation = entity.tudursvehiclemod$getBodyOrientation(tickProgress);
 		}
+		state.customPartTransforms = entity.tudursvehiclemod$getCustomPartTransforms(tickProgress);
 		state.spinningParts = def.spinningParts();
 		if (!def.spinningParts().isEmpty()) {
 			java.util.Map<String, Float> phase = new java.util.HashMap<>();
@@ -287,6 +288,15 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 			// also has to be a stable, equal-valued key for ObjModel's own
 			// excludingCache to actually hit - see that field's own doc).
 			java.util.Set<String> animatedGroups = tudursvehiclemod$getAnimatedGroupNames(state);
+			// Custom-transform groups (see AbstractVehicleEntity's own
+			// tudursvehiclemod$getCustomPartTransforms() doc) are excluded from the static mesh too.
+			// Merged into a fresh set rather than the per-definition cache, since they come from the
+			// entity at render time; an equal-valued set still hits ObjModel's own excludingCache.
+			if (!state.customPartTransforms.isEmpty()) {
+				java.util.Set<String> merged = new java.util.HashSet<>(animatedGroups);
+				merged.addAll(state.customPartTransforms.keySet());
+				animatedGroups = merged;
+			}
 
 			renderTriangles(queue, matrices, layer, model.getTrianglesExcluding(animatedGroups), light, tintColor);
 
@@ -394,6 +404,22 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 					matrices.translate(0.0, 0.0, -recoilOffset);
 				}
 				matrices.translate(-part.pivotX(), -part.pivotY(), -part.pivotZ());
+				renderTriangles(queue, matrices, layer, partTriangles, light, tintColor);
+				matrices.pop();
+			}
+
+			// Custom-transform groups: each matrix already holds the part's whole chain (see
+			// AbstractVehicleEntity's own tudursvehiclemod$getCustomPartTransforms() doc), so it is
+			// applied as-is. The normal matrix gets the matching inverse-transpose so lighting stays
+			// correct under the part's own rotation.
+			for (var entry : state.customPartTransforms.entrySet()) {
+				ObjModel.Triangles partTriangles = model.getGroup(entry.getKey());
+				if (partTriangles.isEmpty()) {
+					continue;
+				}
+				matrices.push();
+				matrices.peek().getPositionMatrix().mul(entry.getValue());
+				matrices.peek().getNormalMatrix().mul(entry.getValue().normal(new org.joml.Matrix3f()));
 				renderTriangles(queue, matrices, layer, partTriangles, light, tintColor);
 				matrices.pop();
 			}

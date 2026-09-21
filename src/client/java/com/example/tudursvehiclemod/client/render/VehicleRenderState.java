@@ -34,6 +34,11 @@ public class VehicleRenderState extends EntityRenderState {
 	 * Car/Ship/Submarine/Helicopter. */
 	public org.joml.Quaternionf bodyOrientation = new org.joml.Quaternionf();
 
+	/** Per-OBJ-group model-space transforms from AbstractVehicleEntity's own
+	 * tudursvehiclemod$getCustomPartTransforms() - see that method's own doc. Empty for every vehicle
+	 * type that doesn't override it. */
+	public java.util.Map<String, org.joml.Matrix4f> customPartTransforms = java.util.Map.of();
+
 	/** Which named OBJ parts spin, and how. */
 	public java.util.List<com.example.tudursvehiclemod.asset.PartAnimation> spinningParts = java.util.List.of();
 	/** part name -> current accumulated spin phase in degrees, captured this frame. */
