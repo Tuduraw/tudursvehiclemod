@@ -3009,25 +3009,18 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	public boolean tudursvehiclemod$mountToSeat(Entity passenger, int seatIndex) {
 		int seatCount = this.getDefinition().seats().size();
 		if (seatIndex < 0 || seatIndex >= seatCount) {
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] mountToSeat: failed - seatIndex {} out of range (seatCount={})", seatIndex, seatCount);
 			return false;
 		}
 		if (this.tudursvehiclemod$getRealPassengerList().size() >= seatCount) {
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] mountToSeat: failed - already at capacity (passengers={}, seatCount={})", this.tudursvehiclemod$getRealPassengerList().size(), seatCount);
 			return false;
 		}
 		if (this.tudursvehiclemod$getSeatOccupant(seatIndex) != null) {
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] mountToSeat: failed - seat {} already occupied by {}", seatIndex, this.tudursvehiclemod$getSeatOccupant(seatIndex).getUuidAsString());
 			return false;
 		}
-		VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] mountToSeat: about to call passenger.startRiding() - passenger.hasVehicle()={}, passenger.getVehicle()={}",
-				passenger.hasVehicle(), passenger.getVehicle() == null ? "null" : passenger.getVehicle().getClass().getSimpleName());
 		if (!passenger.startRiding(this, true, true)) {
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] mountToSeat: failed - passenger.startRiding(this, true, true) itself returned false");
 			return false;
 		}
 		this.tudursvehiclemod$setAssignedSeat(passenger, seatIndex);
-		VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] mountToSeat: succeeded - passenger now assigned to seat {}", seatIndex);
 		return true;
 	}
 
@@ -3186,11 +3179,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 
 	@Override
 	protected void removePassenger(Entity passenger) {
-		if (passenger instanceof net.minecraft.entity.mob.MobEntity && !this.getEntityWorld().isClient()) {
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] removePassenger: MobEntity {} dismounted from {} at server tick {}, this vehicle's own isOnGround={}",
-					passenger.getUuidAsString(), this.getClass().getSimpleName(), this.age, this.isOnGround(),
-					new Throwable("stack trace for diagnosis only, not a real error"));
-		}
 		if (passenger instanceof com.example.tudursvehiclemod.entity.CarrierRunwayPlatformEntity) {
 			super.removePassenger(passenger);
 			return;
@@ -3469,15 +3457,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	/** If this passenger's own currently-assigned seat has SeatDefinition's own enableParachuting set (and it is NOT the pilot seat, enforced here regardless of how that flag happens to be set - the pilot flying the vehicle should never be able to bail out this way), dismounts them and marks them for automatic deployment once they start falling, exactly like tudursvehiclemod$tryEjectSeat() above - EXCEPT per a further direct request ("パラシュート降下についてはパラシュートを装備していなくても一時的にパラシュートの効果および表示状態を付与するような実装にできますか", later extended to tudursvehiclemod$dropNextMobDropPassenger() too per "Mob投下にも適用してください。Mob投下はEnableParachutingと併用するもののため、実質的に同一です"), a passenger with no parachute of their own equipped is temporarily granted one (see entity.ParachuteManager's own tudursvehiclemod$grantVirtualParachuteAndMarkPending() doc) rather than simply falling with nothing - unlike tudursvehiclemod$tryEjectSeat() above, which remains unchanged (per that request's own specific scope: only enableParachuting-driven drops, whether via this method or the mob-drop sequence, grant a virtual one). Silently does nothing if this entity isn't a recognized passenger, is the pilot, or their own seat doesn't have this enabled at all. */
 	public void tudursvehiclemod$tryParachuteJump(Entity passenger) {
 		int seatIndex = this.tudursvehiclemod$getAssignedSeatIndex(passenger);
-		VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] tryParachuteJump: called for {} on {}, assigned seat index={}",
-				passenger.getClass().getSimpleName(), this.getClass().getSimpleName(), seatIndex);
 		if (seatIndex < 0 || seatIndex >= this.getDefinition().seats().size()) {
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] tryParachuteJump: no-op - seat index out of range (not actually a recognized passenger of this vehicle)");
 			return;
 		}
 		SeatDefinition seat = this.getDefinition().seats().get(seatIndex);
 		if (seat.driver() || !seat.enableParachuting()) {
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] tryParachuteJump: no-op - seat.driver()={}, seat.enableParachuting()={}", seat.driver(), seat.enableParachuting());
 			return;
 		}
 		Vec3d jumpOrigin = passenger.getEntityPos();
@@ -3521,15 +3505,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	/** Per asset.MobDropOption's own doc: called when the pilot presses the assigned mob-drop key. Starts a fresh drop sequence (see mobDropTicksRemaining's own doc) if one isn't already running and this vehicle's own definition actually has a MobDropOption configured at all - the very FIRST eligible passenger (ascending seat index, SeatDefinition's own enableParachuting set, excluding the pilot seat itself) is dropped immediately, with tudursvehiclemod$updateMobDropSequence() (called every tick from tick() below) handling every subsequent one at the configured interval. Silently does nothing if a sequence is already in progress, there's no MobDropOption at all, or there are no eligible passengers to drop in the first place. */
 	public void tudursvehiclemod$tryTriggerMobDrop() {
 		if (this.mobDropTicksRemaining >= 0) {
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] tryTriggerMobDrop: sequence already in progress (mobDropTicksRemaining={})", this.mobDropTicksRemaining);
 			return;
 		}
 		java.util.Optional<com.example.tudursvehiclemod.asset.MobDropOption> mobDropOption = this.getDefinition().mobDropOption();
 		if (mobDropOption.isEmpty()) {
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] tryTriggerMobDrop: this vehicle's own definition has no mob_drop_option configured at all");
 			return;
 		}
-		VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] tryTriggerMobDrop: starting drop sequence, isOnGround={}", this.isOnGround());
 		if (this.tudursvehiclemod$dropNextMobDropPassenger(mobDropOption.get())) {
 			this.mobDropTicksRemaining = mobDropOption.get().intervalTicks();
 		}
@@ -3564,12 +3545,10 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			Entity occupant = this.tudursvehiclemod$getSeatOccupant(seatIndex);
 			if (occupant != null) {
 				toDrop = occupant;
-				VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] dropNextMobDropPassenger: eligible passenger found at seat {} ({})", seatIndex, occupant.getClass().getSimpleName());
 				break;
 			}
 		}
 		if (toDrop == null) {
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] dropNextMobDropPassenger: no eligible passenger found (no non-driver seat with enable_parachuting has an occupant)");
 			return false;
 		}
 		org.joml.Vector3f local = new org.joml.Vector3f(
@@ -3587,9 +3566,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			this.pendingDismountPassenger = null;
 			this.pendingDismountPosition = null;
 		}
-		VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] dropNextMobDropPassenger: dropped {} at ({}, {}, {}) - this vehicle isOnGround={}, is LivingEntity={}, world is ServerWorld={}",
-				toDrop.getClass().getSimpleName(), dropX, dropY, dropZ, this.isOnGround(),
-				toDrop instanceof net.minecraft.entity.LivingEntity, this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld);
 		if (!this.isOnGround() && toDrop instanceof net.minecraft.entity.LivingEntity livingToDrop
 				&& this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld dropServerWorld) {
 			ItemStack dropChestStack = livingToDrop.getEquippedStack(net.minecraft.entity.EquipmentSlot.CHEST);
@@ -3600,11 +3576,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			if (dropHasRealParachute) {
 				livingToDrop.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, ItemStack.EMPTY);
 			}
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] dropNextMobDropPassenger: spawning ParachuteEntity and mounting {}", livingToDrop.getClass().getSimpleName());
 			com.example.tudursvehiclemod.entity.ParachuteEntity.tudursvehiclemod$spawnAndMount(
 					livingToDrop, dropServerWorld, new Vec3d(dropX, dropY, dropZ), dropColor, dropHasRealParachute);
-		} else {
-			VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] dropNextMobDropPassenger: parachute NOT granted (either this vehicle was on the ground, the dropped entity isn't a LivingEntity, or the world isn't a ServerWorld)");
 		}
 		return true;
 	}
@@ -3952,8 +3925,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 
 	/** Explodes once and ejects every passenger when this vehicle's own health reaches 0, but. */
 	private void tudursvehiclemod$onDestroyed(ServerWorld world) {
-		VehicleMod_LoggerHolder.LOGGER.info("[ParachuteDebug] onDestroyed: this vehicle ({}) has been destroyed, enableEjectionSeat={}, passenger count={}",
-				this.getClass().getSimpleName(), this.getDefinition().enableEjectionSeat(), this.tudursvehiclemod$getRealPassengerList().size());
 		float explosionPower = MathHelper.clamp(
 				(this.getDefinition().width() + this.getDefinition().height()) * 0.5f, 1.0f, 4.0f);
 		// Per PENDING_EXPLOSIONS' own doc: deferred to next tick rather than created immediately, to break a recursive chain-reaction stack overflow through several clustered vehicles.
@@ -8194,8 +8165,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	private static final double WAKE_TRAIL_MIN_SPEED = 0.05;
 	/** How much this vehicle's own lastKnownHullLength grows maxAgeTicks's own scale multiplier, on top of def.wakeTrailDurationTicks()'s own base value. 0.02 gives a modest increase for a small boat (a 10-block hull: 1.2x) and a substantial one for a large vessel (a 100-block hull: 3x) - roughly the same order of magnitude client.render.VehicleEntityRenderer's own WAKE_BOW_MOUND_SIZE_PER_HULL_LENGTH already uses for a similarly length-scaled visual effect. */
 	private static final float WAKE_MAX_AGE_LENGTH_SCALE_FRACTION = 0.02f;
-	/** Per a further direct request (see tudursvehiclemod$updateWakeTrail()'s own doc for the fuller rationale): the fixed (not hull-size-scaled) portion of the stern prune buffer, mirroring client.render.VehicleEntityRenderer's own WAKE_STERN_SINK_DESPAWN_TICKS (a separate class - these two need to be kept in sync manually if either changes) - the sink-then-despawn duration itself is a fixed visual-effect length, not something that grows with a bigger hull the way the gap-delay portion of this same buffer does. */
-	private static final long WAKE_STERN_SINK_DESPAWN_MIRROR_TICKS = 200;
+	/** Per a further direct request (see tudursvehiclemod$updateWakeTrail()'s own doc for the fuller rationale): the fixed (not hull-size-scaled) portion of the bow/stern prune buffer, mirroring client.render.VehicleEntityRenderer's own (now-unified) WAKE_MAIN_SINK_DESPAWN_TICKS (a separate class - these two need to be kept in sync manually if either changes) - the sink-then-despawn duration itself is a fixed visual-effect length, not something that grows with a bigger hull the way the gap-delay portion of the stern's own buffer does. Shared by both bow and stern: a bow point's own sink-start timing needs no separate gap-delay term added on top (a bow tile has no per-point creation-to-physical-bow-arrival delay the way a stern point's own does), so for bow the fixed despawn-window portion alone is what this buffer amounts to. */
+	private static final long WAKE_MAIN_SINK_DESPAWN_MIRROR_TICKS = 200;
 	/** The low-pass filter's own responsiveness - each tick, smoothedTurnRate moves this fraction of the way from its own current value toward the raw, this-instant turn rate.
 	 *
 	 * Turn-tracking responsiveness for a steady turn was fine, but changes at a turn's start/end were not followed closely enough: the original 0.2 (settling to within ~5% of a step change in ~15 ticks/0.75s) over-corrected - smoothing a genuine, fast-changing turn rate over 15 ticks meant several consecutive wake points near a turn's own start/end all captured a noticeably STALE value, lagging behind what this vehicle was actually doing by that point. Raised to 0.5 (settles in ~6 ticks/0.3s, roughly one-and-a-half WAKE_TRAIL_INTERVAL_TICKS generation intervals) - still smooths away the original single-tick spike/jump between two adjacent generations, but tracks a genuinely changing turn rate closely enough that consecutive points stay visually connected through a turn's own start and end, not just its steady middle. */
@@ -8279,11 +8250,18 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		// def.wakeTrailDurationTicks() (default 300) is now treated as a BASE duration, scaled up by this vehicle's own actual measured length (see lastKnownHullLength's own doc) - a config-file override still works exactly as before (it's still the base being scaled, not replaced), but every vehicle no longer shares one flat, unscaled default duration regardless of its own actual size.
 		float maxAgeLengthScale = 1f + this.lastKnownHullLength * WAKE_MAX_AGE_LENGTH_SCALE_FRACTION;
 		long maxAgeTicks = (long) (def.wakeTrailDurationTicks() * maxAgeLengthScale);
-		tudursvehiclemod$pruneWakeHistory(this.wakeBowHistory, now, maxAgeTicks);
+		// Pruned with an EXTRA buffer beyond the normal maxAgeTicks, mirroring the stern's own buffer
+		// just below - a bow tile's own sink-then-despawn window (see client.render.VehicleEntityRenderer's
+		// own tudursvehiclemod$renderWakeTiles() doc) starts at a FRACTION of maxAgeTicks and runs for a
+		// further fixed window past that, so its total on-screen life extends past maxAgeTicks itself.
+		// Without this buffer, this same prune call was deleting the underlying point before that window
+		// ever got a chance to play out, so the tile just vanished (already-pruned) instead of visibly
+		// sinking first - the bow-side counterpart of the exact bug already fixed for the stern below.
+		tudursvehiclemod$pruneWakeHistory(this.wakeBowHistory, now, maxAgeTicks + WAKE_MAIN_SINK_DESPAWN_MIRROR_TICKS);
 		// Pruned with a generous EXTRA buffer beyond the normal maxAgeTicks - a stern point's own gap-based sink-start delay (see client.render.VehicleEntityRenderer's own tudursvehiclemod$renderWakeTiles() doc) can push its own sink-then-despawn window well past maxAgeTicks itself; without this buffer, this same prune call was removing the underlying data before that window ever got a chance to actually play out, so the tile just vanished (already-pruned) instead of visibly sinking first.
-		// Per a further direct request (see lastKnownSternGapDistance's own doc for the fuller rationale): this buffer is derived from this vehicle's own actual measured stern-gap distance (worst case: divided by WAKE_TRAIL_MIN_SPEED, this vehicle's own lowest possible creation speed) plus a fixed portion mirroring client.render.VehicleEntityRenderer's own WAKE_STERN_SINK_DESPAWN_TICKS (a separate class - these two need to be kept in sync manually if either changes; the sink-despawn duration itself is a fixed visual-effect length, not something that scales with hull size the way the gap-delay portion does).
+		// Per a further direct request (see lastKnownSternGapDistance's own doc for the fuller rationale): this buffer is derived from this vehicle's own actual measured stern-gap distance (worst case: divided by WAKE_TRAIL_MIN_SPEED, this vehicle's own lowest possible creation speed) plus a fixed portion mirroring client.render.VehicleEntityRenderer's own WAKE_MAIN_SINK_DESPAWN_TICKS (a separate class - these two need to be kept in sync manually if either changes; the sink-despawn duration itself is a fixed visual-effect length, not something that scales with hull size the way the gap-delay portion does).
 		float worstCaseSternGapDelayTicks = this.lastKnownSternGapDistance / (float) WAKE_TRAIL_MIN_SPEED;
-		long sternPruneBufferTicks = (long) worstCaseSternGapDelayTicks + WAKE_STERN_SINK_DESPAWN_MIRROR_TICKS;
+		long sternPruneBufferTicks = (long) worstCaseSternGapDelayTicks + WAKE_MAIN_SINK_DESPAWN_MIRROR_TICKS;
 		tudursvehiclemod$pruneWakeHistory(this.wakeSternHistory, now, maxAgeTicks + sternPruneBufferTicks);
 		tudursvehiclemod$pruneWakeHistory(this.wakeSideHistory, now, maxAgeTicks);
 		// java.util.ArrayDeque NEVER shrinks its own internal backing array - it only ever grows (doubling on overflow), and neither removeFirst() nor clear() releases any of that capacity. A large vessel that generated, say, 700 side-band points once would keep a 1024-element Object[] alive per deque for as long as this entity exists, even with every single point long since aged out and the deque reporting size()==0. Since the three deques only ever ALL become empty together at a genuine "this vehicle currently has no wake at all" boundary (it stopped, left the water, etc. - not something that happens every tick), replacing them outright with fresh, minimally-sized instances right at that moment is cheap in practice while genuinely returning the grown arrays to the GC. tudursvehiclemod$resetWakeHistoryCapacity()'s own doc covers why these can't simply be final anymore.
@@ -8901,16 +8879,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		double targetX = this.getX() + local.x;
 		double targetY = passengerY + local.y;
 		double targetZ = this.getZ() + local.z;
-		if (!this.getEntityWorld().isClient()) {
-			double dx = passenger.getX() - targetX;
-			double dy = passenger.getY() - targetY;
-			double dz = passenger.getZ() - targetZ;
-			if (dx * dx + dy * dy + dz * dz > 1.0) {
-				VehicleMod_LoggerHolder.LOGGER.info(
-						"[ParachuteDebug] updatePassengerPosition: {} is off from its own computed seat position by more than 1 block - current=({}, {}, {}), target=({}, {}, {}), this vehicle age={}",
-						passenger.getUuidAsString(), passenger.getX(), passenger.getY(), passenger.getZ(), targetX, targetY, targetZ, this.age);
-			}
-		}
 		positionUpdater.accept(passenger, targetX, targetY, targetZ);
 	}
 
