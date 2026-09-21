@@ -73,6 +73,46 @@ public final class WeaponStatsLoader {
 			}
 		}
 
+		// Files bundled INSIDE a mod's own jar under assets/<namespace>/weapons/*.txt (the officially
+		// documented way for an addon MOD - as opposed to a loose addon folder - to ship its own
+		// weapons; see Readme_Addon_Mod.md) were never actually being found here: `manager` above is
+		// a SERVER_DATA-scoped ResourceManager (this listener is registered under ResourceType.SERVER_DATA,
+		// since weapon stats have to be readable server-side for combat to work at all, not just for
+		// client-side display), and a SERVER_DATA manager's own findResources() can only ever see files
+		// under data/, never assets/ - the two are separate resource-pack namespaces in vanilla's own
+		// resource-reload architecture, regardless of what's physically sitting in the same jar. This
+		// walks every loaded Fabric mod's own root path directly instead, exactly like the loose-addon-
+		// folder loop just below already does for tudursvehiclemod-addons/<addon>/ - a plain filesystem
+		// walk (Fabric Loader transparently supports this against a real, packaged jar, not just a dev-
+		// environment exploded folder) sidesteps the assets/data split entirely, the same technique this
+		// project's own ServerObjModelHitboxes/ServerObjModelZExtent/ServerObjModelTrackRollerBounds
+		// already rely on to read assets/-scoped OBJ models from server-side code.
+		for (var mod : net.fabricmc.loader.api.FabricLoader.getInstance().getAllMods()) {
+			for (Path modRoot : mod.getRootPaths()) {
+				Path assetsDir = modRoot.resolve("assets");
+				for (Path namespaceDir : AddonPaths.listSubdirectories(assetsDir)) {
+					String namespace = namespaceDir.getFileName().toString();
+					Path weaponsDir = namespaceDir.resolve("weapons");
+					if (!Files.isDirectory(weaponsDir)) {
+						continue;
+					}
+					try (var files = Files.walk(weaponsDir)) {
+						for (Path txtFile : (Iterable<Path>) files.filter(p -> p.toString().endsWith(".txt"))::iterator) {
+							String fileName = txtFile.getFileName().toString();
+							String key = fileName.substring(0, fileName.length() - ".txt".length()).toLowerCase(Locale.ROOT);
+							try {
+								result.put(key, parse(txtFile, namespace, key));
+							} catch (IOException e) {
+								LOGGER.error("Failed to read weapon config {}", txtFile, e);
+							}
+						}
+					} catch (IOException e) {
+						LOGGER.error("Failed to scan {}", weaponsDir, e);
+					}
+				}
+			}
+		}
+
 		Path addonsRoot = AddonPaths.getAddonsRoot();
 		var addonDirs = AddonPaths.listSubdirectories(addonsRoot);
 		for (Path addonDir : addonDirs) {
@@ -217,8 +257,20 @@ public final class WeaponStatsLoader {
 		// MaxAmmo = <n> - total reserve, 0 (or omitted) = unlimited reserve - see this record's own doc.
 		int maxAmmo = Math.max(0, (int) toFloat(entries.get("maxammo"), 0.0f));
 
-		// Type = MachineGun1/MachineGun2/Rocket/Bomb/..
-		WeaponType weaponType = parseWeaponType(entries.get("type"));
+		// Type = MachineGun1/MachineGun2/Rocket/Bomb/.. OR <namespace>:<path> for an addon-registered
+		// custom type (see WeaponType.CUSTOM's own doc) - checked first since parseWeaponType() itself
+		// has no way to represent WHICH custom type, only that it's CUSTOM.
+		Optional<Identifier> customTypeId = Optional.empty();
+		String rawTypeValue = entries.get("type");
+		if (rawTypeValue != null && rawTypeValue.contains(":")) {
+			Identifier parsed = Identifier.tryParse(rawTypeValue.strip().toLowerCase(Locale.ROOT));
+			if (parsed != null) {
+				customTypeId = Optional.of(parsed);
+			} else {
+				LOGGER.warn("[tudursvehiclemod] Weapon '{}' has an invalid custom Type identifier '{}' - falling back to OTHER", weaponName, rawTypeValue);
+			}
+		}
+		WeaponType weaponType = customTypeId.isPresent() ? WeaponType.CUSTOM : parseWeaponType(rawTypeValue);
 		float explosionPower = toFloat(entries.get("explosion"), 0.0f);
 		float explosionPowerInWater = toFloat(entries.get("explosioninwater"), explosionPower);
 		// ExplosionBlock - per Readme_Weapon.txt's own doc, this is its OWN
@@ -602,7 +654,7 @@ public final class WeaponStatsLoader {
 				trajectoryParticle, trajectoryParticleStartTick, disableSmoke, muzzleFlash, muzzleFlashSmoke, cartridge,
 				recoil, recoilDurationTicks, recoilRecessionRateMultiplier, destruct,
 				cameraRotationSpeedPitch, fixCameraPitch, displayMortarDistance, casStrike, carrierAircraft, usableWhileDiving,
-				fuelPerAmmo);
+				fuelPerAmmo, customTypeId);
 	}
 
 	/** Clamps a 0-255 color channel value read as a plain float/int - out-of-range input (e.g. a typo'd 300) is clamped rather than silently wrapping/overflowing into a completely different color via a raw (byte) cast. */

@@ -5181,9 +5181,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			return false;
 		}
 		// Previously, firing an AAMissile/ATMissile before lock completed still launched an unguided shot (matching Readme_Weapon.txt's own documented "you can pull the trigger before tone, you just don't get a guided shot" behavior) - now blocks firing entirely instead, so pressing the fire key does nothing at all until this weapon's own lock actually completes. Only applies to player-initiated fire (shooter != null) - CAS auto-fire (shooter == null) can never lock a target at all (see tudursvehiclemod$updateMissileLockOnIndicators()'s own shooter-seat requirement), so leaving this unrestricted there would make the weapon entirely unusable for CAS; that path already fires unguided by design (see tryFireWeapon()'s own AA_MISSILE/AT_MISSILE/MISSILE case doc), unaffected by this change. shares this exact same lock-required restriction.
-		if (shooter != null && (weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.AA_MISSILE
+		boolean requiresLockOn = weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.AA_MISSILE
 				|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.AT_MISSILE
-				|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.MISSILE)) {
+				|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.MISSILE
+				|| (weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CUSTOM
+						&& weapon.customTypeId().map(com.example.tudursvehiclemod.asset.CustomWeaponTypes::get)
+								.map(com.example.tudursvehiclemod.asset.CustomWeaponBehavior::usesLockOn).orElse(false));
+		if (shooter != null && requiresLockOn) {
 			Integer lockProgress = this.tudursvehiclemod$missileLockProgressTicks.get(weaponIndex);
 			int requiredTicks = this.tudursvehiclemod$missileLockRequiredTicks.getOrDefault(weaponIndex, weapon.lockTimeTicks());
 			boolean lockComplete = lockProgress != null && lockProgress >= requiredTicks;
@@ -5554,6 +5558,24 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 					}
 				}
 			}
+			case CUSTOM -> {
+				// Same homing wiring as AA_MISSILE/AT_MISSILE/MISSILE above (see WeaponType.CUSTOM's
+				// own doc: a CUSTOM weapon's projectile always homes, there's no ballistic option yet),
+				// except the target comes from the registered CustomWeaponBehavior rather than the
+				// built-in crosshair search - this.tudursvehiclemod$salvoShotIndex (0 for the first,
+				// ordinary shot; see tudursvehiclemod$fireCustomWeaponSalvo() below) tells a
+				// multi-target behaviour which round of its own salvo this is.
+				projectile.tudursvehiclemod$setMissileGuidanceTuning(weapon.rigidityTimeTicks(), weapon.proximityFuseDist());
+				if (shooter != null) {
+					com.example.tudursvehiclemod.asset.CustomWeaponBehavior behavior = weapon.customTypeId()
+							.map(com.example.tudursvehiclemod.asset.CustomWeaponTypes::get)
+							.orElse(com.example.tudursvehiclemod.asset.CustomWeaponBehavior.DEFAULT);
+					Entity guidanceTarget = behavior.resolveGuidanceTarget(this, shooter, weapon, weaponIndex, this.tudursvehiclemod$salvoShotIndex);
+					if (guidanceTarget != null) {
+						projectile.tudursvehiclemod$setGuidanceTargetEntity(guidanceTarget.getId(), weapon.turnRateDegreesPerTick());
+					}
+				}
+			}
 			// Per Readme_Weapon.txt's own TVMissile doc: mode 0 (the
 			// default) fires exactly like an ordinary unguided shot along
 			// this weapon's own aim direction, with the shooter steering
@@ -5596,7 +5618,47 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			this.tudursvehiclemod$onDestroyed(destructWorld);
 		}
 
+		if (weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CUSTOM) {
+			this.tudursvehiclemod$fireCustomWeaponSalvo(weaponIndex, shooter, weapon);
+		}
 		return true;
+	}
+
+	/** Fires the REMAINING rounds of a CUSTOM weapon's own salvo (see
+	 * CustomWeaponBehavior#getSalvoSize's own doc) - round 0 is the ordinary shot tryFireWeapon()
+	 * itself just finished; this fires rounds 1..salvoSize-1 back to back, in the same tick, each a
+	 * full, ordinary tryFireWeapon() call (so ammo/magazine/reload naturally stop it early if the
+	 * magazine runs dry). tudursvehiclemod$salvoShotIndex tells the CUSTOM case above which round is
+	 * currently firing, so a multi-target behaviour's own resolveGuidanceTarget() can spread them
+	 * across its own target list. */
+	private int tudursvehiclemod$salvoShotIndex;
+	private boolean tudursvehiclemod$firingCustomSalvo;
+
+	private void tudursvehiclemod$fireCustomWeaponSalvo(int weaponIndex, ServerPlayerEntity shooter, WeaponDefinition weapon) {
+		if (this.tudursvehiclemod$firingCustomSalvo || shooter == null) {
+			return; // the extra rounds themselves never start a nested salvo
+		}
+		com.example.tudursvehiclemod.asset.CustomWeaponBehavior behavior = weapon.customTypeId()
+				.map(com.example.tudursvehiclemod.asset.CustomWeaponTypes::get)
+				.orElse(com.example.tudursvehiclemod.asset.CustomWeaponBehavior.DEFAULT);
+		int salvoSize = Math.max(1, behavior.getSalvoSize(this, weapon, weaponIndex));
+		if (salvoSize <= 1) {
+			return;
+		}
+		this.tudursvehiclemod$firingCustomSalvo = true;
+		try {
+			for (int i = 1; i < salvoSize; i++) {
+				this.tudursvehiclemod$salvoShotIndex = i;
+				this.weaponCooldowns[weaponIndex] = 0; // the whole salvo fires within this one trigger pull
+				if (!this.tryFireWeapon(weaponIndex, shooter)) {
+					break;
+				}
+			}
+		} finally {
+			this.tudursvehiclemod$firingCustomSalvo = false;
+			this.tudursvehiclemod$salvoShotIndex = 0;
+			this.weaponCooldowns[weaponIndex] = Math.max(this.weaponCooldowns[weaponIndex], weapon.cooldownTicks());
+		}
 	}
 
 	/** Spawns AddMuzzleFlash/AddMuzzleFlashSmoke/SetCartridge one-time firing effects, positioned distanceFromMuzzle ahead of spawnPos along finalVelocity - each independent, no-op if not configured. Server-side only. */
@@ -7452,19 +7514,33 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		java.util.Set<Integer> currentTargetIds = new java.util.HashSet<>();
 		for (int weaponIndex = 0; weaponIndex < def.weapons().size(); weaponIndex++) {
 			WeaponDefinition weapon = def.weapons().get(weaponIndex);
-			if (weapon.weaponType() != com.example.tudursvehiclemod.asset.WeaponType.AA_MISSILE
-					&& weapon.weaponType() != com.example.tudursvehiclemod.asset.WeaponType.AT_MISSILE
-					&& weapon.weaponType() != com.example.tudursvehiclemod.asset.WeaponType.MISSILE) {
+			com.example.tudursvehiclemod.asset.CustomWeaponBehavior customBehavior = weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CUSTOM
+					? weapon.customTypeId().map(com.example.tudursvehiclemod.asset.CustomWeaponTypes::get).orElse(com.example.tudursvehiclemod.asset.CustomWeaponBehavior.DEFAULT)
+					: null;
+			boolean isBuiltinMissile = weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.AA_MISSILE
+					|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.AT_MISSILE
+					|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.MISSILE;
+			boolean isCustomLockOn = customBehavior != null && customBehavior.usesLockOn();
+			if (!isBuiltinMissile && !isCustomLockOn) {
 				continue;
 			}
-			if (!(this.tudursvehiclemod$getSeatOccupant(weapon.seatIndex()) instanceof net.minecraft.server.network.ServerPlayerEntity shooter)) {
-				// No seated gunner at all right now - this weapon's own lock progress resets, same as losing the target entirely.
+			// pilotUsable() weapons on an empty seat are fired by the pilot (tryFireWeapon()'s own
+			// pilotFallbackEligible check already allows exactly this) - lock-on has to resolve the
+			// same shooter, or a pilotUsable() missile bound to an unmanned gunner seat never starts
+			// locking at all: this method is the only thing that ever populates
+			// missileLockProgressTicks, so with no seated gunner it kept resetting every tick before a
+			// lock could ever complete, and tryFireWeapon()'s own lock-completion gate (further down)
+			// then never passes either. Same fallback tudursvehiclemod$resolveWeaponTrackingOccupant()
+			// already uses elsewhere for this exact "occupant, else the pilot" resolution.
+			Entity lockOnShooterEntity = this.tudursvehiclemod$resolveWeaponTrackingOccupant(weapon.seatIndex(), weapon.pilotUsable());
+			if (!(lockOnShooterEntity instanceof net.minecraft.server.network.ServerPlayerEntity shooter)) {
+				// No eligible shooter at all right now - this weapon's own lock progress resets, same as losing the target entirely.
 				this.tudursvehiclemod$missileLockProgressTicks.remove(weaponIndex);
 				this.tudursvehiclemod$missileLockTargetId.remove(weaponIndex);
 				this.tudursvehiclemod$missileLockRequiredTicks.remove(weaponIndex);
 				continue;
 			}
-			Entity target = tudursvehiclemod$findLockOnTarget(shooter, weapon);
+			Entity target = isCustomLockOn ? customBehavior.resolveLockTarget(this, shooter, weapon) : tudursvehiclemod$findLockOnTarget(shooter, weapon);
 			if (target != null) {
 				currentTargetIds.add(target.getId());
 				tudursvehiclemod$setEntityHighlighted(target, true);
@@ -7566,6 +7642,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		} catch (NumberFormatException e) {
 			return fallback;
 		}
+	}
+
+	/** Public wrapper for CustomWeaponBehavior's own default resolveLockTarget() to reuse - see that
+	 * interface's own doc. */
+	public net.minecraft.entity.Entity tudursvehiclemod$findLockOnTargetShared(net.minecraft.server.network.ServerPlayerEntity shooter, WeaponDefinition weapon) {
+		return this.tudursvehiclemod$findLockOnTarget(shooter, weapon);
 	}
 
 	private net.minecraft.entity.Entity tudursvehiclemod$findLockOnTarget(net.minecraft.server.network.ServerPlayerEntity shooter, WeaponDefinition weapon) {

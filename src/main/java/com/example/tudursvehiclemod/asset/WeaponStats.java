@@ -232,7 +232,11 @@ public record WeaponStats(
 		// UsableWhileDiving - lets this weapon (of any Type) stay usable while a submarine hull is submerged/diving, on top of the Torpedo type's own existing hardcoded default (see SubmarineEntity's own tudursvehiclemod$canFireWeapons(Optional) doc) - a non-Torpedo weapon a submarine wants usable underwater no longer needs to actually BE a Torpedo. false (the default, key absent) means this weapon follows the original behavior (usable underwater only if it's a Torpedo). Has no effect at all on any vehicle type other than SubmarineEntity, which is the only consumer of this flag.
 		boolean usableWhileDiving,
 		// FuelPerAmmo - Type=DropTank only (see WeaponType.DROP_TANK's own doc): how much this vehicle's own max fuel is temporarily raised per 1 remaining round of this weapon's own ammo. 0.0 (the default, key absent) means no fuel bonus at all - a DropTank weapon with this unconfigured has no effect on max fuel whatsoever.
-		float fuelPerAmmo
+		float fuelPerAmmo,
+		// Type=<namespace>:<path> (anything containing ':') - an addon-registered custom weapon type
+		// (see WeaponType.CUSTOM's own doc and CustomWeaponTypes' own doc). Empty for every ordinary,
+		// built-in Type. weaponType is CUSTOM exactly when this is present.
+		java.util.Optional<net.minecraft.util.Identifier> customTypeId
 	) {
 	/** Used when a WeaponDefinition names a weapon that isn't currently loaded (missing file, failed to parse, or simply not reloaded yet). */
 	public static final WeaponStats FALLBACK = new WeaponStats(
@@ -244,7 +248,7 @@ public record WeaponStats(
 			0.0f, -1, -1, 0.0f, 0.03f, true, 0, 0.0f, false, 0xFFFFFFFF, 0xFFFFFFFF,
 			SightType.MOVE_SIGHT, 0, 0.0, 0.0, 3.0f, com.example.tudursvehiclemod.asset.CasTargetMode.BALLISTIC, 200.0f, 40.0f, true, 0.0f, 7, Optional.empty(), 1,
 			Optional.empty(), 0, false, Optional.empty(), Optional.empty(), Optional.empty(),
-			0.0f, 40, 5, false, 1.0f, false, false, Optional.empty(), Optional.empty(), false, 0.0f);
+			0.0f, 40, 5, false, 1.0f, false, false, Optional.empty(), Optional.empty(), false, 0.0f, Optional.empty());
 
 	/** True if this weapon's own Bomblet directive is actually configured (count > 0) - see VehicleProjectileEntity's own tudursvehiclemod$updateBombletDeployment() doc. */
 	public boolean hasBomblets() {

@@ -93,6 +93,11 @@ public record WeaponDefinition(
 		return WeaponStatsLoader.get(weaponName).weaponType();
 	}
 
+	/** Present exactly when weaponType() is CUSTOM - see WeaponType.CUSTOM's own doc. */
+	public Optional<Identifier> customTypeId() {
+		return WeaponStatsLoader.get(weaponName).customTypeId();
+	}
+
 	/** See WeaponStats's own doc. */
 	public boolean usableWhileDiving() {
 		return WeaponStatsLoader.get(weaponName).usableWhileDiving();

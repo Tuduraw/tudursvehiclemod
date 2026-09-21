@@ -41,5 +41,18 @@ public enum WeaponType {
 	/** Everything else MC Heli documents that this project doesn't give distinct behavior to. */
 	OTHER,
 	/** A project-specific "drop tank" (external fuel tank) weapon - temporarily raises this vehicle's own max fuel by fuelPerAmmo() (WeaponStats' own new field) times this weapon's own CURRENT remaining ammo (see AbstractVehicleEntity's own getMaxFuel() doc for exactly how this is summed in). Firing it (dropping one tank) reduces remaining ammo by 1 like any other weapon, which reduces this bonus accordingly - any current fuel now above the new, lower max is clamped down (never refunded/converted to anything). If a bullet/projectile item is configured, the dropped tank itself falls exactly like BOMB (inherits this vehicle's own current velocity, no propulsion of its own, droppable at any attitude) - its own impact behavior otherwise depends on this weapon's own configuration, same as any other weapon. */
-	DROP_TANK
+	DROP_TANK,
+	/** An addon-registered custom weapon type - set exactly when a weapon file's own {@code Type}
+	 * value contains ':' (an {@code Identifier}, e.g. {@code humanoidrobotaddon:multi_missile}),
+	 * rather than one of the built-in names above. The identifier itself lives on WeaponStats' own
+	 * customTypeId field (this enum entry alone doesn't carry it - a plain enum constant can't hold
+	 * per-weapon data). Its actual firing/targeting behavior comes from whatever
+	 * com.example.tudursvehiclemod.asset.CustomWeaponTypes.get(id) returns - see that registry's own
+	 * doc for how an addon registers one and exactly which decisions it gets to make (lock-on
+	 * target, per-shot guidance target, salvo size); everything else (ammo, cooldown, reload, heat,
+	 * projectile spawn/flight/explosion) is the same shared machinery every other type already uses.
+	 * An unregistered id (the addon that owns it isn't installed, or hasn't registered yet) falls
+	 * back to CustomWeaponTypes' own default - ordinary unguided fire, no lock-on - rather than
+	 * crashing or silently doing nothing. */
+	CUSTOM
 }
