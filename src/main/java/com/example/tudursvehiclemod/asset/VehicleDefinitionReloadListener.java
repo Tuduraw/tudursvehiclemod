@@ -44,7 +44,7 @@ public class VehicleDefinitionReloadListener implements SimpleSynchronousResourc
 			);
 
 			try (Reader reader = entry.getValue().getReader()) {
-				var json = JsonParser.parseReader(reader);
+				var json = VehicleJsonCompat.upgrade(JsonParser.parseReader(reader));
 				VehicleDefinition.CODEC.parse(JsonOps.INSTANCE, json)
 						.resultOrPartial(error -> LOGGER.error("Failed to parse vehicle '{}': {}", vehicleId, error))
 						.ifPresent(def -> loaded.put(vehicleId, def));
@@ -80,7 +80,7 @@ public class VehicleDefinitionReloadListener implements SimpleSynchronousResourc
 						Identifier vehicleId = Identifier.of(namespace, path);
 
 						try (BufferedReader reader = Files.newBufferedReader(jsonFile, StandardCharsets.UTF_8)) {
-							var json = JsonParser.parseReader(reader);
+							var json = VehicleJsonCompat.upgrade(JsonParser.parseReader(reader));
 							VehicleDefinition.CODEC.parse(JsonOps.INSTANCE, json)
 									.resultOrPartial(error -> LOGGER.error(
 											"Failed to parse addon vehicle '{}' ({}): {}", vehicleId, jsonFile, error))

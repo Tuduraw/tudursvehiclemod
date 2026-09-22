@@ -473,16 +473,23 @@ JSON全体はキャメルケースではなく`snake_case`のキー名を使用�
 
 ## 6. 見た目・当たり判定
 
-### `hide_entity`
-- **書式**: 真偽値(既定値: `false`)
-- **説明**: `true`の場合、搭乗中のプレイヤーモデル自体を完全に非表示にします
-  (機能自体は維持されたまま見た目のみ消えます)。
-- **例**: `"hide_entity": true`
-
-### `entity_width` / `entity_height`
-- **書式**: 浮動小数点数(既定値いずれも`1.0`)
-- **説明**: 搭乗中のプレイヤーモデルの表示スケール。
-- **例**: `"entity_width": 0.9, "entity_height": 0.9`
+### `passenger_display`
+- **書式**: オブジェクト(Optional)
+- **説明**: 搭乗者の見た目に関する設定です。以下の項目を**このオブジェクトの中に**
+  記述します。
+  - `hide_entity`(既定値`false`): `true`の場合、搭乗中のプレイヤーモデル自体を
+    完全に非表示にします(機能自体は維持されたまま見た目のみ消えます)。
+  - `entity_width` / `entity_height`(既定値いずれも`1.0`): 搭乗中のプレイヤー
+    モデルの表示スケール。
+- **例**:
+  ```json
+  "passenger_display": { "hide_entity": false, "entity_width": 0.9, "entity_height": 0.9 }
+  ```
+- **注意**: 以前のドキュメントおよびMCヘリ変換ツールでは、これらの項目を機体JSONの
+  最上位に直接記述していました。互換性のため、最上位に書かれた`hide_entity`・
+  `entity_width`・`entity_height`も読み込み時に自動的に`passenger_display`の中へ
+  移して扱われます(両方に書かれている場合は`passenger_display`内の値が優先)。
+  新しく作成する場合は`passenger_display`の中に記述してください。
 
 ### `force_bounding_box`
 - **書式**: 真偽値(既定値: `false`)

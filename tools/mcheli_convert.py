@@ -2520,9 +2520,14 @@ def convert_one(txt_path: Path, category: str, addon_root: Path, out_root: Path,
         "wheel_rotation_speed": wheel_rotation_speed,
         "stall_speed": stall_speed,
         "weight_type": weight_type,
-        "hide_entity": hide_entity,
-        "entity_width": entity_width,
-        "entity_height": entity_height,
+        # HideEntity/EntityWidth/EntityHeight live inside passenger_display - the mod's codec
+        # only reads them there (older output wrote them at the top level, where they were
+        # ignored; the mod now also migrates that old form on load for existing packs).
+        "passenger_display": {
+            "hide_entity": hide_entity,
+            "entity_width": entity_width,
+            "entity_height": entity_height,
+        },
         "float_capable": float_capable,
         "is_uav": is_uav,
         "vtol_hover_speed_fraction": vtol_hover_speed_fraction,

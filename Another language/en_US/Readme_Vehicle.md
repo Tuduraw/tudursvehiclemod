@@ -530,17 +530,25 @@ fall and causes no practical issue).
 
 ## 6. Appearance/hitbox
 
-### `hide_entity`
-- **Format**: boolean (default: `false`)
-- **Description**: When `true`, completely hides the riding player's own
-  model (the feature itself is still fully functional - only the
-  visible appearance disappears).
-- **Example**: `"hide_entity": true`
-
-### `entity_width` / `entity_height`
-- **Format**: float (default `1.0` for each)
-- **Description**: The display scale of the riding player's own model.
-- **Example**: `"entity_width": 0.9, "entity_height": 0.9`
+### `passenger_display`
+- **Format**: object (optional)
+- **Description**: Settings for how passengers look. The following fields go
+  **inside this object**.
+  - `hide_entity` (default `false`): when `true`, completely hides the riding
+    player's own model (the feature itself is still fully functional - only
+    the visible appearance disappears).
+  - `entity_width` / `entity_height` (default `1.0` for each): the display
+    scale of the riding player's own model.
+- **Example**:
+  ```json
+  "passenger_display": { "hide_entity": false, "entity_width": 0.9, "entity_height": 0.9 }
+  ```
+- **Note**: Earlier documentation and the MC Heli conversion tool wrote these
+  fields directly at the top level of the vehicle JSON. For compatibility,
+  top-level `hide_entity` / `entity_width` / `entity_height` are moved into
+  `passenger_display` automatically on load (if both exist, the value inside
+  `passenger_display` wins). Write them inside `passenger_display` for new
+  vehicles.
 
 ### `force_bounding_box`
 - **Format**: boolean (default: `false`)
