@@ -46,13 +46,19 @@ DrawString = 0, 0, "Speed: %.0f", speed
 ```
 If = hp_rto < 0.3
   Color = 255, 255, 0, 0
-  DrawString = 0, -20, "WARNING", 
+  DrawString = 0, -20, "WARNING"
 EndIf
 ```
 
 The condition (the right-hand side of `If =`) is written using the
-expression syntax below (arithmetic operators, comparison operators). Any
-non-zero value is treated as true. Nested `If` is not supported.
+expression syntax below. Any non-zero value is treated as true.
+
+- Everything from `If` to the next `EndIf` is one block. If the `EndIf` is
+  missing, **everything to the end of the file becomes part of that `If`**.
+- Nested `If` (an `If` inside an `If`) is not supported. The inner `If` line
+  is ignored, and the inner `EndIf` **closes the outer `If`** (the lines after
+  it run regardless of the condition). To combine conditions, use `&&` /
+  `||` in a single condition instead (e.g. `If = locked && wpn_ammo > 0`).
 
 ### Calling a sub-script (`Call` / `Exit`)
 
@@ -65,12 +71,41 @@ script file inside the same `hud` folder. `Exit` stops execution of the
 current script (or the one called via `Call`, if that's where it
 appears) at that point.
 
+If the called script can't be found, nothing happens (it isn't an error).
+A `Call` to a script that is already running further up the same call
+chain (including itself) is ignored.
+
 ### Expression syntax
 
-Arithmetic operators (`+` `-` `*` `/`) and comparison operators (`==`
-`!=` `>` `<` `>=` `<=`) can be used. Function calls such as trigonometric
-functions are not supported (for drawing that involves rotation, use
-`DrawTexture`'s own rotation parameter, described below, instead).
+The following operators are available (lowest precedence first;
+parentheses `( )` change the order).
+
+| Operator | Meaning |
+|---|---|
+| `cond ? a : b` | Ternary (a if cond is non-zero, otherwise b) |
+| `\|\|` | Logical OR (1 if either side is non-zero, otherwise 0) |
+| `&&` | Logical AND (1 if both sides are non-zero, otherwise 0) |
+| `==` `!=` | Equal / not equal (1 if true, 0 if false) |
+| `>` `<` `>=` `<=` | Comparison (1 if true, 0 if false) |
+| `+` `-` | Addition / subtraction |
+| `*` `/` | Multiplication / division (division by zero gives 0) |
+| `-` `!` | Negation / logical NOT (unary; `!` gives 1 for 0, 0 otherwise) |
+
+- Numbers can be decimal (`12`, `0.5`) or hexadecimal (`#FF00FF` or
+  `0xFF00FF`) - handy for passing a packed ARGB value to `Color`
+  (e.g. `Color = #FF00FF00`).
+- Variable names are case-insensitive. An unknown variable name is **not an
+  error - it simply evaluates to 0**, so watch for typos.
+- Function calls such as trigonometric functions are not supported (for
+  drawing that involves rotation, use `DrawTexture`'s own rotation
+  parameter, described below, instead).
+
+Examples:
+```
+DrawString = 0, 0, "%03d", yaw < 0 ? yaw + 360 : yaw
+If = lock_progress > 0 && !locked
+```
+
 Variable names are listed in "3. List of variables" below.
 
 ---
