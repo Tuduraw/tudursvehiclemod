@@ -4,6 +4,8 @@ A summary of the directory structure, required files, and naming rules
 for an addon pack that adds new vehicles/weapons to this mod. No code
 changes or rebuild are needed at all.
 
+You can use addon pack editor (https://github.com/Tuduraw/TudursVehicle_AddonPackEditor).
+
 > **Important**: regarding models, textures, and sounds you include in a
 > pack, read `GUIDELINES.md` on handling data that other people hold the
 > rights to.
