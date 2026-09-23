@@ -1757,6 +1757,26 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 	@Override
 	protected void readCustomData(net.minecraft.storage.ReadView view) {
 		super.readCustomData(view);
+		// See droneLandingCenter's own doc for why the landing state is persisted.
+		this.droneLandingCenter = null;
+		this.droneLandingHomePoint = null;
+		this.droneLandingViaPoint = null;
+		this.droneLandingReachedViaPoint = false;
+		String[] landingCenter = view.getString("DroneLandingCenter", "").split(",", -1);
+		if (landingCenter.length == 3) {
+			try {
+				this.droneLandingCenter = new net.minecraft.util.math.BlockPos(Integer.parseInt(landingCenter[0]),
+						Integer.parseInt(landingCenter[1]), Integer.parseInt(landingCenter[2]));
+				String homeEncoded = view.getString("DroneLandingHomePoint", "");
+				this.droneLandingHomePoint = homeEncoded.isEmpty() ? null : com.example.tudursvehiclemod.block.DroneWaypoint.tudursvehiclemod$decode(homeEncoded);
+				String viaEncoded = view.getString("DroneLandingViaPoint", "");
+				this.droneLandingViaPoint = viaEncoded.isEmpty() ? null : com.example.tudursvehiclemod.block.DroneWaypoint.tudursvehiclemod$decode(viaEncoded);
+				this.droneLandingReachedViaPoint = view.getBoolean("DroneLandingReachedViaPoint", false);
+			} catch (NumberFormatException ignored) {
+				// Malformed: treated as "not landing" - the owning Drone Center (whose pendingDeactivation is persisted too) then simply finishes deactivating.
+				this.droneLandingCenter = null;
+			}
+		}
 		String casWaypointsEncoded = view.getString("CasWaypoints", "");
 		if (!casWaypointsEncoded.isEmpty()) {
 			java.util.List<com.example.tudursvehiclemod.block.DroneWaypoint> route = new java.util.ArrayList<>();
@@ -1819,6 +1839,16 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 	@Override
 	protected void writeCustomData(net.minecraft.storage.WriteView view) {
 		super.writeCustomData(view);
+		if (this.droneLandingCenter != null) {
+			view.putString("DroneLandingCenter", this.droneLandingCenter.getX() + "," + this.droneLandingCenter.getY() + "," + this.droneLandingCenter.getZ());
+			if (this.droneLandingHomePoint != null) {
+				view.putString("DroneLandingHomePoint", this.droneLandingHomePoint.tudursvehiclemod$encode());
+			}
+			if (this.droneLandingViaPoint != null) {
+				view.putString("DroneLandingViaPoint", this.droneLandingViaPoint.tudursvehiclemod$encode());
+			}
+			view.putBoolean("DroneLandingReachedViaPoint", this.droneLandingReachedViaPoint);
+		}
 		if (this.casWaypointOverride != null && !this.casWaypointOverride.isEmpty()) {
 			StringBuilder waypointsSb = new StringBuilder();
 			for (int i = 0; i < this.casWaypointOverride.size(); i++) {
@@ -2024,7 +2054,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		return roll;
 	}
 
-	/** While non-null, this vehicle is actively trying to land gently near this position (a Drone Center that was just manually deactivated while the vehicle was still airborne) instead of simply falling out of control - see tudursvehiclemod$updateDroneLandingRouteAutopilot()'s own doc (this flow was previously driven through the shared tudursvehiclemod$updateDroneWaypointAutopilot() with a temporary route, then rebuilt as its own dedicated method mirroring Carrier's own proven landing-waypoint mechanics instead - see that method's own doc for the full reasoning). Checked FIRST in updateVehicleMovement(), independent of tudursvehiclemod$isDroneActive()/getDroneCenterPos() (which may already be false/null by the time this runs, since the center itself was already deactivated) - a plain, server-side-only field, same as droneCenterPos's own reasoning. Deliberately NOT set at all when the vehicle is destroyed (see tudursvehiclemod$requestDroneLanding()'s own doc) - a wreck has nothing to gently land. */
+	/** While non-null, this vehicle is actively trying to land gently near this position (a Drone Center that was just manually deactivated while the vehicle was still airborne) instead of simply falling out of control - see tudursvehiclemod$updateDroneLandingRouteAutopilot()'s own doc (this flow was previously driven through the shared tudursvehiclemod$updateDroneWaypointAutopilot() with a temporary route, then rebuilt as its own dedicated method mirroring Carrier's own proven landing-waypoint mechanics instead - see that method's own doc for the full reasoning). Checked FIRST in updateVehicleMovement(), independent of tudursvehiclemod$isDroneActive()/getDroneCenterPos() (which may already be false/null by the time this runs, since the center itself was already deactivated) - a plain, server-side-only field, same as droneCenterPos's own reasoning. Persisted (with droneLandingHomePoint/droneLandingViaPoint/droneLandingReachedViaPoint, and the owning center's own pendingDeactivation) so an unexpected shutdown or a chunk unload mid-landing resumes the SAME landing afterward - previously all of it was lost, the reloaded center found nothing pending and simply re-linked the vehicle, silently undoing the manual deactivation and sending it back out on patrol. Deliberately NOT set at all when the vehicle is destroyed (see tudursvehiclemod$requestDroneLanding()'s own doc) - a wreck has nothing to gently land. */
 	private net.minecraft.util.math.BlockPos droneLandingCenter;
 	/** This landing attempt's own Home Point/via-point, captured ONCE (see tudursvehiclemod$requestDroneLanding()'s own doc for why) rather than re-fetched from the Drone Center block every tick. droneLandingViaPoint is null exactly when no via-point was configured at the moment landing began - matching block.DroneCenterBlockEntity's own tudursvehiclemod$getReturnViaPoint() contract. */
 	private com.example.tudursvehiclemod.block.DroneWaypoint droneLandingHomePoint;

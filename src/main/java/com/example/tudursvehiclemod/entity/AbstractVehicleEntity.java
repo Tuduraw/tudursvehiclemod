@@ -7949,26 +7949,65 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	/** How much of a recipient's own maximum health one supply interval restores - see SUPPLY_FUEL_FRACTION_PER_INTERVAL's own doc for the same pacing reasoning. Deliberately slower than fuel: repair should feel more costly in time than simply topping up a tank. */
 	private static final float SUPPLY_HEALTH_FRACTION_PER_INTERVAL = 0.02f;
 
-	/** Per the same request as tudursvehiclemod$updateSupplyToNearbyVehicles()'s own doc: refills THIS vehicle's own weapon magazines from its own reserve-free supply, called on the RECIPIENT by a nearby supplier. Reuses tudursvehiclemod$replenishWeaponAmmo() so magazine capping and the ammo-display sync behave identically to a Carrier landing's own resupply; the UUID argument is irrelevant here (nothing is in flight), so a throwaway one is passed. */
+	/** Per the same request as tudursvehiclemod$updateSupplyToNearbyVehicles()'s own doc: refills THIS vehicle's own weapon ammo, called on the RECIPIENT by a nearby supplier - the magazine first, then (once the magazine is full) the reserve. Refilling only the magazine was an oversight (it went unnoticed because it was only ever tested with reserve-less vehicles): a vehicle that had also used up its reserve never got it back from a supplier at all, and a Drone Center's own AUTO_RESUME - which waits for magazine + reserve to be completely full again - could then never resume.
+	 *
+	 * Capacity follows tudursvehiclemod$tryResupplyWeapon()'s own rules exactly: for a weapon with a finite reserve (reserve >= 0 and MaxAmmo > 0) magazine + reserve + Carrier aircraft still in flight never exceeds MaxAmmo (the total capacity, magazine included); an unlimited reserve (-1) or a weapon without MaxAmmo only ever has its magazine topped up, same as before. Per-interval pacing: SUPPLY_AMMO_FRACTION_PER_INTERVAL of the magazine size for the magazine (unchanged), and the same fraction of MaxAmmo for the reserve - floored at 1 so small numbers still make progress. Syncs the ammo display once at the end, only if anything changed. */
 	private void tudursvehiclemod$receiveAmmoSupply() {
 		VehicleDefinition def = this.getDefinition();
+		this.tudursvehiclemod$ensureWeaponAmmoArraysSized(def);
+		boolean changed = false;
 		for (int weaponIndex = 0; weaponIndex < def.weapons().size(); weaponIndex++) {
 			WeaponDefinition weapon = def.weapons().get(weaponIndex);
 			int magazineSize = weapon.magazineSize();
 			if (magazineSize <= 0) {
 				continue;
 			}
-			this.tudursvehiclemod$ensureWeaponAmmoArraysSized(def);
-			if (this.weaponAmmo[weaponIndex] >= magazineSize) {
+			boolean finiteReserve = this.weaponReserveAmmo[weaponIndex] >= 0 && weapon.maxAmmo() > 0;
+			// Remaining room in the weapon's own total capacity - effectively unbounded for a weapon with no finite reserve, where only the magazine size limits anything.
+			int room = finiteReserve
+					? weapon.maxAmmo() - this.weaponAmmo[weaponIndex] - this.weaponReserveAmmo[weaponIndex] - this.tudursvehiclemod$countCarrierInFlight(weaponIndex)
+					: Integer.MAX_VALUE;
+			if (room <= 0) {
 				continue;
 			}
-			// A fraction of the magazine per interval rather than a flat count, so a large-magazine weapon doesn't take proportionally forever compared to a small one - floored at 1 so even a tiny magazine still makes progress.
-			int amount = Math.max(1, Math.round(magazineSize * SUPPLY_AMMO_FRACTION_PER_INTERVAL));
-			this.tudursvehiclemod$replenishWeaponAmmo(weaponIndex, amount, java.util.UUID.randomUUID());
+			if (this.weaponAmmo[weaponIndex] < magazineSize) {
+				// A fraction of the magazine per interval rather than a flat count, so a large-magazine weapon doesn't take proportionally forever compared to a small one.
+				int amount = Math.min(room, Math.min(magazineSize - this.weaponAmmo[weaponIndex],
+						Math.max(1, Math.round(magazineSize * SUPPLY_AMMO_FRACTION_PER_INTERVAL))));
+				this.weaponAmmo[weaponIndex] += amount;
+				changed = true;
+			} else if (finiteReserve) {
+				int amount = Math.min(room, Math.max(1, Math.round(weapon.maxAmmo() * SUPPLY_AMMO_FRACTION_PER_INTERVAL)));
+				this.weaponReserveAmmo[weaponIndex] += amount;
+				changed = true;
+			}
+		}
+		if (changed) {
+			this.tudursvehiclemod$syncWeaponAmmo();
 		}
 	}
 
-	/** How much of a recipient weapon's own magazine one supply interval restores - see tudursvehiclemod$receiveAmmoSupply()'s own doc for why this is a fraction rather than a flat round count. */
+	/** Live count of weaponIndex's own Carrier-launched aircraft still "out there" (see carrierInFlightAircraft's own doc) - shared by tudursvehiclemod$tryResupplyWeapon() and tudursvehiclemod$receiveAmmoSupply(), both of which must count these against the weapon's own MaxAmmo capacity. Rather than trusting a simple counter that could drift out of sync (a timeout/destruction despawn never explicitly decrements anything), actively checks each tracked UUID against whether it's ACTUALLY still alive right now, pruning any that aren't - the resulting (verified) set size is the true in-flight count. */
+	private int tudursvehiclemod$countCarrierInFlight(int weaponIndex) {
+		java.util.Set<java.util.UUID> inFlightSet = this.carrierInFlightAircraft.get(weaponIndex);
+		int inFlight = 0;
+		if (inFlightSet != null && !inFlightSet.isEmpty() && this.getEntityWorld() instanceof ServerWorld serverWorldForVerify) {
+			java.util.Iterator<java.util.UUID> inFlightIterator = inFlightSet.iterator();
+			while (inFlightIterator.hasNext()) {
+				java.util.UUID candidateUuid = inFlightIterator.next();
+				Entity candidateEntity = serverWorldForVerify.getEntity(candidateUuid);
+				if (candidateEntity == null || candidateEntity.isRemoved()
+						|| (candidateEntity instanceof AbstractVehicleEntity candidateVehicle && candidateVehicle.tudursvehiclemod$isDestroyed())) {
+					inFlightIterator.remove();
+				} else {
+					inFlight++;
+				}
+			}
+		}
+		return inFlight;
+	}
+
+	/** How much of a recipient weapon's own magazine (and, once the magazine is full, of its own MaxAmmo for the reserve) one supply interval restores - see tudursvehiclemod$receiveAmmoSupply()'s own doc for why this is a fraction rather than a flat round count. */
 	private static final float SUPPLY_AMMO_FRACTION_PER_INTERVAL = 0.1f;
 
 	/** Per the same request as tudursvehiclemod$updateSupplyToNearbyVehicles()'s own doc: restores part of THIS vehicle's own health, called on the RECIPIENT by a nearby supplier. Sets HEALTH directly, exactly as the existing iron-ingot repair path does (see tudursvehiclemod$tryRepair()'s own use of the same field), so both routes to healing behave identically. */
@@ -7998,22 +8037,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			return false;
 		}
 		this.tudursvehiclemod$ensureWeaponAmmoArraysSized(def);
-		// Rather than trusting a simple counter that could drift out of sync (a timeout/destruction despawn never explicitly decrements anything), actively checks each tracked UUID against whether it's ACTUALLY still alive right now, pruning any that aren't - the resulting (verified) set size is the true in-flight count.
-		java.util.Set<java.util.UUID> inFlightSet = this.carrierInFlightAircraft.get(weaponIndex);
-		int inFlight = 0;
-		if (inFlightSet != null && !inFlightSet.isEmpty() && this.getEntityWorld() instanceof ServerWorld serverWorldForVerify) {
-			java.util.Iterator<java.util.UUID> inFlightIterator = inFlightSet.iterator();
-			while (inFlightIterator.hasNext()) {
-				java.util.UUID candidateUuid = inFlightIterator.next();
-				Entity candidateEntity = serverWorldForVerify.getEntity(candidateUuid);
-				if (candidateEntity == null || candidateEntity.isRemoved()
-						|| (candidateEntity instanceof AbstractVehicleEntity candidateVehicle && candidateVehicle.tudursvehiclemod$isDestroyed())) {
-					inFlightIterator.remove();
-				} else {
-					inFlight++;
-				}
-			}
-		}
+		int inFlight = this.tudursvehiclemod$countCarrierInFlight(weaponIndex);
 		// The previous "magazineFull && reserveFull" condition never actually blocked anything once the magazine was empty (e.g. right after firing/launching), regardless of reserveFull's own value, since BOTH had to be true. Checks total capacity used (magazine + reserve + in-flight) against MaxAmmo directly instead - correctly blocks in every case, not just when the magazine happens to already be full.
 		boolean atCapacity = this.weaponReserveAmmo[weaponIndex] < 0
 				? this.weaponAmmo[weaponIndex] >= weapon.magazineSize()

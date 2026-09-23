@@ -978,6 +978,8 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 		this.autoDisableResumeMode = resumeModeOrdinal >= 0 && resumeModeOrdinal < resumeModes.length
 				? resumeModes[resumeModeOrdinal] : AutoDisableResumeMode.MANUAL_REENABLE;
 		this.autoDisabledPendingResupply = view.getBoolean("AutoDisabledPendingResupply", false);
+		// Persisted (together with AircraftEntity's own landing state - see its droneLandingCenter doc) so an unexpected shutdown or chunk unload mid-landing no longer loses a manual deactivation: without it, the reloaded center still read active with nothing pending, re-linked the vehicle and sent it back out on patrol. false for any save predating this.
+		this.pendingDeactivation = view.getBoolean("PendingDeactivation", false);
 		this.dummyPilotCasAttackStartAltitude = view.getFloat("DummyPilotCasAttackStartAltitude", 200.0f);
 		this.dummyPilotCasAttackStopAltitude = view.getFloat("DummyPilotCasAttackStopAltitude", 40.0f);
 		this.dummyPilotSearchRange = view.getFloat("DummyPilotSearchRange", 64.0f);
@@ -1043,6 +1045,7 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 		view.putInt("DummyPilotWeaponIndex", this.dummyPilotWeaponIndex);
 		view.putInt("AutoDisableResumeMode", this.autoDisableResumeMode.ordinal());
 		view.putBoolean("AutoDisabledPendingResupply", this.autoDisabledPendingResupply);
+		view.putBoolean("PendingDeactivation", this.pendingDeactivation);
 		view.putFloat("DummyPilotCasAttackStartAltitude", (float) this.dummyPilotCasAttackStartAltitude);
 		view.putFloat("DummyPilotCasAttackStopAltitude", (float) this.dummyPilotCasAttackStopAltitude);
 		view.putFloat("DummyPilotSearchRange", (float) this.dummyPilotSearchRange);

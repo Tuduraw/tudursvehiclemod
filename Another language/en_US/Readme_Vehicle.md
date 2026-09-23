@@ -519,6 +519,9 @@ fall and causes no practical issue).
   this radius (blocks). The supplying vehicle doesn't consume or lose
   any itself. Never supplies to itself. `0` (default) means no supply
   feature at all.
+  Only stationary vehicles are supplied. Ammo refills the magazine first,
+  then the reserve up to the weapon's `MaxAmmo` (total capacity, magazine
+  included).
 - **Example**:
   ```json
   "fuel_supply_range": 20.0,
