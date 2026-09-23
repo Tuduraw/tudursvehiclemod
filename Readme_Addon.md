@@ -4,7 +4,7 @@
 必要なファイル・命名規則をまとめたものです。コードの変更・再ビルドは一切
 不要です。
 
-なお、アドオンパック作成に役立つエディタを用意しています(https://github.com/Tuduraw/TudursVehicle_AddonPackEditor)。
+なお、アドオンパック作成に役立つエディタを用意しています( https://github.com/Tuduraw/TudursVehicle_AddonPackEditor )。
 
 > **重要**: パックに含めるモデル・テクスチャ・音声について、他者が権利を
 > 有するデータの取り扱いは`GUIDELINES.md`を必ず確認してください。
