@@ -129,15 +129,18 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		return Identifier.of(VehicleMod.MOD_ID, "submarine");
 	}
 
-	/** True (surfaced) = weapons work normally; false (diving) = frozen entirely EXCEPT for Torpedo (see the weapon-type-aware overload below). */
+	/** True (surfaced) = weapons work normally; false (diving) = frozen entirely EXCEPT for Torpedo (see the weapon-type-aware overload below). Also false once this vehicle is destroyed (see AbstractVehicleEntity's own base tudursvehiclemod$canFireWeapons() doc) - this override replaces the base check entirely rather than calling super, so that condition has to be repeated here too. */
 	@Override
 	public boolean tudursvehiclemod$canFireWeapons() {
-		return this.isHatchOpen();
+		return this.isHatchOpen() && !this.tudursvehiclemod$isDestroyed();
 	}
 
-	/** Torpedo stays usable while diving (this project's own original behavior), same as any weapon with its own UsableWhileDiving flag set - configurable per-weapon rather than hardcoded to Torpedo alone (see WeaponStats's own usableWhileDiving doc). Every other weapon freezes (both firing and aim-tracking). */
+	/** Torpedo stays usable while diving (this project's own original behavior), same as any weapon with its own UsableWhileDiving flag set - configurable per-weapon rather than hardcoded to Torpedo alone (see WeaponStats's own usableWhileDiving doc). Every other weapon freezes (both firing and aim-tracking). Destroyed freezes every weapon unconditionally, same as the base class - see this class's own plain tudursvehiclemod$canFireWeapons() doc for why that check has to be repeated here too. */
 	@Override
 	public boolean tudursvehiclemod$canFireWeapons(java.util.Optional<com.example.tudursvehiclemod.asset.WeaponDefinition> weapon) {
+		if (this.tudursvehiclemod$isDestroyed()) {
+			return false;
+		}
 		if (this.isHatchOpen()) {
 			return true;
 		}

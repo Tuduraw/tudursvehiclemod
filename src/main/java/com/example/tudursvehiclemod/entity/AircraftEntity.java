@@ -116,9 +116,10 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 	}
 
 
+	/** False while this non-float-capable aircraft sits on/under water (matching AbstractVehicleEntity's own base doc for why that's restricted), and once this vehicle is destroyed (see that base class's own tudursvehiclemod$canFireWeapons() doc) - this override replaces the base check entirely rather than calling super, so that condition has to be repeated here too. */
 	@Override
 	public boolean tudursvehiclemod$canFireWeapons() {
-		return getDefinition().isFloatCapable() || tudursvehiclemod$findWaterSurfaceY().isEmpty();
+		return !this.tudursvehiclemod$isDestroyed() && (getDefinition().isFloatCapable() || tudursvehiclemod$findWaterSurfaceY().isEmpty());
 	}
 
 	public float propellerRotation;

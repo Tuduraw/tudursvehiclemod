@@ -2095,6 +2095,9 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			// landing_gear part is configured") as a precaution.
 			return;
 		}
+		if (this.tudursvehiclemod$isDestroyed()) {
+			return;
+		}
 		boolean grounded = this.isOnGround() || this.isTouchingWater();
 		if (grounded && !this.wasGroundedForGear) {
 			// Just landed - auto-deploy, same as MC Heli's own automatic behavior.
@@ -2148,6 +2151,10 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			// Per CANOPY_OPEN's own doc: moved up from further below (was previously computed only for the speedMultiplier selection) so the target-computation branches below can also select isCanopyOpen() vs isHatchOpen() by this same prefix.
 			String partNameLower = part.part().toLowerCase(java.util.Locale.ROOT);
 			boolean isCanopyPart = partNameLower.startsWith("$canopy");
+			if (this.tudursvehiclemod$isDestroyed() && !isCanopyPart) {
+				this.togglePartProgress.put(part.part(), previous);
+				continue;
+			}
 
 			float target;
 			if ("landing_gear".equals(part.trigger()) || "landing_gear_reversed".equals(part.trigger())) {
@@ -2296,7 +2303,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 
 	/** Accumulates each declared PartAnimation's spin phase by degreesPerTick()*getSpinningPartSpeedMultiplier() every tick, instead of spinning at a fixed rate regardless of throttle.. */
 	private void updateSpinningParts() {
-		float speedMultiplier = getSpinningPartSpeedMultiplier();
+		float speedMultiplier = this.tudursvehiclemod$isDestroyed() ? 0f : getSpinningPartSpeedMultiplier();
 		for (com.example.tudursvehiclemod.asset.PartAnimation part : getDefinition().spinningParts()) {
 			float previous = this.spinningPartsPhase.getOrDefault(part.part(), 0f);
 			this.prevSpinningPartsPhase.put(part.part(), previous);
@@ -4101,11 +4108,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	/** Called server-side (see FireWeaponPayload's receiver in VehicleMod) when a passenger presses the fire key. */
-	/** True by default - overridden by SubmarineEntity to freeze weapons
-	 * (both firing and aim-tracking parts) while submerged.
-	 * Default behaviour is unrestricted firing. */
+	/** True by default (except once this vehicle is destroyed - see tudursvehiclemod$isDestroyed()'s own doc,
+	 * a wreck can no longer fire anything at all) - overridden by SubmarineEntity to ALSO freeze weapons
+	 * while submerged. Default behaviour is unrestricted firing otherwise. */
 	public boolean tudursvehiclemod$canFireWeapons() {
-		return true;
+		return !this.tudursvehiclemod$isDestroyed();
 	}
 
 	/** Weapon-aware overload - lets a subclass (SubmarineEntity) allow a specific weapon through where the plain check would say no (e.g. Torpedo while diving, or any weapon with usableWhileDiving() set - see WeaponStats's own doc). Takes the full WeaponDefinition (not just its WeaponType) so an override can consult a per-weapon flag, not only its shared Type. Defaults to delegating to the plain check. */
