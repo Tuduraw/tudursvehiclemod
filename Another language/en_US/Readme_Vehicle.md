@@ -166,11 +166,20 @@ Under each field's own heading, an actual example entry is given as
   ```
 
 ### `engine_sound_volume`
-- **Format**: float (default: `3.0`)
+- **Format**: float (default: `1.0` or `3.0` depending on entity type -
+  see below)
 - **Description**: A volume multiplier for `engine_sound`. The same idea
   as `SoundVolume` in an MC Heli weapon config - `1.0` is ordinary
   maximum volume, and going above it extends the audible distance
-  instead (an addition specific to this project).
+  instead (an addition specific to this project; both the full-volume
+  distance and the distance at which it fades to silence scale with
+  this value).
+- **On the default**: when not explicitly set, the default depends on
+  `entity_type`.
+  - `aircraft` / `helicopter` / `vtol` (flies at altitude), and
+    `ship` / `submarine` (sheer physical scale): `3.0`
+  - `car` / `static_emplacement`, and any `entity_type` an addon mod
+    adds: `1.0`
 - **Example**:
   ```json
   "engine_sound_volume": 3.0

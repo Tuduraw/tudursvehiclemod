@@ -13,7 +13,7 @@ public record MovementStats(
 		float reverseThrottle,
 		// dive_max_speed - SubmarineEntity-specific: this hull's own max speed while DIVING, separate from maxSpeed above (which, for a submarine, is used for SURFACED mode only - see SubmarineEntity's own doc). Empty (the default, since MC Heli's own format has no equivalent setting) means "use maxSpeed / 3 instead" - see SubmarineEntity's own tudursvehiclemod$getDiveMaxSpeed() doc.
 		Optional<Float> diveMaxSpeed,
-		// Engine_sound_volume - follows MC Heli's own documented SoundVolume convention for weapons (see WeaponStats's own soundVolume doc) applied to this vehicle's own engine_sound instead: 1.0 is Minecraft's own "normal max" per that same convention, above 1.0 makes the engine sound audible from further away (at the same, still-capped-at-1.0 peak loudness) rather than exceeding max loudness, and below 1.0 shrinks both loudness and range together. Not an MC Heli-native directive (MC Heli has no per-vehicle engine sound volume control at all) - this project's own new addition. Defaults to 3.0 (audible from 3x the normal range) when a vehicle's own config doesn't specify this field at all. See client.sound.VanillaStyleSoundAttenuation's own doc for exactly how this gets applied.
+		// Engine_sound_volume - follows MC Heli's own documented SoundVolume convention for weapons (see WeaponStats's own soundVolume doc) applied to this vehicle's own engine_sound instead: 1.0 is Minecraft's own "normal max" per that same convention, above 1.0 makes the engine sound audible from further away (at the same, still-capped-at-1.0 peak loudness) rather than exceeding max loudness, and below 1.0 shrinks both loudness and range together. Not an MC Heli-native directive (MC Heli has no per-vehicle engine sound volume control at all) - this project's own new addition. ENGINE_SOUND_VOLUME_UNSET (see that constant's own doc) when a vehicle's own config doesn't specify this field at all - VehicleDefinition's own tudursvehiclemod$effectiveEngineSoundVolume() resolves THAT into an actual per-entity-type default (this field alone has no access to entityType() at the point it's decoded here, which the resolution needs). See client.sound.VanillaStyleSoundAttenuation's own doc for exactly how the final, resolved value gets applied.
 		float engineSoundVolume,
 		// pivot_turn_throttle - CarEntity-specific (see Readme_Aircraft.txt's own PivotTurnThrottle doc): the MINIMUM speed (as a fraction of max_speed, 0-1) this vehicle needs before it's actually allowed to turn at all - 0 (the default) means it can pivot in place with no speed at all ("超信地旋回"/zero-radius turn), same as every ground vehicle here always could before this field existed. A value above 0 means a real tank-style "信地旋回" (turns only once moving at least this fast) - see CarEntity's own tudursvehiclemod$updateSteering() doc for exactly how this gets enforced (including automatically throttling UP toward this minimum whenever the player tries to turn without it).
 		float pivotTurnThrottle,
@@ -26,6 +26,14 @@ public record MovementStats(
 		// Throttle_switch_hold_ticks - configurable duration (in ticks) of the "hold at exactly 0%" pause when throttle crosses from positive to negative or back (see AbstractVehicleEntity's own THROTTLE_SWITCH_HOLD_TICKS/updateThrottle()/tudursvehiclemod$applyThrottleSwitchHold() doc for exactly how this is used). Empty (the default, when the source file doesn't set its own value) preserves the current 40-tick default every vehicle type here has always used.
 		Optional<Integer> throttleSwitchHoldTicks
 ) {
+	/** Sentinel for engine_sound_volume meaning "this vehicle's own config left the field out
+	 * entirely" - kept distinguishable from any real, explicitly-authored value (including an
+	 * explicit 3.0) so VehicleDefinition's own tudursvehiclemod$effectiveEngineSoundVolume() can
+	 * resolve the actual per-entity-type default only for genuinely unset vehicles. A real
+	 * engineSoundVolume can never legitimately be negative (it's a volume/range multiplier), so
+	 * this trades away nothing an author could otherwise have meant. */
+	public static final float ENGINE_SOUND_VOLUME_UNSET = -1.0f;
+
 	public static final MapCodec<MovementStats> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.FLOAT.optionalFieldOf("max_speed", 1.0f).forGetter(MovementStats::maxSpeed),
 			Codec.FLOAT.optionalFieldOf("acceleration", 0.05f).forGetter(MovementStats::acceleration),
@@ -36,7 +44,7 @@ public record MovementStats(
 			Codec.FLOAT.optionalFieldOf("on_ground_pitch", 0.0f).forGetter(MovementStats::onGroundPitch),
 			Codec.FLOAT.optionalFieldOf("reverse_throttle", 0.0f).forGetter(MovementStats::reverseThrottle),
 			Codec.FLOAT.optionalFieldOf("dive_max_speed").forGetter(MovementStats::diveMaxSpeed),
-			Codec.FLOAT.optionalFieldOf("engine_sound_volume", 3.0f).forGetter(MovementStats::engineSoundVolume),
+			Codec.FLOAT.optionalFieldOf("engine_sound_volume", ENGINE_SOUND_VOLUME_UNSET).forGetter(MovementStats::engineSoundVolume),
 			Codec.FLOAT.optionalFieldOf("pivot_turn_throttle", 0.0f).forGetter(MovementStats::pivotTurnThrottle),
 			Codec.FLOAT.optionalFieldOf("wheel_rotation_speed", 40.0f).forGetter(MovementStats::wheelRotationSpeed),
 			Codec.FLOAT.optionalFieldOf("throttle_up_down").forGetter(MovementStats::throttleUpDown),

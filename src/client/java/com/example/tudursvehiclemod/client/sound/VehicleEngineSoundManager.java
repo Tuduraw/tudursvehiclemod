@@ -91,7 +91,12 @@ public final class VehicleEngineSoundManager {
 		return source;
 	}
 
-	/** "Un-scaled" (engine_sound_volume=1.0) reference/max distances - doubled from their original values (4.0/64.0) so the audible range at the default engine_sound_volume=1.0 is twice as far. See VanillaStyleSoundAttenuation's own doc for how that volume actually stretches/shrinks these further. */
+	/** "Un-scaled" (engine_sound_volume=1.0 exactly) reference/max distances - doubled from their
+	 * original values (4.0/64.0). A vehicle whose own engine_sound_volume resolves to 1.0 (see
+	 * VehicleDefinition's own tudursvehiclemod$effectiveEngineSoundVolume() doc for which vehicle
+	 * types default there) is audible at exactly this doubled range; one that resolves to 3.0 (the
+	 * other default, or any explicitly-authored value) gets these further multiplied by 3, and so
+	 * on for any other explicit value - see VanillaStyleSoundAttenuation's own doc for exactly how. */
 	private static final float BASE_REFERENCE_DISTANCE = 8.0f;
 	private static final float BASE_MAX_DISTANCE = 128.0f;
 
@@ -138,7 +143,7 @@ public final class VehicleEngineSoundManager {
 		// camera/listener position (not necessarily the same as the
 		// player entity's own feet position - e.g. a spectator or a
 		// detached free-look camera).
-		float engineSoundVolume = vehicle.getDefinition().engineSoundVolume();
+		float engineSoundVolume = vehicle.getDefinition().tudursvehiclemod$effectiveEngineSoundVolume();
 		MinecraftClient client = MinecraftClient.getInstance();
 		Vec3d listenerPos = client.gameRenderer.getCamera().getCameraPos();
 		double distance = pos.distanceTo(listenerPos);

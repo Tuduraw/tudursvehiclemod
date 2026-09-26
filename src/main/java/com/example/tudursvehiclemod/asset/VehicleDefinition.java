@@ -202,4 +202,33 @@ public record VehicleDefinition(
 			return Character.toUpperCase(withSpaces.charAt(0)) + withSpaces.substring(1);
 		});
 	}
+
+	/** entity_type paths (in this mod's own namespace only - an addon's own entity_type, whatever
+	 * its namespace, is never one of these) whose vehicles keep the wider engine-sound range by
+	 * default: aircraft/helicopter/vtol for altitude (heard well before they're visible from the
+	 * ground), ship/submarine for sheer physical scale. Everything else - car, static_emplacement,
+	 * and any addon-defined entity_type - gets the narrower default instead. See
+	 * tudursvehiclemod$effectiveEngineSoundVolume()'s own doc for how this is actually used. */
+	private static final java.util.Set<String> WIDE_ENGINE_SOUND_RANGE_PATHS =
+			java.util.Set.of("aircraft", "helicopter", "vtol", "ship", "submarine");
+
+	/** engine_sound_volume itself defaults to ENGINE_SOUND_VOLUME_UNSET (see that constant's own
+	 * doc) rather than baking one fixed number straight into the codec, specifically so a vehicle
+	 * that genuinely left this unset can be told apart from one that explicitly wrote whatever
+	 * number this method would otherwise have defaulted to - the two cases need to resolve
+	 * differently once entityType() is factored in, which the plain codec default alone can't do
+	 * (it has no way to know entityType() at the point the field itself is being decoded, and
+	 * folding that in there would require restructuring this whole record's own group() call for a
+	 * single field's sake). Reportedly this field's default was originally meant to be a flat 1.0 for
+	 * every vehicle type, and became 3.0 by mistake in some later change - restored to 1.0 here for
+	 * every type EXCEPT the wide-range ones above, which keep 3.0 (the value already in wide use for
+	 * them, and reasonable for both - see WIDE_ENGINE_SOUND_RANGE_PATHS's own doc for why). */
+	public float tudursvehiclemod$effectiveEngineSoundVolume() {
+		if (this.engineSoundVolume != MovementStats.ENGINE_SOUND_VOLUME_UNSET) {
+			return this.engineSoundVolume;
+		}
+		boolean wideRange = com.example.tudursvehiclemod.VehicleMod.MOD_ID.equals(this.entityType.getNamespace())
+				&& WIDE_ENGINE_SOUND_RANGE_PATHS.contains(this.entityType.getPath());
+		return wideRange ? 3.0f : 1.0f;
+	}
 }
