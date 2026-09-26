@@ -1392,10 +1392,22 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		// missile itself is still doing.
 		com.example.tudursvehiclemod.entity.AbstractVehicleEntity firingVehicle = this.tudursvehiclemod$getFiringVehicle();
 		Entity controllingPlayerEntity = serverWorld.getEntityById(this.tvControllingPlayerId);
-		boolean noLongerRidingFiringVehicle = firingVehicle == null
-				|| !(controllingPlayerEntity instanceof net.minecraft.server.network.ServerPlayerEntity)
-				|| controllingPlayerEntity.getVehicle() != firingVehicle;
-		if (outOfRange || chunkUnloaded || noLongerRidingFiringVehicle) {
+		boolean controllerGone;
+		if (firingVehicle != null) {
+			controllerGone = !(controllingPlayerEntity instanceof net.minecraft.server.network.ServerPlayerEntity)
+					|| controllingPlayerEntity.getVehicle() != firingVehicle;
+		} else {
+			// Fired without a vehicle at all (an external shooter, e.g. an addon's handheld
+			// launcher - see WeaponProjectileFactory's own doc): there's no firing vehicle to stay
+			// seated in, so control instead ends once the controlling player is gone (dead, left,
+			// changed dimension) or mounts anything - the on-foot equivalent of leaving the
+			// firing vehicle above. A vehicle-fired missile always has firingVehicle set, so it
+			// never reaches this branch.
+			controllerGone = !(controllingPlayerEntity instanceof net.minecraft.server.network.ServerPlayerEntity controllingPlayer)
+					|| !controllingPlayer.isAlive()
+					|| controllingPlayer.getVehicle() != null;
+		}
+		if (outOfRange || chunkUnloaded || controllerGone) {
 			this.tudursvehiclemod$releaseTvControl();
 		}
 	}

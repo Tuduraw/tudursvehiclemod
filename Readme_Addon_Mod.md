@@ -21,7 +21,8 @@
 5. ダミーパイロットの攻撃対象を変更する
 6. ティア別スポーンアイテムを利用する
 7. 武器ファイルを同梱する
-8. 制限事項
+8. 車両以外から武器を発射する
+9. 制限事項
 
 ---
 
@@ -38,6 +39,7 @@
 | ベースアイテムからの変換に対応 | `VehicleConverterTarget`を実装し、`VehicleConverterTargets.register()`で登録(任意) |
 | スポーンアイテムと車両選択画面を使う | `TieredVehicleSpawnerItem`に自分の`VehicleConverterTarget`を渡す |
 | 独自の武器を追加 | `assets/<namespace>/weapons/<n>.txt`をjarに同梱 |
+| 車両以外(携帯装備など)から武器を発射 | `WeaponProjectileFactory`で弾体を生成し、`WeaponTargeting`で照準・ロックオンを行う |
 
 モデル表示・メッシュ命中判定・耐久値/破壊処理・座席・武装・HUD・半透明
 描画といった共通部分は、いずれの場合も`AbstractVehicleEntity`から
@@ -408,7 +410,95 @@ src/main/resources/assets/<namespace>/sounds/<name>.ogg
 
 ---
 
-## 8. 制限事項
+## 8. 車両以外から武器を発射する
+
+携帯装備のように、**車両に載っていない発射者**から武器ファイルの弾を
+撃つための機能です。車両の武装と同じ処理を共有しているため、武器
+ファイルの設定はそのまま同じ意味になります。
+
+### 弾体を生成する
+
+`WeaponProjectileFactory.create()`は、武器ファイルの設定から弾体を
+生成・設定します。**スポーンはしません。**
+
+```java
+WeaponStats stats = WeaponStatsLoader.get("my_launcher");
+VehicleProjectileEntity projectile = WeaponProjectileFactory.create(
+        world, player, new ItemStack(Items.IRON_NUGGET), stats, mode);
+
+projectile.setPosition(muzzlePos.x, muzzlePos.y, muzzlePos.z);
+Vec3d velocity = WeaponTargeting.applyAccuracySpread(
+        player.getRotationVec(1.0f).multiply(stats.velocity()),
+        stats.accuracyDegrees(), world.random);
+projectile.setVelocity(velocity);
+
+world.spawnEntity(projectile);
+projectile.tudursvehiclemod$forceLoadSpawnChunk();
+```
+
+`create()`が設定するのは、武器ファイルだけで決まる項目です。
+
+- 威力、爆発(ブロック破壊・炎上・水中)、各種信管、跳弾、貫通、燃料気化
+- 弾のモデル・色・軌跡パーティクル、Dispenserの散布アイテム
+- 子弾(Bomblet)
+- `ModeNum`による切り替え(MachineGunのモード1=榴弾、Rocketのモード0=子弾なし)。
+  `mode`には選択中のモード番号を渡します(モードのない武器は0)
+
+発射位置・速度・向きと誘導は、呼び出し側で設定します。誘導の設定は
+車両と同じ公開メソッドを使います。
+
+| 武器の種類 | 設定方法 |
+|---|---|
+| ASMissile / MkRocket | `setGuidanceTargetPos(WeaponTargeting.raycastGroundPoint(world, player), stats.turnRateDegreesPerTick())` |
+| AAMissile / ATMissile / Missile | `setMissileGuidanceTuning(...)`の後、`setGuidanceTargetEntity(target.getId(), ...)`。ATのトップアタックは`setTopAttack(true)` |
+| TVMissile | `setTvControlled(player)`(下記参照) |
+
+車両の武装と異なり、`tudursvehiclemod$setFiringVehicle()`は呼びません。
+弾薬・リロード・熱・クールダウンの管理も呼び出し側で行ってください。
+
+### 照準・ロックオン
+
+`WeaponTargeting`は、車両の武装が使っているものと同じ処理です。
+
+| メソッド | 内容 |
+|---|---|
+| `findLockOnTarget(world, shooter, weaponType, lockRange, excluded)` | 視線から15度以内・`LockRange`以内で最も視線に近い対象。AAは空中、ATは地上・水上の対象のみ |
+| `classifyTargetPosition(entity)` | 対象が空中・地上(水上)・水中のどれか |
+| `raycastGroundPoint(world, shooter)` | 視線の先128ブロック以内の着弾点 |
+| `applyAccuracySpread(velocity, accuracyDegrees, random)` | `Accuracy`による弾のばらつき |
+
+ロックオンに必要な時間(`LockTime`、`LockTimePerBlock`)の計測と表示は、
+呼び出し側で行ってください。
+
+### TVミサイル
+
+車両以外から発射したTVミサイルも、プレイヤーが操縦できます。操縦は、
+プレイヤーが死亡・ログアウト・ディメンション移動したとき、または何かに
+搭乗したときに終了します。射程・チャンク読み込みによる終了条件は
+車両の場合と同じです。
+
+### 弾の命中判定
+
+`VehicleProjectileEntity`は、車両のモデル形状に対する命中判定と、
+設定どおりのダメージ・爆風がそのまま適用されます。フレアによる誘導
+妨害の対象にもなります。
+
+### OBJモデルを描画する(クライアント)
+
+アイテムの描画などでOBJモデルを使う場合は、以下を組み合わせます。
+
+```java
+ObjModel model = ObjModelLoader.get(Identifier.of("myaddon", "models/obj/my_launcher.obj")).orElse(null);
+RenderLayer layer = DitherCutoutLayers.entityDitherCutout(Identifier.of("myaddon", "textures/item/my_launcher.png"));
+VehicleEntityRenderer.renderTriangles(queue, matrices, layer, model.getTriangles(), light, overlay, 0xFFFFFFFF);
+```
+
+`DitherCutoutLayers`のレイヤーを使うと、Config(半透明の描画方式・
+三角形描画)の設定とモデルの形式が常に一致します。
+
+---
+
+## 9. 制限事項
 
 ### バージョンの一致
 

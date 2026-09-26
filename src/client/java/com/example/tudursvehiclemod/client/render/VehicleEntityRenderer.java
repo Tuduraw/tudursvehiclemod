@@ -1032,6 +1032,17 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 	 * This walks the array linearly, so the prefetcher can keep up, and there is no per-vertex object, no bounds-checked List access and no pointer chase anywhere in the loop. Face normals come precomputed with the geometry rather than from any global cache. */
 	static void renderTriangles(OrderedRenderCommandQueue queue, MatrixStack matrices, RenderLayer layer,
 										 ObjModel.Triangles tris, int light, int tintColor) {
+		renderTriangles(queue, matrices, layer, tris, light, OverlayTexture.DEFAULT_UV, tintColor);
+	}
+
+	/** Public entry point for drawing OBJ geometry outside this renderer - e.g. an addon's own item
+	 * renderer (SpecialModelRenderer) drawing a model from ObjModelLoader.get() with a layer from
+	 * DitherCutoutLayers.entityDitherCutout(), which keeps the geometry's own packing (quads vs
+	 * experimental triangles) and the pipeline in agreement. Identical to the overload above, except
+	 * the overlay (hurt-flash/white-flash UV, OverlayTexture.DEFAULT_UV for none) is supplied by the
+	 * caller rather than fixed. */
+	public static void renderTriangles(OrderedRenderCommandQueue queue, MatrixStack matrices, RenderLayer layer,
+										 ObjModel.Triangles tris, int light, int overlay, int tintColor) {
 		if (tris.isEmpty()) {
 			return;
 		}
@@ -1054,7 +1065,7 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 				vertexConsumer.vertex(pose, data[base], data[base + 1], data[base + 2])
 						.color(colorR, colorG, colorB, colorA)
 						.texture(data[base + 3], data[base + 4])
-						.overlay(OverlayTexture.DEFAULT_UV)
+						.overlay(overlay)
 						.light(light)
 						.normal(matrixEntry, faceNormals[normalBase], faceNormals[normalBase + 1], faceNormals[normalBase + 2]);
 			}

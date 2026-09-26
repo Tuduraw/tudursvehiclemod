@@ -831,57 +831,57 @@ public class VehicleModClient implements ClientModInitializer {
 					AircraftOrientationInputState.accumulatedYawDelta = 0f;
 					AircraftOrientationInputState.accumulatedPitchDelta = 0f;
 				}
-
-				// Per Readme_Weapon.txt's own TVMissile doc - see client.TvMissileControlState's own doc for why this is a completely separate check from the vehicle-orientation one just above (steering a missile has nothing to do with whatever vehicle the player still happens to be seated in).
-				if (com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId != null) {
-					// Then snaps back up"
-					// desync pattern: a likely cause was network.TvMissileControlStartPayload's
-					// own receiver running before this missile's own spawn
-					// packet had actually reached/been processed by this
-					// client yet, meaning tudursvehiclemod$initTvClientTracking()
-					// silently never got called at all (see that
-					// receiver's own diagnostic logging) - this missile's
-					// own client-side copy would then just fall completely
-					// unpredicted between server sync packets forever
-					// after, while the server's own copy (which DID get
-					// initialized, unconditionally, in tryFireWeapon())
-					// kept steering level throughout. Retried here, every
-					// tick, as a fallback - the instant the entity actually
-					// becomes available AND isn't already initialized, it
-					// gets initialized right then instead of never at all.
-					if (client.world != null && client.world.getEntityById(
-							com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId)
-							instanceof com.example.tudursvehiclemod.entity.projectile.VehicleProjectileEntity trackedMissile
-							&& !trackedMissile.tudursvehiclemod$isTvSteeringActive()) {
-						trackedMissile.tudursvehiclemod$initTvClientTracking();
-					}
-					float tvYawDelta = com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedYawDelta;
-					float tvPitchDelta = com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedPitchDelta;
-					if (tvYawDelta != 0f || tvPitchDelta != 0f) {
-						// CRITICAL: also apply this directly to the CLIENT'S
-						// OWN local copy of the missile, not just send it to
-						// the server - see entity.projectile.VehicleProjectileEntity's
-						// own tvSteeringActive doc for why skipping this
-						// (relying purely on the server's own eventual sync
-						// packets instead) is exactly what caused the
-						// violent view-shake this is fixing.
-						if (client.world != null && client.world.getEntityById(
-								com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId)
-								instanceof com.example.tudursvehiclemod.entity.projectile.VehicleProjectileEntity missile) {
-							missile.pendingTvYawInput += tvYawDelta;
-							missile.pendingTvPitchInput += tvPitchDelta;
-						}
-						ClientPlayNetworking.send(new com.example.tudursvehiclemod.network.TvMissileInputPayload(tvYawDelta, tvPitchDelta));
-						com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedYawDelta = 0f;
-						com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedPitchDelta = 0f;
-					}
-				}
 			} else {
 				// Dismounted while a key was held.
 				lastFreeLookState = false;
 				lastDescendState = false;
 				AircraftOrientationInputState.accumulatedYawDelta = 0f;
 				AircraftOrientationInputState.accumulatedPitchDelta = 0f;
+			}
+
+			// Per Readme_Weapon.txt's own TVMissile doc - see client.TvMissileControlState's own doc for why this is a completely separate check from the vehicle-orientation one above (steering a missile has nothing to do with whatever vehicle the player still happens to be seated in). Deliberately OUTSIDE the mounted branch above: a TV missile fired without any vehicle (an addon's handheld launcher - see VehicleProjectileEntity's own tudursvehiclemod$updateTvMissileServerChecks() doc) is steered by a player on foot, whose mouse input PlayerLookRateMixin already routes into TvMissileControlState regardless of mounting. For a vehicle-fired missile nothing changes - control is released server-side the moment its shooter leaves the firing vehicle.
+			if (client.player != null && com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId != null) {
+				// Then snaps back up"
+				// desync pattern: a likely cause was network.TvMissileControlStartPayload's
+				// own receiver running before this missile's own spawn
+				// packet had actually reached/been processed by this
+				// client yet, meaning tudursvehiclemod$initTvClientTracking()
+				// silently never got called at all (see that
+				// receiver's own diagnostic logging) - this missile's
+				// own client-side copy would then just fall completely
+				// unpredicted between server sync packets forever
+				// after, while the server's own copy (which DID get
+				// initialized, unconditionally, in tryFireWeapon())
+				// kept steering level throughout. Retried here, every
+				// tick, as a fallback - the instant the entity actually
+				// becomes available AND isn't already initialized, it
+				// gets initialized right then instead of never at all.
+				if (client.world != null && client.world.getEntityById(
+						com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId)
+						instanceof com.example.tudursvehiclemod.entity.projectile.VehicleProjectileEntity trackedMissile
+						&& !trackedMissile.tudursvehiclemod$isTvSteeringActive()) {
+					trackedMissile.tudursvehiclemod$initTvClientTracking();
+				}
+				float tvYawDelta = com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedYawDelta;
+				float tvPitchDelta = com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedPitchDelta;
+				if (tvYawDelta != 0f || tvPitchDelta != 0f) {
+					// CRITICAL: also apply this directly to the CLIENT'S
+					// OWN local copy of the missile, not just send it to
+					// the server - see entity.projectile.VehicleProjectileEntity's
+					// own tvSteeringActive doc for why skipping this
+					// (relying purely on the server's own eventual sync
+					// packets instead) is exactly what caused the
+					// violent view-shake this is fixing.
+					if (client.world != null && client.world.getEntityById(
+							com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId)
+							instanceof com.example.tudursvehiclemod.entity.projectile.VehicleProjectileEntity missile) {
+						missile.pendingTvYawInput += tvYawDelta;
+						missile.pendingTvPitchInput += tvPitchDelta;
+					}
+					ClientPlayNetworking.send(new com.example.tudursvehiclemod.network.TvMissileInputPayload(tvYawDelta, tvPitchDelta));
+					com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedYawDelta = 0f;
+					com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedPitchDelta = 0f;
+				}
 			}
 		});
 

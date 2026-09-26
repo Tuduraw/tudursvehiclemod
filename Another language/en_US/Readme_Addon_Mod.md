@@ -21,7 +21,8 @@ mixins into it are needed.
 5. Changing a dummy pilot's targets
 6. Using the tiered spawner items
 7. Bundling weapon files
-8. Limitations
+8. Firing weapons from outside a vehicle
+9. Limitations
 
 ---
 
@@ -38,6 +39,7 @@ All of the following are genuinely extensible.
 | Support conversion from the base item | Implement `VehicleConverterTarget` and register with `VehicleConverterTargets.register()` (optional) |
 | Use the spawner items and vehicle selection screen | Pass your own `VehicleConverterTarget` to `TieredVehicleSpawnerItem` |
 | Add your own weapons | Bundle `assets/<namespace>/weapons/<name>.txt` in your jar |
+| Fire weapons from outside a vehicle (handheld equipment, etc.) | Create projectiles with `WeaponProjectileFactory` and aim or lock on with `WeaponTargeting` |
 
 ---
 
@@ -406,7 +408,95 @@ an error.
 
 ---
 
-## 8. Limitations
+## 8. Firing weapons from outside a vehicle
+
+These APIs let a shooter that is **not on a vehicle**, such as handheld
+equipment, fire a weapon file's projectile. They share their code with
+vehicle weapons, so every weapon file setting means the same thing.
+
+### Creating the projectile
+
+`WeaponProjectileFactory.create()` creates a projectile and configures it
+from the weapon file. **It does not spawn it.**
+
+```java
+WeaponStats stats = WeaponStatsLoader.get("my_launcher");
+VehicleProjectileEntity projectile = WeaponProjectileFactory.create(
+        world, player, new ItemStack(Items.IRON_NUGGET), stats, mode);
+
+projectile.setPosition(muzzlePos.x, muzzlePos.y, muzzlePos.z);
+Vec3d velocity = WeaponTargeting.applyAccuracySpread(
+        player.getRotationVec(1.0f).multiply(stats.velocity()),
+        stats.accuracyDegrees(), world.random);
+projectile.setVelocity(velocity);
+
+world.spawnEntity(projectile);
+projectile.tudursvehiclemod$forceLoadSpawnChunk();
+```
+
+`create()` sets everything that the weapon file alone decides:
+
+- Damage, explosion (block damage, fire, in water), every fuse type, bounce,
+  piercing and fuel-air explosive
+- Bullet model, colour and trail particle, and the Dispenser item
+- Bomblets
+- `ModeNum` switching (MachineGun mode 1 = HE round, Rocket mode 0 = no
+  bomblets). Pass the selected mode index as `mode` (0 for a weapon without
+  modes)
+
+The caller sets the spawn position, velocity, direction and guidance.
+Guidance uses the same public methods as vehicle weapons:
+
+| Weapon type | How to set it up |
+|---|---|
+| ASMissile / MkRocket | `setGuidanceTargetPos(WeaponTargeting.raycastGroundPoint(world, player), stats.turnRateDegreesPerTick())` |
+| AAMissile / ATMissile / Missile | `setMissileGuidanceTuning(...)`, then `setGuidanceTargetEntity(target.getId(), ...)`. Use `setTopAttack(true)` for AT top attack |
+| TVMissile | `setTvControlled(player)` (see below) |
+
+Unlike vehicle weapons, do not call `tudursvehiclemod$setFiringVehicle()`.
+The caller also manages ammo, reloading, heat and cooldown.
+
+### Aiming and lock-on
+
+`WeaponTargeting` holds the same logic vehicle weapons use.
+
+| Method | What it does |
+|---|---|
+| `findLockOnTarget(world, shooter, weaponType, lockRange, excluded)` | The target closest to the line of sight, within 15 degrees and `LockRange`. AA only locks airborne targets; AT only locks targets on the ground or water surface |
+| `classifyTargetPosition(entity)` | Whether a target is airborne, on the ground/water surface, or underwater |
+| `raycastGroundPoint(world, shooter)` | The point hit along the line of sight, within 128 blocks |
+| `applyAccuracySpread(velocity, accuracyDegrees, random)` | Projectile spread from `Accuracy` |
+
+The caller measures and displays the lock time (`LockTime`, `LockTimePerBlock`).
+
+### TV missiles
+
+A player can also steer a TV missile fired from outside a vehicle. Control
+ends when the player dies, logs out, changes dimension, or mounts anything.
+The range and chunk-loading limits are the same as for vehicles.
+
+### Hit detection
+
+A `VehicleProjectileEntity` hits vehicles against their model shape and
+applies its configured damage and blast, as usual. Flares can also defeat
+its guidance.
+
+### Drawing OBJ models (client)
+
+To draw an OBJ model, for example as an item, combine the following:
+
+```java
+ObjModel model = ObjModelLoader.get(Identifier.of("myaddon", "models/obj/my_launcher.obj")).orElse(null);
+RenderLayer layer = DitherCutoutLayers.entityDitherCutout(Identifier.of("myaddon", "textures/item/my_launcher.png"));
+VehicleEntityRenderer.renderTriangles(queue, matrices, layer, model.getTriangles(), light, overlay, 0xFFFFFFFF);
+```
+
+A layer from `DitherCutoutLayers` always matches both the Config settings
+(translucency mode, triangle rendering) and the model's format.
+
+---
+
+## 9. Limitations
 
 ### Version matching
 

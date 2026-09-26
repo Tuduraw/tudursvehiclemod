@@ -2071,15 +2071,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	private static final double TORPEDO_MAX_ALTITUDE_ABOVE_SURFACE = 15.0;
 	/** How far (blocks) to search for the ground/water surface below the vehicle when checking Torpedo's own altitude limit. */
 	private static final double TORPEDO_SURFACE_SEARCH_DEPTH = 64.0;
-	/** How far (blocks) a raycast for ASMissile's own ground-point target, or AAMissile/ATMissile's own crosshair lock-on, searches. */
-	private static final double MISSILE_TARGET_SEARCH_RANGE = 128.0;
-	/** Lock-on range defaults to unlimited when a weapon's own LockRange isn't configured at all - see tudursvehiclemod$findLockOnTarget()'s own doc for why a genuinely finite ceiling is still needed even so (Box.expand()/getOtherEntities() both need one to build a search volume from at all). Chosen generously large enough that no real gameplay scenario would ever actually hit it. */
-	private static final double MISSILE_LOCK_UNLIMITED_RANGE_CEILING = 4096.0;
-	/** How far off-center (degrees, from the shooter's own view direction) an entity can be and still count as "under the crosshair" for AAMissile/ATMissile's own.. */
-	// 5 degrees was an impractically narrow cone to hold continuously on a moving target (see tudursvehiclemod$updateMissileLockOnIndicators()'s own doc for why ANY target swap resets lock progress to 0) long enough to accumulate a weapon's own configured LockTime. Widened to a more forgiving 15.
-	private static final double MISSILE_LOCK_ON_CONE_DEGREES = 15.0;
-	/** Per tudursvehiclemod$classifyTargetPosition()'s own doc: minimum measured altitude (blocks) above the nearest solid block below before a candidate counts as genuinely airborne for AA_MISSILE/AT_MISSILE's own ground/air filtering, rather than merely a brief moment of not touching ground. */
-	private static final double AIRBORNE_TARGET_MIN_ALTITUDE = 3.0;
 
 	/** Last tick's grounded/floating state, to detect the exact tick it genuinely CHANGES (not just "is currently true/false"). */
 	private boolean wasGroundedForGear = true;
@@ -5356,73 +5347,16 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 
 		net.minecraft.item.Item projectileItem = Registries.ITEM.get(weapon.projectileItem());
-		// Per Readme_Weapon.txt's own ModeNum doc: for a MachineGun-type
-		// weapon with a second mode configured, mode 0 (the default)
-		// fires a plain, non-explosive round regardless of this
-		// weapon's own configured Explosion - mode 1 is the "HE round"
-		// toggle, actually applying it. A weapon with only one mode
-		// (hasModes() false) always uses its own configured Explosion
-		// directly, exactly as before ModeNum existed at all.
+		// Everything decided purely by the weapon file (explosion, fuses, bounce, piercing,
+		// bomblets, the MachineGun HE-round / Rocket bomblet ModeNum toggles, ..) is configured by
+		// WeaponProjectileFactory, shared with any non-vehicle shooter - see that class's own doc.
+		// Everything that depends on THIS vehicle (mount position, aim, inherited velocity,
+		// guidance, the firing-vehicle link) stays below.
 		this.tudursvehiclemod$ensureWeaponAmmoArraysSized(def);
-		boolean isMachineGunSecondMode = weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.MACHINE_GUN
-				&& weapon.hasModes() && this.weaponMode[weaponIndex] == 1;
-		boolean isMachineGunWithModes = weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.MACHINE_GUN
-				&& weapon.hasModes();
-		float effectiveExplosionPower = (isMachineGunWithModes && !isMachineGunSecondMode) ? 0f : weapon.explosionPower();
-		boolean effectiveExplosionDestroysBlocks = (isMachineGunWithModes && !isMachineGunSecondMode) ? false : weapon.explosionDestroysBlocks();
-		boolean effectiveFlaming = (isMachineGunWithModes && !isMachineGunSecondMode) ? false : weapon.flaming();
-		VehicleProjectileEntity projectile;
-		if (weapon.bulletModel().isPresent() && weapon.bulletTexture().isPresent()) {
-			projectile = new com.example.tudursvehiclemod.entity.projectile.VehicleModelProjectileEntity(
-					this.getEntityWorld(), shooter, projectileItem.getDefaultStack(), weapon.damage(), weapon.gravity(),
-					effectiveExplosionPower, effectiveExplosionDestroysBlocks, effectiveFlaming,
-					weapon.bulletModel().get(), weapon.bulletTexture().get(), weapon.bulletScale());
-		} else {
-			projectile = new VehicleProjectileEntity(
-					this.getEntityWorld(), shooter, projectileItem.getDefaultStack(), weapon.damage(), weapon.gravity(),
-					effectiveExplosionPower, effectiveExplosionDestroysBlocks, effectiveFlaming);
-		}
-		projectile.tudursvehiclemod$setExplosionPowerInWater(isMachineGunWithModes && !isMachineGunSecondMode ? 0f : weapon.explosionPowerInWater());
-		projectile.tudursvehiclemod$setExplosionBlockPower(weapon.explosionBlockPower());
-		projectile.tudursvehiclemod$setExplosionAltitude(weapon.explosionAltitude());
-		projectile.tudursvehiclemod$setFuseTicks(weapon.delayFuseTicks(), weapon.timeFuseTicks());
-		projectile.tudursvehiclemod$setBounceStrength(weapon.bounceStrength());
-		projectile.tudursvehiclemod$setGravityInWater(weapon.gravityInWater());
-		projectile.tudursvehiclemod$setGuidedTorpedo(weapon.guidedTorpedo());
-		projectile.tudursvehiclemod$setPiercingCount(weapon.piercingCount());
-		projectile.tudursvehiclemod$setFuelAirExplosive(weapon.fuelAirExplosive());
-		projectile.tudursvehiclemod$setTrajectoryParticle(weapon.trajectoryParticle(), weapon.trajectoryParticleStartTick(), weapon.disableSmoke());
-		projectile.tudursvehiclemod$setBulletColors(weapon.bulletColor(), weapon.bulletColorInWater());
+		VehicleProjectileEntity projectile = com.example.tudursvehiclemod.entity.projectile.WeaponProjectileFactory.create(
+				this.getEntityWorld(), shooter, projectileItem.getDefaultStack(),
+				com.example.tudursvehiclemod.asset.WeaponStatsLoader.get(weapon.weaponName()), this.weaponMode[weaponIndex]);
 		projectile.tudursvehiclemod$setFiringVehicle(this);
-		projectile.tudursvehiclemod$setExplodeOnWaterContact(
-				weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.BOMB
-						|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.DROP_TANK);
-		projectile.tudursvehiclemod$setSplashScale(weapon.bulletScale());
-		// Dispenser is now a REAL projectile (see
-		// VehicleProjectileEntity's own tudursvehiclemod$dispenseIfConfigured()
-		// doc) - set unconditionally here, same as every other per-shot
-		// property above (empty/default for every OTHER weapon type,
-		// which never actually checks this at all).
-		projectile.tudursvehiclemod$setDispenseItem(weapon.dispenseItem(), weapon.dispenseRange());
-		// Per Readme_Weapon.txt's own ModeNum doc: for a Rocket-type
-		// weapon with a second mode configured, mode 1 is the "HEIAP
-		// round" toggle - scatters this weapon's own configured Bomblet
-		// submunitions in the air, reusing the exact same mechanism as a
-		// weapon that always has Bomblet configured (see
-		// tudursvehiclemod$updateBombletDeployment()'s own doc) - mode 0
-		// (the default) is a plain, non-scattering rocket instead, even
-		// if Bomblet happens to be configured, same "explicit toggle
-		// gates whether an otherwise-always-configured effect actually
-		// applies" idea as MachineGun2's own HE-round toggle above. A
-		// Rocket with only one mode (hasModes() false) always scatters
-		// its own configured Bomblet directly, exactly as before ModeNum
-		// existed at all.
-		boolean isRocketFirstMode = weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.ROCKET
-				&& weapon.hasModes() && this.weaponMode[weaponIndex] == 0;
-		if (weapon.hasBomblets() && !isRocketFirstMode) {
-			projectile.tudursvehiclemod$setBomblets(weapon.bombletCount(), weapon.bombletDeployTicks(),
-					weapon.bombletSpreadRate(), weapon.bombletModel(), weapon.bombletTexture());
-		}
 
 		// Cycle through this weapon's own firing positions, one per shot (wrapping back to the first after the last).
 		WeaponSpawnInfo spawnInfo = tudursvehiclemod$computeWeaponSpawnPos(def, weapon, weaponIndex);
@@ -5778,21 +5712,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 
 	/** Accuracy: tilts velocity by a random angle within a cone of half-angle accuracyDegrees, preserving speed (same approach as applyBombletSpread(), but accuracyDegrees is already a plain degree value, not a 0.1 fraction). */
 	private Vec3d tudursvehiclemod$applyAccuracySpread(Vec3d velocity, float accuracyDegrees) {
-		double speed = velocity.length();
-		if (speed < 1.0E-6 || accuracyDegrees <= 0f) {
-			return velocity;
-		}
-		Vector3f dir = new Vector3f((float) (velocity.x / speed), (float) (velocity.y / speed), (float) (velocity.z / speed));
-		Vector3f arbitrary = Math.abs(dir.x) < 0.9f ? new Vector3f(1, 0, 0) : new Vector3f(0, 1, 0);
-		Vector3f perpendicular = new Vector3f(dir).cross(arbitrary).normalize();
-		var random = this.getEntityWorld().random;
-		float spinAngleRad = (float) Math.toRadians(random.nextFloat() * 360f);
-		Quaternionf spin = new Quaternionf().rotationAxis(spinAngleRad, dir.x, dir.y, dir.z);
-		Vector3f tiltAxis = spin.transform(new Vector3f(perpendicular));
-		float tiltAngleRad = (float) Math.toRadians(random.nextFloat() * accuracyDegrees);
-		Quaternionf tilt = new Quaternionf().rotationAxis(tiltAngleRad, tiltAxis.x, tiltAxis.y, tiltAxis.z);
-		Vector3f result = tilt.transform(new Vector3f(dir));
-		return new Vec3d(result.x, result.y, result.z).multiply(speed);
+		return WeaponTargeting.applyAccuracySpread(velocity, accuracyDegrees, this.getEntityWorld().random);
 	}
 
 	/** Group: applies firedWeapon's own fire-rate cooldown to every other weapon sharing its exact group name (each on its OWN cooldownTicks) - prevents firing weapon A, switching to weapon B (same gun, different round), and firing instantly again. Ammo counts are untouched. */
@@ -7495,13 +7415,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 
 	/** ASMissile's own target-point acquisition. */
 	private Vec3d tudursvehiclemod$raycastGroundPoint(net.minecraft.server.network.ServerPlayerEntity shooter) {
-		Vec3d start = shooter.getEyePos();
-		Vec3d viewDir = shooter.getRotationVec(1.0f);
-		Vec3d end = start.add(viewDir.multiply(MISSILE_TARGET_SEARCH_RANGE));
-		net.minecraft.world.RaycastContext context = new net.minecraft.world.RaycastContext(start, end,
-				net.minecraft.world.RaycastContext.ShapeType.COLLIDER, net.minecraft.world.RaycastContext.FluidHandling.NONE, shooter);
-		net.minecraft.util.hit.BlockHitResult hit = this.getEntityWorld().raycast(context);
-		return hit.getType() == net.minecraft.util.hit.HitResult.Type.MISS ? end : hit.getPos();
+		return WeaponTargeting.raycastGroundPoint(this.getEntityWorld(), shooter);
 	}
 
 	/** AAMissile/ATMissile's own auto-lock-on-fire. */
@@ -7651,64 +7565,20 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	private net.minecraft.entity.Entity tudursvehiclemod$findLockOnTarget(net.minecraft.server.network.ServerPlayerEntity shooter, WeaponDefinition weapon) {
-		com.example.tudursvehiclemod.asset.WeaponType weaponType = weapon.weaponType();
-		// 0 (weapon.lockRange()'s own parsed default whenever that key is absent) means unlimited, using MISSILE_LOCK_UNLIMITED_RANGE_CEILING instead - a genuinely finite value is still needed to build a search box/AABB at all, and no real gameplay scenario needs locking something literally thousands of blocks away regardless of what "unlimited" is meant to convey.
-		double lockRange = weapon.lockRange() > 0.0 ? weapon.lockRange() : MISSILE_LOCK_UNLIMITED_RANGE_CEILING;
-		Vec3d eyePos = shooter.getEyePos();
-		Vec3d viewDir = shooter.getRotationVec(1.0f);
-		double minDot = Math.cos(Math.toRadians(MISSILE_LOCK_ON_CONE_DEGREES));
-		net.minecraft.util.math.Box searchBox = shooter.getBoundingBox().expand(lockRange);
-		net.minecraft.entity.Entity best = null;
-		double bestDot = minDot;
-		// This project's own vehicles (AbstractVehicleEntity) extend Entity directly, NOT LivingEntity - the original LivingEntity-only filter meant every aircraft/helicopter/tank in the game was silently invisible to this search, leaving only players and mobs lockable. isDestroyed() (rather than LivingEntity's own isAlive()) is the correct "still a valid target" check for a vehicle - a destroyed hull sitting there sinking/burning shouldn't be lockable.
-		// CarrierRunwayPlatformEntity (a runway's own invisible support tile) extends PathAwareEntity - a genuine LivingEntity/MobEntity - so it was unintentionally matching the plain LivingEntity branch below and showing up as a lockable target, despite being an implementation detail with no meaningful existence as an actual target. Excluded explicitly.
-		for (net.minecraft.entity.Entity candidate : this.getEntityWorld().getOtherEntities(shooter, searchBox,
-				e -> (e instanceof net.minecraft.entity.LivingEntity living && living.isAlive()
-						|| e instanceof AbstractVehicleEntity vehicleCandidate && !vehicleCandidate.tudursvehiclemod$isDestroyed())
-						&& !(e instanceof com.example.tudursvehiclemod.entity.CarrierRunwayPlatformEntity)
-						&& e != this && e != shooter.getVehicle())) {
-			// Per Readme_Weapon.txt's own documented distinction ("AAMissile 空中にいるモブを追跡するミサイル" / "ATMissile 地上にいるモブを追跡するミサイル" - based on the TARGET's own current physical state, not its entity/vehicle type): a single shared classification (tudursvehiclemod$classifyTargetPosition()) determines whether a candidate is currently AIRBORNE, on the SURFACE (ground, or floating/standing on top of water), or SUBMERGED (underwater) - AA_MISSILE requires AIRBORNE, AT_MISSILE requires SURFACE; SUBMERGED is excluded from both (a submerged target is its own distinct category now, reserved for WeaponType.ASWeapon - see that enum's own doc). MISSILE (this project's own type, see that enum's own doc) and everything else stays unrestricted.
-			TargetPosition candidatePosition = null;
-			if (weaponType == com.example.tudursvehiclemod.asset.WeaponType.AA_MISSILE
-					|| weaponType == com.example.tudursvehiclemod.asset.WeaponType.AT_MISSILE) {
-				candidatePosition = tudursvehiclemod$classifyTargetPosition(candidate);
-				boolean wantsAirborne = weaponType == com.example.tudursvehiclemod.asset.WeaponType.AA_MISSILE;
-				TargetPosition required = wantsAirborne ? TargetPosition.AIRBORNE : TargetPosition.SURFACE;
-				if (candidatePosition != required) {
-					continue;
-				}
-			}
-			Vec3d toCandidate = candidate.getEntityPos().subtract(eyePos);
-			double distance = toCandidate.length();
-			if (distance < 1.0 || distance > lockRange) {
-				continue;
-			}
-			double dot = toCandidate.normalize().dotProduct(viewDir);
-			if (dot > bestDot) {
-				bestDot = dot;
-				best = candidate;
-			}
-		}
-		return best;
+		// The search itself lives in WeaponTargeting (shared with non-vehicle shooters) - only what's
+		// specific to a vehicle is passed in: never lock this vehicle itself or whatever the shooter
+		// is riding, and classify candidates through this vehicle's own (overridable)
+		// tudursvehiclemod$classifyTargetPosition(). See WeaponTargeting.findLockOnTarget()'s own doc.
+		return WeaponTargeting.findLockOnTarget(this.getEntityWorld(), shooter, weapon.weaponType(), weapon.lockRange(),
+				e -> e == this || e == shooter.getVehicle(),
+				e -> WeaponTargeting.TargetPosition.valueOf(this.tudursvehiclemod$classifyTargetPosition(e).name()));
 	}
 
 	/** Per Readme_Weapon.txt's own AAMissile/ATMissile doc, and a direct request to also distinguish a SUBMERGED target as its own third category (excluded from both AA_MISSILE and AT_MISSILE, reserved for WeaponType.ASWeapon): AIRBORNE (in open air, not resting on solid ground/floating and not in/on water), SURFACE (on the ground, or touching/floating on TOP of water without being submerged), or SUBMERGED (actually underwater - see Entity's own isSubmergedInWater(), true once the eye position itself is below the water surface). Airborne classification deliberately NOT based purely on Entity's own isOnGround() flag - this project's own documentation already establishes that flag as unreliable specifically on this mod's own entity-based runway tiles (a vehicle resting there could misreport it), so it also requires a meaningful measured altitude (raycast straight down to the nearest solid block, same approach client.hud.HudVariables' own altitudeAboveGround() already uses for the HUD's own "altitude" variable) above AIRBORNE_TARGET_MIN_ALTITUDE before treating something as genuinely airborne rather than merely momentarily not touching ground (a brief hop, or a physics engine quirk). */
 	protected enum TargetPosition { AIRBORNE, SURFACE, SUBMERGED }
 
 	protected TargetPosition tudursvehiclemod$classifyTargetPosition(Entity candidate) {
-		if (candidate.isSubmergedInWater()) {
-			return TargetPosition.SUBMERGED;
-		}
-		if (candidate.isTouchingWater() || candidate.isOnGround()) {
-			return TargetPosition.SURFACE;
-		}
-		Vec3d start = candidate.getEntityPos();
-		Vec3d end = start.add(0, -256, 0);
-		net.minecraft.util.hit.HitResult hit = candidate.getEntityWorld().raycast(new net.minecraft.world.RaycastContext(
-				start, end, net.minecraft.world.RaycastContext.ShapeType.COLLIDER, net.minecraft.world.RaycastContext.FluidHandling.NONE, candidate));
-		double altitude = hit instanceof net.minecraft.util.hit.BlockHitResult blockHit && hit.getType() == net.minecraft.util.hit.HitResult.Type.BLOCK
-				? Math.max(0.0, start.y - blockHit.getPos().y) : 256.0;
-		return altitude > AIRBORNE_TARGET_MIN_ALTITUDE ? TargetPosition.AIRBORNE : TargetPosition.SURFACE;
+		return TargetPosition.valueOf(WeaponTargeting.classifyTargetPosition(candidate).name());
 	}
 
 	private void tudursvehiclemod$ensureWeaponAmmoArraysSized(VehicleDefinition def) {
