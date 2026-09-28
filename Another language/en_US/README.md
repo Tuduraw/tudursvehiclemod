@@ -7,7 +7,7 @@
 > The code and documentation in this project were produced using
 > Anthropic's generative AI, "Claude".
 
-## A Casual Vehicle Mod for 1.21.11, Too
+## A Casual Vehicle Mod for 1.21.11
 
 Game-like simplicity, rather than the heavy realism of a simulator.  
 This project is designed and built as a mod anyone can pick up and play as
