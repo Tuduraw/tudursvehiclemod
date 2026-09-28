@@ -7,6 +7,18 @@
 > The code and documentation in this project were produced using
 > Anthropic's generative AI, "Claude".
 
+## A Casual Vehicle Mod for 1.21.11, Too
+
+Game-like simplicity, rather than the heavy realism of a simulator.  
+This project is designed and built as a mod anyone can pick up and play as
+easily as a scale model, and as an extensible foundation that addons can
+customize freely.  
+For that reason, many elements are deliberately simplified. If you want
+more realistic behavior, look for another mod, or build a large-scale
+addon mod.
+
+## Project Overview
+
 A template project that takes the "vehicle mod" idea - MCHelicopter,
 Flan's Mod - and makes it extensible with **nothing but a JSON definition
 plus an OBJ model**. It supports ships, aircraft, submarines, weapons,
@@ -18,6 +30,13 @@ project's own format.
 > regarding the handling of models and data that other people hold the
 > rights to. Converting an MCHeli addon pack is also subject to
 > restrictions.
+
+| Links | URL |
+|---|---|
+| CurseForge (Tudur's Vehicle Mod distribution page) | https://www.curseforge.com/minecraft/mc-mods/tudurs-vehicle |
+| Motorcycle addon mod (an example of a simple addon mod) | https://github.com/Tuduraw/motorcycleaddon |
+| Humanoid robot addon (an example of a mid-scale addon mod) | https://github.com/Tuduraw/humanoidrobotaddon |
+| Sample addon pack (an example of an addon pack) | https://github.com/Tuduraw/sample_pack_for_tudurs_vehicle |
 
 > **Note on this translation**: this file is a condensed version of the
 > Japanese `README.md`, keeping its structure and every key fact while
@@ -286,7 +305,7 @@ looping** possible.
 
 ### `OnGroundPitch` (ground attitude)
 
-While grounded/surfaced and **sufficiently slowed down (20% of top speed
+While grounded/surfaced and **sufficiently slowed down (15% of top speed
 or below)**, pitch eases toward a configured angle (degrees) - this
 applies whether piloted or not. Immediately after landing, while still
 rolling out with speed remaining, the attitude at the moment of touchdown
@@ -296,7 +315,7 @@ instant the transition begins (recomputing it every tick would drift
 unintentionally due to how SLERP - spherical linear interpolation - works,
 making it unstable).
 
-Conversely, while accelerating for takeoff and reaching **20% of top
+Conversely, while accelerating for takeoff and reaching **15% of top
 speed or above** (the same threshold as ground attitude), the aircraft
 eases toward level (pitch and roll both 0) instead of continuing to roll
 along the runway in its own ground attitude (often nose-up, for a
@@ -532,9 +551,10 @@ riding it directly.
 
 ### UAV (unmanned aerial vehicle, remote piloting station)
 
-Setting `"is_uav": true` in a vehicle's own JSON definition disables
-ordinary riding (boarding a seat directly) for that vehicle. Instead, it
-is piloted remotely through the following steps:
+Any vehicle can be made into a UAV. Also, setting `"is_uav": true` in a
+vehicle's own JSON definition disables ordinary riding (boarding a seat
+directly) for that vehicle. It is piloted remotely through the following
+steps:
 
 1. Right-clicking the target vehicle while holding a **Drone Control
    Stick** (the registration stick) registers that vehicle's own UUID to
@@ -551,12 +571,11 @@ is piloted remotely through the following steps:
 
 ### TargetDrone (autonomous AI flight)
 
-Setting `"is_target_drone": true` in a vehicle's own JSON definition
-likewise disables ordinary riding. It uses the exact same registration
-stick mechanism as a UAV, and is likewise linked by inserting the stick
-into a **Drone Center** block - but while the Drone Center has it
-enabled, the vehicle flies under autonomous AI with no player input at
-all.
+It uses the exact same registration stick mechanism as a UAV, and is
+likewise linked by inserting the stick into a **Drone Center** block - but
+while the Drone Center has it enabled, the vehicle flies under autonomous
+AI with no player input at all. Also, if `"is_target_drone": true` is set
+in a vehicle's own JSON definition, ordinary riding is disabled.
 
 - **Orbit mode (default)**: with no waypoints configured, it orbits above
   the Drone Center at a set altitude. The turn radius is derived
@@ -766,9 +785,7 @@ pending).
 
 - **Fuel**: `max_fuel` (default 600) and `fuel_consumption` (default 0.5
   per second, with a throttle-dependent easing curve). Running out pins
-  throttle to 0; piloting still works. **A negative `fuel_consumption`
-  means the vehicle uses no fuel at all** - nothing depletes, no warning
-  fires, and it is always treated as full
+  throttle to 0; piloting still works
 - **Vehicle menu (K)**: opens while riding, with fuel resupply (insert a
   fuel can), ammo resupply (consuming matching items), and cargo (for a
   vehicle with `inventory_size` set; 45 slots per page, paging beyond
@@ -1007,10 +1024,6 @@ optional):
 Converts an MC Heli addon pack (`.txt` config plus `.obj` model) into
 this project's own `VehicleDefinition` JSON format.
 
-> **Important**: whether a given MCHeli addon pack may be converted and
-> used at all depends on that pack's own author's terms. See
-> `GUIDELINES.md`.
-
 ### Main supported features
 
 - Automatic vehicle-type detection (distinguishes helicopter/car/ship/
@@ -1121,12 +1134,6 @@ returns to the normal fixed view while the release key is held.
 ```
 
 The jar lands in `build/libs/`.
-
-To make the mod available to an addon mod, publish it locally first:
-
-```bash
-./gradlew publishToMavenLocal
-```
 
 ---
 

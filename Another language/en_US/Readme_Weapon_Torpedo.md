@@ -24,21 +24,21 @@ affected by `Gravity`.
 
 **Example**:
 ```
-DisplayName = Mk46 Torpedo
+DisplayName = Type.93 Torpedo
 Type = Torpedo
-Power = 60
+Power = 200
 Gravity = -0.03
 AccelerationInWater = 2.5
 VelocityInWater = 0.3
 TargetDepth = 3.0
 GuidedTorpedo = true
 Explosion = 6
-ExplosionInWater = 6
-Round = 2
+ExplosionInWater = 12
+Round = 3
 ```
 
 ## `AccelerationInWater`
-- **Format**: number (default: `4.0`, max 4.0)
+- **Format**: number (default: `4.0`)
 - **Description**: The target speed while cruising underwater. Gradually
   accelerates toward this speed starting right after hitting the water.
 - **Example**: `AccelerationInWater = 2.5`

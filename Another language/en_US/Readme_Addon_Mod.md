@@ -38,8 +38,12 @@ All of the following are genuinely extensible.
 | Change a dummy pilot's targets | Extend `DummyPilotEntity` and override `tudursvehiclemod$targetClass()` / `tudursvehiclemod$isValidTarget()` |
 | Support conversion from the base item | Implement `VehicleConverterTarget` and register with `VehicleConverterTargets.register()` (optional) |
 | Use the spawner items and vehicle selection screen | Pass your own `VehicleConverterTarget` to `TieredVehicleSpawnerItem` |
-| Add your own weapons | Bundle `assets/<namespace>/weapons/<name>.txt` in your jar |
+| Add your own weapons | Bundle `assets/<namespace>/weapons/<weapon_name>.txt` in your jar |
 | Fire weapons from outside a vehicle (handheld equipment, etc.) | Create projectiles with `WeaponProjectileFactory` and aim or lock on with `WeaponTargeting` |
+
+The shared parts - model display, mesh hit detection, durability/destruction
+handling, seats, weapons, the HUD, and translucent rendering - are inherited
+as-is from `AbstractVehicleEntity` in every case.
 
 ---
 
@@ -293,7 +297,7 @@ public class MyAddonSpawners {
     public static final Item[] HOVERCRAFT_SPAWNERS = new Item[5];
 
     /** Also used as the selection screen's own filter, so pass the same target. */
-    public static final MyHovercraftTarget TARGET = new MyHovercraftTarget();
+    public static final HovercraftTarget TARGET = new HovercraftTarget();
 
     public static void register() {
         for (int tier = 1; tier <= 5; tier++) {

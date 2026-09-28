@@ -3,14 +3,14 @@
 Applies to: `CAS` (Close Air Support) / `Carrier` (carrier aircraft
 launch)
 
-Of the common fields in `Readme_Weapon.md`, the only one that actually
-has meaning for these weapon types is `DisplayName` (damage, projectile
-speed, etc. are defined separately on the actual weapon config of the
-launched vehicle itself). Instead of firing a real projectile, these
-types spawn another vehicle definition (a vehicle JSON) on the spot and
-fly it automatically along a configured route. These fields are mostly
-additions specific to this project (there is no direct correspondence
-with the original MC Heli's own `CAS`/`Carrier`).
+Of the common fields in `Readme_Weapon.md`, the only ones that actually
+have meaning for these weapon types are `DisplayName` and `Type` (damage,
+projectile speed, etc. are defined separately on the actual weapon config
+of the launched vehicle itself). Instead of firing a real projectile,
+these types spawn a vehicle definition (a vehicle JSON) on the spot and
+fly it automatically along a configured route.
+These fields are mostly additions specific to this project (there is no
+correspondence with MC Heli's own `CAS`).
 
 ---
 
@@ -27,7 +27,7 @@ or land).
 ```
 DisplayName = Call Airstrike
 Type = CAS
-CasAircraft = a10_thunderbolt
+CasAircraft = Airstriker
 CasWeaponIndex = 0
 CasAccuracy = 3.0
 CasTimeout = 60
@@ -46,13 +46,13 @@ ReloadTime = 1200
 - **Format**: string (required)
 - **Description**: The support aircraft's own vehicle file name
   (`data/<namespace>/vehicles/<name>.json`, no namespace needed).
-- **Example**: `CasAircraft = a10_thunderbolt`
+- **Example**: `CasAircraft = Airstriker`
 
 ### `CasWeaponIndex`
 - **Format**: integer (default: `0`)
 - **Description**: The weapon slot number the support aircraft itself
   uses when attacking (an index into that aircraft's own `weapons`
-  array).
+  array). Note that it starts from 0.
 - **Example**: `CasWeaponIndex = 0`
 
 ### `CasAccuracy`
@@ -66,7 +66,7 @@ ReloadTime = 1200
 - **Format**: number, in seconds (default: `60`)
 - **Description**: The cap on the support aircraft's own total flight
   time. Once this time elapses, it despawns forcibly regardless of route
-  progress.
+  progress (a safety measure).
 - **Example**: `CasTimeout = 60`
 
 ### `CasStuckTimeout`
@@ -103,15 +103,15 @@ ReloadTime = 1200
     it actually hit a block). Unlike `Ballistic`'s own early cutoff at
     "the point it returns to firing altitude", it keeps simulating the
     trajectory for as long as needed - for example if the terrain is
-    lower than the firing point
+    lower than the firing point - and it can also follow terrain that is
+    higher than the firing point.
 - **Example**: `CasTargetMode = Collision`
 
 ### `CasAttackStartAltitude` / `CasAttackStopAltitude`
 - **Format**: number, in blocks (default: `CasAttackStartAltitude = 200`,
   `CasAttackStopAltitude = 40`)
 - **Description**: The altitude thresholds used when Carrier's own
-  wingman target-lock feature (the `/tvm` lock mode) attacks a
-  ground/surface target. Simply using "a fixed offset altitude above the
+  wingman target-lock feature attacks a ground/surface target. Simply using "a fixed offset altitude above the
   target" alone can't guarantee that the flight path taken to reach that
   altitude is itself safe, so a two-stage hysteresis scheme is used
   instead.
@@ -150,12 +150,11 @@ ReloadTime = 1200
 
 ### `CasFormationSize`
 - **Format**: integer (default: `1`)
-- **Description**: An extension specific to this project. A single use
-  launches this many support aircraft in formation, rather than a single
-  one. The first aircraft (the flight leader) always follows the route
-  exactly as configured; every subsequent one follows the exact same
-  route, simply translated according to the formation specified by
-  `CasFormationType` (every aircraft flies the same route
+- **Description**: A single use launches this many support aircraft in
+  formation, rather than a single one. The first aircraft (the flight
+  leader) always follows the route exactly as configured; every
+  subsequent one follows the formation specified by `CasFormationType`,
+  flying along with the leader (every aircraft flies the same route
   simultaneously, keeping its own relative position within the
   formation). The default `1` (if omitted) launches a single aircraft
   with no formation, exactly as before.
@@ -225,9 +224,9 @@ originally-intended basic form of a carrier.
 
 **Example**:
 ```
-DisplayName = Launch F-14
+DisplayName = Launch F4U
 Type = Carrier
-CarrierAircraft = f14_tomcat
+CarrierAircraft = f4u_corsair
 CarrierWeaponIndex = 0
 CarrierAccuracy = 3.0
 CarrierTimeout = 300
@@ -247,7 +246,7 @@ CarrierLandingToAmmoRadius = 15.0
   identically-named fields (`CasAircraft`, etc.).
 - **Example**:
   ```
-  CarrierAircraft = f14_tomcat
+  CarrierAircraft = f4u_corsair
   CarrierWeaponIndex = 0
   CarrierAccuracy = 3.0
   CarrierTimeout = 300
@@ -258,7 +257,7 @@ CarrierLandingToAmmoRadius = 15.0
 ### `CasTargetMode`
 - **Format/description**: Exactly the same field as `CAS`'s own. For a
   `Carrier` weapon too, the key name stays **`CasTargetMode`**, not
-  `CarrierTargetMode` (this one field is treated as a single key shared
+  `CarrierTargetMode` (this field is treated as a single key shared
   between CAS/Carrier).
 - **Example**: `CasTargetMode = Collision`
 

@@ -113,7 +113,7 @@ OGG形式(`.ogg`)。**フォルダ名は単数形`sound`・複数形`sounds`の�
 ### HUDスクリプト(`assets/<namespace>/hud/*.txt`)
 
 MCヘリ形式のHUD描画スクリプト。ファイル名(拡張子なし)が、機体JSONの`hud`
-項目から参照されます。書式の詳細は同梱の`Readme_HUD.txt`を参照してください。
+項目から参照されます。書式の詳細は同梱の`Readme_HUD.md`を参照してください。
 
 ### HUD用テクスチャ(`assets/<namespace>/textures/gui/*.png`)
 

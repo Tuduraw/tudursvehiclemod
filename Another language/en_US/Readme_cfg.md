@@ -260,7 +260,7 @@ screen, so changing them requires editing the file directly.
   the light's own length is shorter than this, it's truncated at that
   length. Cost scales with the cube of this block count, making it the
   single most performance-relevant setting in this whole feature. Lower
-  it on weaker hardware, raise it if you have headroom.
+  it on weaker hardware.
 
 ### `worldDataCleanupChunksPerTick` (server settings)
 
@@ -272,4 +272,4 @@ screen, so changing them requires editing the file directly.
   tick. The processing time itself is always separately limited, and
   progress is logged periodically. Setting a positive value (50, say)
   adds a chunk-count cap on top of that time limit, smoothing the
-  per-tick load at the cost of taking longer to finish overall.
+  per-tick load at the cost of taking even longer to finish overall.

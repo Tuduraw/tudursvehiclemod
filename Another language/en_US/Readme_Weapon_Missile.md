@@ -20,13 +20,13 @@ them separately, but there's no implementation difference here).
 
 **Example**:
 ```
-DisplayName = AGM-65 Maverick
+DisplayName = Marker Missile
 Type = ASMissile
-Power = 50
-Acceleration = 3.5
+Power = 20
+Acceleration = 2.5
 Gravity = -0.02
-Explosion = 5
-Round = 2
+Explosion = 2
+Round = 1
 ```
 
 ### `AAMissile` / `ATMissile` / `Missile`
@@ -48,15 +48,15 @@ dies or disappears, it falls under ordinary gravity from then on.
 
 **Example** (air-to-air missile):
 ```
-DisplayName = AIM-9 Sidewinder
+DisplayName = Ghast Hunter
 Type = AAMissile
-Power = 45
-Acceleration = 3.5
-LockTime = 40
-RigidityTime = 7
+Power = 60
+Acceleration = 2.0
+LockTime = 10
+RigidityTime = 5
 ProximityFuseDist = 3.0
 Sight = MissileSight
-Round = 2
+Round = 8
 ```
 
 Whether a target counts as "airborne" or "on the ground" is based on the
@@ -108,9 +108,9 @@ moment of firing, with no pilot steering).
 
 **Example** (pilot-steered):
 ```
-DisplayName = AGM-114 Hellfire TV
+DisplayName = TV Missile
 Type = TVMissile
-Power = 50
+Power = 20
 Acceleration = 3.0
 Explosion = 5
 Round = 4
@@ -130,7 +130,7 @@ Round = 4
 
 ### `RidableOnly`
 - **Format**: boolean
-- **Description**: In the original MC Heli this means "can only lock
+- **Description**: In MC Heli this means "can only lock
   while riding a vehicle", but since this project's own weapon system is
   entirely vehicle-mounted to begin with (there is no such thing as a
   hand-held weapon item), this has no practical effect regardless of its

@@ -40,12 +40,13 @@ responsibility for the rights status of whatever you load into it.
 
 ### Permitted
 
-- **Data you hold the rights to** — models, textures, and sounds you made
-  yourself
+- **Data you hold the rights to** — only models, textures, and sounds you
+  made yourself
 - **Use within the terms** — models from a paid or free asset store, used
   within what that license allows
-- **You have the rights holder's permission** — you contacted the author
-  directly and they agreed to its use with this mod
+- **You have the rights holder's permission** — within the terms of the
+  pack or similar, or you asked the author and they agreed to its use with
+  this mod
 
 ### Not permitted
 
@@ -74,7 +75,8 @@ MCHeli, and running them in a different mod isn't something their authors
 anticipated. The conversion working technically and the conversion being
 permitted are two separate questions.
 
-If you want to use one, **ask that pack's own author.**
+If you want to use one, as needed, **ask that pack's own author, or give
+up on using it.**
 
 ---
 
@@ -87,7 +89,8 @@ published a video. Later you discover the distribution page says "MCHeli
 only, porting to other mods prohibited."
 
 → **This violates the guidelines.** Whether the conversion tool ran
-successfully is irrelevant. Check the terms before using anything.
+successfully is irrelevant. Check the pack's own terms before using
+anything.
 
 ### Case 2: a model labelled "free to use"
 
@@ -95,7 +98,8 @@ You used a model from a model distribution site labelled "free to use."
 
 → **It depends.** Where the scope of "free" is vague, it isn't clear
 whether it extends to use in a game mod or to redistribution. Read the
-whole distribution page, and ask the author about anything unclear.
+whole distribution page, and for anything unclear, either ask the author
+or refrain from using it.
 
 ### Case 3: bought a paid asset and used it as a model
 
@@ -104,8 +108,10 @@ addon pack, and distributed that pack for free.
 
 → **Usually a terms violation.** Paid assets commonly permit "the
 purchaser incorporating it into their own work" while **prohibiting
-redistribution of the model data itself**. Here you'd need to not bundle
-the model, and instead have each user buy it themselves.
+redistribution of the model data itself**. Ordinary game integrations
+often protect against this with measures such as encryption, but this mod
+has no plans to provide anything of the kind. Here you'd need to not
+bundle the model, and instead have each user buy it themselves.
 
 ### Case 4: modelled a real vehicle yourself
 
@@ -129,9 +135,9 @@ pack.
 You still had the data from a pack whose distribution has since ended, so
 you used it.
 
-→ **Not permitted.** Rights persist even after distribution stops. And if
-you can't reach the author, you can't obtain permission either - so don't
-use it.
+→ **Usually not permitted.** Rights persist even after distribution
+stops. Unless secondary use or redistribution is clearly permitted, or you
+can obtain the author's permission, avoid using it.
 
 ---
 

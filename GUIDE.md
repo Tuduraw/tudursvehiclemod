@@ -34,7 +34,7 @@
 - `Readme_Addon.md` — アドオンパックの配置方法・ディレクトリ構造・命名規則
 - `Readme_Vehicle.md` / `Readme_Vehicle_○○.md` — 機体設定の全項目(共通項目 + 機体タイプ別の項目)
 - `Readme_Weapon.md` / `Readme_Weapon_○○.md` — 武器設定の全項目(共通項目 + 武器タイプ別の項目)
-- `Readme_HUD.txt` — HUDスクリプトの書式
+- `Readme_HUD.md` — HUDスクリプトの書式
 
 既存の`data/tudursvehiclemod/vehicles/*.json`のサンプルもあわせて参照してください。
 

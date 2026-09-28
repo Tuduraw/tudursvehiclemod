@@ -36,8 +36,9 @@ Under each field's own heading, an actual example entry is given as
 8. Toggle parts (toggle_parts)
 9. Weapon-linked parts (weapon_parts)
 10. Searchlight/nav lights
-11. Supply range
-12. Spawner item
+11. Spawner item
+12. Carrier deck / runway
+13. Parachuting
 
 ---
 
@@ -171,9 +172,8 @@ Under each field's own heading, an actual example entry is given as
 - **Description**: A volume multiplier for `engine_sound`. The same idea
   as `SoundVolume` in an MC Heli weapon config - `1.0` is ordinary
   maximum volume, and going above it extends the audible distance
-  instead (an addition specific to this project; both the full-volume
-  distance and the distance at which it fades to silence scale with
-  this value).
+  instead (both the full-volume distance and the distance at which it
+  fades to silence scale with this value).
 - **On the default**: when not explicitly set, the default depends on
   `entity_type`.
   - `aircraft` / `helicopter` / `vtol` (flies at altitude), and

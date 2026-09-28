@@ -46,7 +46,8 @@ Round = 5
   setting `flint_and_steel` produces the same effect as using flint and
   steel at the impact point (ignition). Whether there's any effect at all
   depends on the item. As an exception, `water_bucket` doesn't place
-  water - it instead extinguishes fire/lava near the impact point.
+  water - it instead extinguishes fire/lava near the impact point (as in
+  MC Heli's implementation).
 - **Example**: `DispenseItem = flint_and_steel`
 
 ### `DispenseRange`

@@ -72,7 +72,7 @@ documentation below** (this section is only an overview):
   (common fields plus per-type fields)
 - `Readme_Weapon.md` / `Readme_Weapon_<Type>.md` — every weapon field
   (common fields plus per-type fields)
-- `Readme_HUD.txt` — the HUD script format
+- `Readme_HUD.md` — the HUD script format
 
 Also see the existing `data/tudursvehiclemod/vehicles/*.json` samples.
 
@@ -81,10 +81,6 @@ Also see the existing `data/tudursvehiclemod/vehicles/*.json` samples.
 A tool for automatically converting an existing MCHeli addon pack into
 this mod's own format is bundled. The command-line and GUI versions run
 the same conversion, so the result is identical.
-
-> **Important**: Whether an MCHeli addon pack may be converted and used
-> at all depends on that pack's own author's terms. See `GUIDELINES.md`
-> before converting anything.
 
 ### GUI version
 
@@ -129,6 +125,5 @@ python3 tools/mcheli_convert.py <MCHeli addon path> <output path> [--namespace N
 
 - This mod itself bundles no MCHeli assets whatsoever (no models,
   textures, sounds, or vehicle/weapon configs). The conversion tool only
-  reads an addon pack that the user has obtained separately - and only
-  where that pack's own terms permit it (see `GUIDELINES.md`).
+  reads an addon pack that the user has obtained separately.
 - Verified on: Minecraft 1.21.11 / Fabric

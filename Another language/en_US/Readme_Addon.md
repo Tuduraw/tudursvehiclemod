@@ -4,7 +4,7 @@ A summary of the directory structure, required files, and naming rules
 for an addon pack that adds new vehicles/weapons to this mod. No code
 changes or rebuild are needed at all.
 
-You can use addon pack editor (https://github.com/Tuduraw/TudursVehicle_AddonPackEditor).
+You can use addon pack editor ( https://github.com/Tuduraw/TudursVehicle_AddonPackEditor ).
 
 > **Important**: regarding models, textures, and sounds you include in a
 > pack, read `GUIDELINES.md` on handling data that other people hold the
@@ -125,7 +125,7 @@ it immediately referenceable by file name alone).
 
 An MC Heli-format HUD drawing script. The file name (without extension)
 is what gets referenced from a vehicle JSON's own `hud` field. See the
-included `Readme_HUD.txt` for the exact syntax.
+included `Readme_HUD.md` for the exact syntax.
 
 ### HUD texture (`assets/<namespace>/textures/gui/*.png`)
 

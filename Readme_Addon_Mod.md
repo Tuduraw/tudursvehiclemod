@@ -38,7 +38,7 @@
 | ダミーパイロットの攻撃対象を変更 | `DummyPilotEntity`を継承し、`tudursvehiclemod$targetClass()`/`tudursvehiclemod$isValidTarget()`をオーバーライド |
 | ベースアイテムからの変換に対応 | `VehicleConverterTarget`を実装し、`VehicleConverterTargets.register()`で登録(任意) |
 | スポーンアイテムと車両選択画面を使う | `TieredVehicleSpawnerItem`に自分の`VehicleConverterTarget`を渡す |
-| 独自の武器を追加 | `assets/<namespace>/weapons/<n>.txt`をjarに同梱 |
+| 独自の武器を追加 | `assets/<namespace>/weapons/<weapon_name>.txt`をjarに同梱 |
 | 車両以外(携帯装備など)から武器を発射 | `WeaponProjectileFactory`で弾体を生成し、`WeaponTargeting`で照準・ロックオンを行う |
 
 モデル表示・メッシュ命中判定・耐久値/破壊処理・座席・武装・HUD・半透明
@@ -295,7 +295,7 @@ public class MyAddonSpawners {
     public static final Item[] HOVERCRAFT_SPAWNERS = new Item[5];
 
     /** 選択画面のフィルタにも使われるため、アイテムと同じ対象を渡します。 */
-    public static final MyHovercraftTarget TARGET = new MyHovercraftTarget();
+    public static final HovercraftTarget TARGET = new HovercraftTarget();
 
     public static void register() {
         for (int tier = 1; tier <= 5; tier++) {
@@ -349,7 +349,7 @@ public record HovercraftTarget() implements VehicleConverterTarget {
 @Override
 public void onInitialize() {
     MyAddonSpawners.register();
-    VehicleConverterTargets.register(new HovercraftTarget());
+    VehicleConverterTargets.register(MyAddonSpawners.TARGET);
 }
 ```
 
@@ -376,7 +376,7 @@ jarに同梱**できます。
 src/main/resources/assets/<namespace>/weapons/<name>.txt
 ```
 
-書式は前提MODが読み込むMCHeli形式そのままです(`Readme_Weapon.txt`を
+書式は前提MODが読み込むMCHeli形式そのままです(`Readme_Weapon.md`を
 参照)。乗り物JSONの`weapons`から、**拡張子なしのファイル名**で参照
 します。
 

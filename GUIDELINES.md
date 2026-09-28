@@ -99,7 +99,7 @@ MCヘリ向けの車両パックを見つけ、変換機能でこのMOD向けに
 
 ## 5. このMOD自体の利用について
 
-このMODの利用は、**Minecraftの利用規約(Minecraft End User LicenseAgreement および関連ガイドライン)に準じます。**
+このMODの利用は、**Minecraftの利用規約(Minecraft End User License Agreement および関連ガイドライン)に準じます。**
 
 MOD本体のソースコード・同梱アセット・ドキュメントのライセンスについては`LICENSE`を参照してください。アドオンパックやアドオンMODの作成・配布を制限するものではありません。
 
