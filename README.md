@@ -21,9 +21,21 @@ MCヘリコプターやFlan's Modのような「乗り物MOD」を、**JSON定�
 | 各種リンク先 | URL |
 |---|---|
 | CurseForge(Tudur's Vehicle Mod配布ページ) | https://www.curseforge.com/minecraft/mc-mods/tudurs-vehicle |
+|---|---|
+| **公式アドオンMod** | |
+| 【※】 Enemy Addon(対人システムを追加するアドオンMod) | https://github.com/Tuduraw/enemyvehicleaddon |
+| 【※】 Tudur's Guns(銃などを追加するアドオンMod) | https://github.com/Tuduraw/TudursGuns |
+| 【※】Railway Addon(鉄道システムを追加するアドオンMod)  | https://github.com/Tuduraw/railwayvehicleaddon |
+| 【※】Construction Machinery Addon(実際に機能する重機を追加するアドオン) | https://github.com/Tuduraw/constructionaddon |
+|---|---|
+| **公式アドオンパック** | |
+|---|---|
+| **サンプル** | |
 | バイクアドオンmod(簡易的なアドオンModの実装例) | https://github.com/Tuduraw/motorcycleaddon |
 | 人型ロボットアドオン(中規模なアドオンModの実装例)|https://github.com/Tuduraw/humanoidrobotaddon|
 | サンプルアドオンパック(拡張パックの実装例) | https://github.com/Tuduraw/sample_pack_for_tudurs_vehicle |
+
+※開発中
 
 
 このドキュメント(`README.md`)は開発者向けのアーキテクチャ資料です。**アドオンパック製作者向けの、設定可能な全項目の詳細な一覧**は以下を参照してください:
