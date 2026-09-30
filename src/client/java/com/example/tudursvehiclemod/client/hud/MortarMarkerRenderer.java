@@ -59,6 +59,14 @@ public final class MortarMarkerRenderer {
 		float aimPitch = vehicle.getWeaponAimPitch(selectedWeapon.seatIndex(), selectedWeapon.pilotUsable(),
 				selectedWeapon.aimRange().orElse(null), 1.0f);
 		Vec3d aimDir = Vec3d.fromPolar(aimPitch, player.getYaw(1.0f));
+		// A tilted mount (default_pitch / default_roll) reports its pitch in its own tilted frame, which can't be combined with the player's vehicle-frame yaw as above. Such a weapon fires along its effective aim (the turret's actual direction, turned back into the vehicle's frame by the same path firing uses), so that direction - still in the vehicle's frame, like the view it replaces - is used instead. An untilted weapon keeps the direction above exactly as before.
+		if (selectedWeapon.aimRange().isPresent() && selectedWeapon.aimRange().get().tilt().isTilted()) {
+			double[] effective = vehicle.tudursvehiclemod$getEffectiveWeaponAim(selectedWeapon);
+			double[] localDir = selectedWeapon.aimRange().get().tilt().directionInVehicleFrame(effective[1], effective[0]);
+			org.joml.Vector3f tiltedWorldDir = new org.joml.Vector3f((float) localDir[0], (float) localDir[1], (float) localDir[2]);
+			vehicle.tudursvehiclemod$getBodyOrientation().transform(tiltedWorldDir);
+			aimDir = new Vec3d(tiltedWorldDir.x, tiltedWorldDir.y, tiltedWorldDir.z);
+		}
 		// Matches the real tryFireWeapon() formula (aim * weapon.velocity() + the firing vehicle's own current velocity) - horizontal/vertical components are then derived from the actual resulting velocity vector, not the raw aim pitch alone, so a moving vehicle's own momentum is correctly accounted for.
 		Vec3d launchVelocity = aimDir.multiply(muzzleVelocity).add(vehicle.getVelocity());
 		// See tudursvehiclemod$computeCollisionDistance()'s own doc. Checked here, using the SAME launch origin/velocity just resolved above for MachineGun's own default calculation, rather than a separate/potentially-inconsistent resolution.

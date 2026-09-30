@@ -121,6 +121,11 @@ public final class HudVariables {
 			var selectedWeapon = weapons.get(selectedWeaponIndex);
 			// See AbstractVehicleEntity's own tudursvehiclemod$getEffectiveWeaponAim() doc. Already vehicle-relative (same convention DefaultYaw/getWeaponAimYaw() itself uses - tryFireWeapon() transforms this SAME value by the vehicle's own body orientation to get a world-space direction), so no further adjustment against the vehicle's own yaw is needed here.
 			double[] effectiveAim = vehicle.tudursvehiclemod$getEffectiveWeaponAim(selectedWeapon);
+			// For a tilted mount (default_pitch / default_roll) the effective aim is an angle in the mount's own tilted frame, but these variables are read as the gun's direction relative to the VEHICLE, so it is converted first. An untilted mount - every weapon that sets neither - is passed through exactly as before.
+			if (selectedWeapon.aimRange().isPresent() && selectedWeapon.aimRange().get().tilt().isTilted()) {
+				double[] inVehicleFrame = selectedWeapon.aimRange().get().tilt().toVehicleFrame(effectiveAim[1], effectiveAim[0]);
+				effectiveAim = new double[]{inVehicleFrame[1], inVehicleFrame[0]};
+			}
 			vars.put("gun_yaw", (double) MathHelper.wrapDegrees((float) effectiveAim[0]));
 			vars.put("gun_pitch", effectiveAim[1]);
 			int[] ammoState = vehicle.getWeaponAmmoState(selectedWeaponIndex);

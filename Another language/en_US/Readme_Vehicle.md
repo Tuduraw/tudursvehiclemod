@@ -392,6 +392,10 @@ fall and causes no practical issue).
     limits, from the ordinary `min_pitch`/`max_pitch`, only for certain
     directions (yaw ranges) - see "Varying the pitch limits by yaw range"
     below. When not set, the ordinary limits apply in every direction.
+  - `default_pitch` / `default_roll` (default `0.0` for each): the tilt,
+    in degrees, of a turret that is mounted tilted - see "Mounting a
+    turret tilted" below. When both are `0.0`, the turret is an ordinary
+    one mounted level and upright on the vehicle, as before.
 - **Example**:
   ```json
   "aim_range": { "default_yaw": 0.0, "min_yaw": -170.0, "max_yaw": 170.0, "min_pitch": -10.0, "max_pitch": 60.0 }
@@ -400,9 +404,16 @@ fall and causes no practical issue).
 #### Varying the pitch limits by yaw range (`pitch_zones`)
 
 For example, so that the gun of a tank or a warship can't depress into
-its own hull or superstructure: it restricts how far the gun may point
-downward, but only while it points in certain directions.
+its own hull or superstructure: it restricts how far the gun may be
+lowered, but only while it points in certain directions.
 `pitch_zones` is an array of objects with these fields:
+
+Note that the pitch sign is the same as Minecraft's own: **negative is up,
+positive is down**. `min_pitch` is how far up the gun can point (the upward
+limit) and `max_pitch` is how far down it can point (the downward limit) -
+for example, a `min_pitch` of `-10.0` means up to 10 degrees above the
+horizon and a `max_pitch` of `60.0` means up to 60 degrees below it. To keep
+a gun from sinking into the hull, **make `max_pitch` smaller**.
 
 - `from_yaw` / `to_yaw` (required): the start and end of the range, in
   degrees. Like `min_yaw`/`max_yaw`, they are **relative to
@@ -420,29 +431,93 @@ downward, but only while it points in certain directions.
   exists to keep the gun from interfering with the hull and the like, and
   a value outside the range is more likely a typing mistake). If the
   values end up crossed - say a `min_pitch` above the ordinary
-  `max_pitch` - the gun's elevation is held at a single value in that
+  `max_pitch` - the gun's pitch is held at a single value in that
   range.
 
 Where ranges overlap, **the one written first** takes priority. The yaw
-used for the check is the direction the gun is **actually pointing**,
-after the `min_yaw`/`max_yaw` limits have been applied. While the gun
-points outside every range, the ordinary limits apply unchanged.
+used for the check is **the direction the turret is actually pointing**,
+not where the occupant is looking. So while a turret with a limited
+rotation speed (`turret_rotation_speed`) is still lagging behind the
+view, the barrel follows the limits of the direction the turret is
+pointing at right now (the limit takes effect the moment the turret
+enters a range and keeps applying until it leaves). If the turret is
+held at the edge by `min_yaw`/`max_yaw`, the direction at that edge is
+used. While the gun points outside every range, the ordinary limits
+apply unchanged.
+
+The limits apply in the same way to the rest pose when the weapon is
+unmanned or unusable (for example when destroyed), and to a barrel left
+frozen after its occupant gets out. The rest pose's pitch is normally
+`0` degrees, but it is held within the limits for that direction (for
+example, if the rest direction lies in a range whose upward limit
+(`min_pitch`) is `5.0` - that is, 5 degrees below the horizon - it rests
+pointing 5 degrees downward).
 
 - **Example** (a tank turret with the front as 0 degrees: only while it
-  points toward the rear hull, the depression is limited to -3 degrees):
+  points toward the rear hull, the gun can be lowered no further than 3
+  degrees below the horizon):
   ```json
   "aim_range": {
     "min_pitch": -10.0,
     "max_pitch": 60.0,
     "pitch_zones": [
-      { "from_yaw": 120.0, "to_yaw": -120.0, "min_pitch": -3.0 }
+      { "from_yaw": 120.0, "to_yaw": -120.0, "max_pitch": 3.0 }
     ]
   }
   ```
+  In this example, only within the range from `120.0` to `-120.0` degrees
+  (the rear), the downward limit changes from `60.0` to `3.0` degrees. The
+  upward limit (`min_pitch`'s `-10.0`) is unchanged.
 
 `weapon_parts`'s own `aim_range` has the same format, so `pitch_zones`
 can be set there in the same way. The part's visible movement follows
 the same limits as the actual firing direction.
+
+#### Mounting a turret tilted (`default_pitch` / `default_roll`)
+
+For a gun set on a sloping deck, or laid on its side, where the turret
+itself has to be placed tilted. A turret normally swivels about the
+vehicle's vertical axis, but a turret mounted tilted has to **swivel about
+its own tilted axis**. With `default_pitch` and `default_roll` set, the
+turret's reference frame is tilted as a whole, and its swivel and
+elevation work in that tilted frame.
+
+- `default_roll`: the sideways tilt, in degrees, about the vehicle's
+  front-to-back axis. **A positive value tips the turret's top toward the
+  vehicle's right.**
+- `default_pitch`: the front-to-back tilt, in degrees, about the vehicle's
+  left-to-right axis. **A positive value tips the turret's top toward the
+  vehicle's front** (the turret's forward direction then points downward,
+  the same sense as pitch being positive downward).
+- If both are set, the result is the pose reached by tilting by
+  `default_roll` first, then by `default_pitch`.
+
+How it behaves once tilted:
+
+- **Build the model in its tilted pose.** While the turret is at rest the
+  model is drawn exactly as built (this mod never tilts the model itself);
+  only the swivel and elevation use the tilted axes.
+- **`default_yaw`, `min_yaw`/`max_yaw`, `min_pitch`/`max_pitch` and
+  `pitch_zones` are all angles in the tilted frame** (not angles relative
+  to the vehicle). For example, for a turret laid 90 degrees on its side,
+  what the turret calls "yaw" is an up-and-down motion as seen from the
+  vehicle.
+- The occupant's view is converted into the tilted frame automatically, so
+  operating it in game is no different from an ordinary turret. Projectiles
+  leave in the direction the turret is actually pointing.
+- The HUD's `gun_yaw` and `gun_pitch` are still given as a direction
+  **relative to the vehicle**, tilted or not.
+- Give `weapons`'s `aim_range` and the matching `weapon_parts`'s
+  `aim_range` **the same values** (as with the other fields, each is read
+  independently).
+- A `weapon_parts` entry whose `pitch_follow` is `false` (such as a turret
+  base that only swivels) still only swivels when tilted.
+
+- **Example** (a turret mounted with its top tipped 20 degrees to the
+  right):
+  ```json
+  "aim_range": { "min_pitch": -30.0, "max_pitch": 30.0, "default_roll": 20.0 }
+  ```
 
 ### `projectile_item`
 - **Format**: string (Identifier)

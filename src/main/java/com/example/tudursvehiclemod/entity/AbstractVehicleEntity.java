@@ -2446,13 +2446,15 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		double defaultYaw = aimRange != null ? aimRange.defaultYaw() : 0.0;
 		float rawYaw = this.getWeaponAimYaw(seatIndex, pilotFallback, null, tickProgress);
 		float rawPitch = this.getWeaponAimPitch(seatIndex, pilotFallback, null, tickProgress);
+		// Limited in the mount's own frame, yaw and pitch together (see tudursvehiclemod$limitedAimInMountFrame()): for an untilted mount that is exactly the two separate clamps this used to do. With no aim range there are no limits and the raw view is used as it always was.
+		double[] limited = aimRange != null ? tudursvehiclemod$limitedAimInMountFrame(rawYaw, rawPitch, aimRange) : null;
 		float targetYaw = (float) defaultYaw;
 		if (yawFollow) {
-			targetYaw = aimRange != null ? (float) tudursvehiclemod$clampYawToAimRange(rawYaw, aimRange) : rawYaw;
+			targetYaw = limited != null ? (float) limited[0] : rawYaw;
 		}
 		float targetPitch = 0f;
 		if (pitchFollow) {
-			targetPitch = aimRange != null ? (float) tudursvehiclemod$clampPitchToAimRangeForRawYaw(rawPitch, rawYaw, aimRange) : rawPitch;
+			targetPitch = limited != null ? (float) limited[1] : rawPitch;
 		}
 		return new float[]{targetYaw, targetPitch};
 	}
@@ -2493,7 +2495,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				}
 				if (part.pitchFollow()) {
 					float currentPitch = this.weaponPartCurrentPitch.getOrDefault(part.part(), 0f);
-					this.weaponPartCurrentPitch.put(part.part(), tudursvehiclemod$stepTowardsAngle(currentPitch, target[1], maxStep));
+					float steppedPitch = tudursvehiclemod$stepTowardsAngle(currentPitch, target[1], maxStep);
+					// pitch_zones must follow where the turret ACTUALLY is, not where the occupant is looking (see tudursvehiclemod$clampPitchAtActualYaw()'s own doc) - a turret with a limited rotation speed lags behind the view, so target[1] (limited at the TARGET yaw) can be wrong for the yaw the turret is at RIGHT NOW. The yaw used is this tick's own already-stepped one when this part follows yaw; a pitch-only part of a split-axis turret has no yaw of its own, so it takes the yaw of whichever part of this weapon does (the weapon's own effective yaw, same lookup firing uses).
+					float actualYawForPitch = this.weaponPartCurrentYaw.containsKey(part.part()) && part.yawFollow()
+							? this.weaponPartCurrentYaw.get(part.part())
+							: (float) this.tudursvehiclemod$getEffectiveWeaponAimYawForPart(part, weapon);
+					this.weaponPartCurrentPitch.put(part.part(),
+							(float) tudursvehiclemod$clampPitchAtActualYaw(steppedPitch, actualYawForPitch, aimRange));
 				}
 			}
 			if (hasParentStage) {
@@ -2507,7 +2515,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				}
 				if (childInfo.parentPitchFollow()) {
 					float parentCurrentPitch = this.weaponPartParentCurrentPitch.getOrDefault(part.part(), 0f);
-					this.weaponPartParentCurrentPitch.put(part.part(), tudursvehiclemod$stepTowardsAngle(parentCurrentPitch, parentTarget[1], maxStep));
+					float steppedParentPitch = tudursvehiclemod$stepTowardsAngle(parentCurrentPitch, parentTarget[1], maxStep);
+					// Same as the own stage above: judged by the parent stage's own CURRENT yaw (or, for a pitch-only parent stage, this weapon's effective yaw), not the view.
+					float actualParentYawForPitch = this.weaponPartParentCurrentYaw.containsKey(part.part()) && childInfo.parentYawFollow()
+							? this.weaponPartParentCurrentYaw.get(part.part())
+							: (float) this.tudursvehiclemod$getEffectiveWeaponAimYawForPart(part, weapon);
+					this.weaponPartParentCurrentPitch.put(part.part(),
+							(float) tudursvehiclemod$clampPitchAtActualYaw(steppedParentPitch, actualParentYawForPitch, aimRange));
 				}
 			}
 		}
@@ -2592,7 +2606,18 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 		double yaw = cachedYaw != null ? cachedYaw : range.defaultYaw() + this.getWeaponAimYaw(weapon.seatIndex(), weapon.pilotUsable(), range, 1.0f);
 		double pitch = cachedPitch != null ? cachedPitch : this.getWeaponAimPitch(weapon.seatIndex(), weapon.pilotUsable(), range, 1.0f);
+		// The returned pair is what a projectile is actually fired along, so it must be consistent: the pitch is limited here by the yaw that is being RETURNED (the turret's actual one), whichever of the two sources each value came from. Without this, a cached pitch limited for one yaw could be paired with a different cached yaw - a split-axis turret's two parts are cached independently, and getWeaponAimPitch() above limits by the occupant's view yaw, which a slow turret has not reached yet. Already-compliant values pass through unchanged.
+		pitch = tudursvehiclemod$clampPitchAtActualYaw(pitch, yaw, range);
 		return new double[]{yaw, pitch};
+	}
+
+	/** This weapon's effective ABSOLUTE yaw as seen from one of its own weapon parts - the same yaw tudursvehiclemod$getEffectiveWeaponAim() would return for it, found from the part's own weapon mount. Used where a part that tracks only pitch (one half of a split-axis turret) needs the yaw of the OTHER part to judge pitch_zones by. Falls back to the weapon's own default yaw (or 0 with no aim range) when the weapon can't be resolved. */
+	private double tudursvehiclemod$getEffectiveWeaponAimYawForPart(com.example.tudursvehiclemod.asset.WeaponPart part,
+			java.util.Optional<com.example.tudursvehiclemod.asset.WeaponDefinition> weapon) {
+		if (weapon.isEmpty() || weapon.get().aimRange().isEmpty()) {
+			return part.aimRange().map(com.example.tudursvehiclemod.asset.WeaponAimRange::defaultYaw).orElse(0.0);
+		}
+		return this.tudursvehiclemod$getEffectiveWeaponAim(weapon.get())[0];
 	}
 
 	/** Whether this weapon's own tracking part is still mid-rotation toward its target - gates firing in tryFireWeapon(), before any ammo/cooldown/heat consumption. False (never blocks) when this weapon has no aimRange, the shooter is a non-free-looking pilot, or the part isn't currently cached (turret_rotation_speed unconfigured). */
@@ -2635,6 +2660,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (aimRange == null) {
 			return relative;
 		}
+		if (aimRange.tilt().isTilted()) {
+			// A tilted mount's yaw depends on the view's pitch too, so the pitch is read from the same occupant / cache entry getWeaponAimPitch() uses, and the offset is taken in the tilted frame.
+			float rawPitchForYaw = occupant == null ? this.lastTrackedPitchBySeat.getOrDefault(cacheKey, 0f) : occupant.getPitch(tickProgress);
+			double[] view = tudursvehiclemod$viewInMountFrame(relative, rawPitchForYaw, aimRange);
+			return (float) tudursvehiclemod$clampedYawOffsetFromDefault(view[0], aimRange);
+		}
 		return (float) tudursvehiclemod$clampedYawOffsetFromDefault(relative, aimRange);
 	}
 
@@ -2659,6 +2690,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		} else {
 			rawRelativeYaw = net.minecraft.util.math.MathHelper.wrapDegrees(occupant.getYaw(tickProgress) - this.getYaw(tickProgress));
 		}
+		if (aimRange.tilt().isTilted()) {
+			// In the tilted frame: both view angles are needed to find the pitch there, and the zone is judged by the tilted-frame yaw.
+			double[] view = tudursvehiclemod$viewInMountFrame(rawRelativeYaw, pitch, aimRange);
+			return (float) tudursvehiclemod$clampPitchToAimRangeForRawYaw(view[1], view[0], aimRange);
+		}
 		return (float) tudursvehiclemod$clampPitchToAimRangeForRawYaw(pitch, rawRelativeYaw, aimRange);
 	}
 
@@ -2669,6 +2705,17 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				.rotateX((float) Math.toRadians(pitch));
 		Quaternionf restInverse = new Quaternionf().rotateY((float) Math.toRadians(defaultYaw));
 		return target.mul(restInverse, new Quaternionf());
+	}
+
+	/** The same rotation, for a mount that may be TILTED (see WeaponMountTilt): the ordinary yaw/pitch rotation R conjugated by the tilt T, i.e. T * R * T^-1, so the part turns about its own tilted axis and is drawn exactly as authored while at rest. With no aim range, or an untilted one - every weapon that sets neither default_pitch nor default_roll - this is precisely the plain three-argument version above, not merely close to it. */
+	private static Quaternionf tudursvehiclemod$computePartRotation(double defaultYaw, float absoluteYaw, float pitch,
+			com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
+		Quaternionf plain = tudursvehiclemod$computePartRotation(defaultYaw, absoluteYaw, pitch);
+		if (aimRange == null || !aimRange.tilt().isTilted()) {
+			return plain;
+		}
+		double[] q = aimRange.tilt().conjugate(new double[]{plain.x, plain.y, plain.z, plain.w});
+		return new Quaternionf((float) q[0], (float) q[1], (float) q[2], (float) q[3]);
 	}
 
 	/** Returns just THIS part's own stage of a possible parent/child two-stage composition - the caller applies the parent's stage separately. yawFollow/pitchFollow false = stays at rest. */
@@ -2749,40 +2796,54 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				boolean neverTracked = !this.lastTrackedRelativeYawBySeat.containsKey(cacheKey)
 						&& !this.lastTrackedPitchBySeat.containsKey(cacheKey);
 				if (neverTracked) {
-					return tudursvehiclemod$computePartRotation(defaultYaw, (float) defaultYaw, 0f);
+					return tudursvehiclemod$computePartRotation(defaultYaw, (float) defaultYaw,
+							tudursvehiclemod$restPitch(pitchFollow, aimRange, (float) defaultYaw), aimRange);
 				}
+				// Yaw and pitch of the frozen direction, limited together in the mount's own frame (see tudursvehiclemod$limitedAimInMountFrame()) - for an untilted mount identical to the separate clamps this used to do.
+				float rawFrozenYaw = this.getWeaponAimYaw(seatIndex, pilotFallback, null, tickProgress);
+				float rawFrozenPitchAll = this.getWeaponAimPitch(seatIndex, pilotFallback, null, tickProgress);
+				double[] frozenLimited = aimRange != null ? tudursvehiclemod$limitedAimInMountFrame(rawFrozenYaw, rawFrozenPitchAll, aimRange) : null;
 				float frozenYaw = (float) defaultYaw;
 				if (yawFollow) {
-					float rawFrozenYaw = this.getWeaponAimYaw(seatIndex, pilotFallback, null, tickProgress);
-					frozenYaw = aimRange != null
-							? (float) tudursvehiclemod$clampYawToAimRange(rawFrozenYaw, aimRange)
-							: rawFrozenYaw;
+					frozenYaw = frozenLimited != null ? (float) frozenLimited[0] : rawFrozenYaw;
 				}
 				float frozenPitch = 0f;
 				if (pitchFollow) {
-					float rawFrozenPitch = this.getWeaponAimPitch(seatIndex, pilotFallback, null, tickProgress);
-					float rawFrozenYawForPitch = this.getWeaponAimYaw(seatIndex, pilotFallback, null, tickProgress);
+					// The pitch in the mount's own frame (for an untilted mount, the raw pitch itself).
+					float rawFrozenPitch = aimRange != null
+							? (float) tudursvehiclemod$viewInMountFrame(rawFrozenYaw, rawFrozenPitchAll, aimRange)[1]
+							: rawFrozenPitchAll;
+					// Judged by the yaw that is actually being DRAWN for this frozen turret: frozenYaw when this part follows yaw, otherwise the yaw of the weapon's own other part (a pitch-only half of a split-axis turret) - not the yaw the departed occupant was last looking at, which is what a pitch-only part has no other way to know.
+					float yawForPitch = yawFollow
+							? frozenYaw
+							: (aimRange != null ? (float) this.tudursvehiclemod$getEffectiveWeaponAimYawFromRange(weapon, aimRange) : frozenYaw);
 					frozenPitch = aimRange != null
-							? (float) tudursvehiclemod$clampPitchToAimRangeForRawYaw(rawFrozenPitch, rawFrozenYawForPitch, aimRange)
+							? (float) tudursvehiclemod$clampPitchAtActualYaw(rawFrozenPitch, yawForPitch, aimRange)
 							: rawFrozenPitch;
 				}
-				return tudursvehiclemod$computePartRotation(defaultYaw, frozenYaw, frozenPitch);
+				return tudursvehiclemod$computePartRotation(defaultYaw, frozenYaw, frozenPitch, aimRange);
 			}
-			return tudursvehiclemod$computePartRotation(defaultYaw, (float) defaultYaw, 0f);
+			return tudursvehiclemod$computePartRotation(defaultYaw, (float) defaultYaw,
+					tudursvehiclemod$restPitch(pitchFollow, aimRange, (float) defaultYaw), aimRange);
 		}
 		float rawYaw = this.getWeaponAimYaw(seatIndex, pilotFallback, null, tickProgress);
-		float rawPitch = this.getWeaponAimPitch(seatIndex, pilotFallback, null, tickProgress);
+		float rawPitchAll = this.getWeaponAimPitch(seatIndex, pilotFallback, null, tickProgress);
+		double[] limitedAim = aimRange != null ? tudursvehiclemod$limitedAimInMountFrame(rawYaw, rawPitchAll, aimRange) : null;
+		// The pitch in the mount's own frame (for an untilted mount, the raw pitch itself).
+		float rawPitch = aimRange != null ? (float) tudursvehiclemod$viewInMountFrame(rawYaw, rawPitchAll, aimRange)[1] : rawPitchAll;
 		float absoluteYaw = (float) defaultYaw;
 		if (yawFollow) {
-			absoluteYaw = aimRange != null
-					? (float) tudursvehiclemod$clampYawToAimRange(rawYaw, aimRange)
-					: rawYaw;
+			absoluteYaw = limitedAim != null ? (float) limitedAim[0] : rawYaw;
 		}
 		float pitch = 0f;
 		if (pitchFollow) {
-			pitch = aimRange != null ? (float) tudursvehiclemod$clampPitchToAimRangeForRawYaw(rawPitch, rawYaw, aimRange) : rawPitch;
+			// Judged by the yaw that is actually being DRAWN, not the raw view yaw. For a part that follows yaw itself these are the same number; for the pitch-only half of a split-axis turret (yawFollow false, so absoluteYaw above is just the default yaw) the drawn yaw belongs to the weapon's OTHER part, so its effective yaw is used instead - otherwise a barrel could be limited by where the occupant looks while the turret that carries it points elsewhere.
+			float drawnYaw = yawFollow || aimRange == null
+					? absoluteYaw
+					: (float) this.tudursvehiclemod$getEffectiveWeaponAimYawFromRange(weapon, aimRange);
+			pitch = aimRange != null ? (float) tudursvehiclemod$clampPitchAtActualYaw(rawPitch, drawnYaw, aimRange) : rawPitch;
 		}
-		return tudursvehiclemod$computePartRotation(defaultYaw, absoluteYaw, pitch);
+		return tudursvehiclemod$computePartRotation(defaultYaw, absoluteYaw, pitch, aimRange);
 	}
 
 	/** Public convenience wrapper for tudursvehiclemod$getPartStageRotation() - this part's OWN stage rotation, using its own seatIndex/pilotFallback/aimRange/yawFollow/pitchFollow directly. */
@@ -2794,11 +2855,48 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (!yawNeedsFallback && !pitchNeedsFallback) {
 			double defaultYaw = part.aimRange().map(com.example.tudursvehiclemod.asset.WeaponAimRange::defaultYaw).orElse(0.0);
 			float finalYaw = currentYaw != null ? currentYaw : (float) defaultYaw;
-			float finalPitch = currentPitch != null ? currentPitch : 0f;
-			return tudursvehiclemod$computePartRotation(defaultYaw, finalYaw, finalPitch);
+			// Last line of defence for pitch_zones, right where the cached values turn into what is drawn: limit the pitch by the yaw that is actually being drawn. The per-tick update already does this, but the cache stops updating while nobody is tracking (unmanned, weapons disabled), so a frozen value - or one paired with the yaw of a different part of a split-axis turret - is still held to the limits here. A part that does not follow pitch is left at exactly 0 (see tudursvehiclemod$drawnStagePitch()).
+			float finalPitch = tudursvehiclemod$drawnStagePitch(part.pitchFollow(), currentPitch,
+					currentYaw != null ? currentYaw : tudursvehiclemod$actualYawOfWeapon(part), part.aimRange().orElse(null));
+			return tudursvehiclemod$computePartRotation(defaultYaw, finalYaw, finalPitch, part.aimRange().orElse(null));
 		}
 		return tudursvehiclemod$getPartStageRotation(part.seatIndex(), part.pilotFallback(), part.aimRange().orElse(null),
 				part.yawFollow(), part.pitchFollow(), tickProgress, tudursvehiclemod$resolveWeaponByName(part.weaponName()));
+	}
+
+	/** The pitch an UNMANNED / weapons-disabled part rests at: 0, but held to the aim range's own limits at the yaw it rests at - a hull-avoidance pitch_zone (or, for that matter, a min_pitch above 0, as a mortar has) applies to a barrel nobody is aiming exactly as it does to one being aimed. With no aim range there are no limits and the pitch stays 0, as before.
+	 *
+	 * Only for a stage that actually FOLLOWS pitch: a part with pitch_follow false (a turret base that only swivels, say) never takes any pitch at all and must stay at exactly 0 whatever the limits are - otherwise a min_pitch above 0, or a zone's, would tip a part that was never meant to tilt. */
+	private static float tudursvehiclemod$restPitch(boolean pitchFollow, com.example.tudursvehiclemod.asset.WeaponAimRange aimRange, float restAbsoluteYaw) {
+		if (!pitchFollow || aimRange == null) {
+			return 0f;
+		}
+		return (float) tudursvehiclemod$clampPitchAtActualYaw(0.0, restAbsoluteYaw, aimRange);
+	}
+
+	/** The pitch a stage is drawn with, given its cached value - the one place that decides it, for both the own stage and the parent stage. A stage that does not follow pitch is drawn at exactly 0, never clamped (see tudursvehiclemod$restPitch()'s own doc for why); one that does follow pitch has its cached pitch (0 when nothing is cached yet) held to the limits in force at the yaw that is actually being drawn. Already-compliant values pass through unchanged. */
+	private static float tudursvehiclemod$drawnStagePitch(boolean pitchFollow, Float cachedPitch, double drawnAbsoluteYaw,
+			com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
+		if (!pitchFollow) {
+			return 0f;
+		}
+		float pitch = cachedPitch != null ? cachedPitch : 0f;
+		return (float) tudursvehiclemod$clampPitchAtActualYaw(pitch, drawnAbsoluteYaw, aimRange);
+	}
+
+	/** Like tudursvehiclemod$getEffectiveWeaponAimYawForPart(), for a call site that has the weapon and its aim range but no WeaponPart at hand. */
+	private double tudursvehiclemod$getEffectiveWeaponAimYawFromRange(
+			java.util.Optional<com.example.tudursvehiclemod.asset.WeaponDefinition> weapon,
+			com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
+		if (weapon.isEmpty() || weapon.get().aimRange().isEmpty()) {
+			return aimRange.defaultYaw();
+		}
+		return this.tudursvehiclemod$getEffectiveWeaponAim(weapon.get())[0];
+	}
+
+	/** The absolute yaw this part's weapon is effectively at, for a pitch-only part with no yaw of its own (see tudursvehiclemod$getEffectiveWeaponAimYawForPart()). */
+	private double tudursvehiclemod$actualYawOfWeapon(com.example.tudursvehiclemod.asset.WeaponPart part) {
+		return this.tudursvehiclemod$getEffectiveWeaponAimYawForPart(part, tudursvehiclemod$resolveWeaponByName(part.weaponName()));
 	}
 
 	/** Public convenience wrapper for tudursvehiclemod$getPartStageRotation() - the PARENT's own stage rotation for a child part (identity if part isn't actually a child - see WeaponPart.ChildInfo's own doc). */
@@ -2814,12 +2912,34 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (!yawNeedsFallback && !pitchNeedsFallback) {
 			double defaultYaw = part.aimRange().map(com.example.tudursvehiclemod.asset.WeaponAimRange::defaultYaw).orElse(0.0);
 			float finalYaw = currentYaw != null ? currentYaw : (float) defaultYaw;
-			float finalPitch = currentPitch != null ? currentPitch : 0f;
-			return tudursvehiclemod$computePartRotation(defaultYaw, finalYaw, finalPitch);
+			// Same last-line pitch_zones guard as the own stage above, by the parent stage's own drawn yaw - and likewise left at exactly 0 for a parent stage that does not follow pitch.
+			float finalPitch = tudursvehiclemod$drawnStagePitch(childInfo.parentPitchFollow(), currentPitch,
+					currentYaw != null ? currentYaw : tudursvehiclemod$actualYawOfWeapon(part), part.aimRange().orElse(null));
+			return tudursvehiclemod$computePartRotation(defaultYaw, finalYaw, finalPitch, part.aimRange().orElse(null));
 		}
 		return tudursvehiclemod$getPartStageRotation(part.seatIndex(), part.pilotFallback(), part.aimRange().orElse(null),
 				childInfo.parentYawFollow(), childInfo.parentPitchFollow(), tickProgress,
 				tudursvehiclemod$resolveWeaponByName(part.weaponName()));
+	}
+
+	/** Where the occupant's view points, expressed in this weapon mount's own (possibly tilted) frame: {yaw, pitch}, with the yaw still RELATIVE to the vehicle's own forward like every raw yaw in this class (the tilt is applied to the direction, so the returned yaw is that direction's yaw in the tilted frame, in the same raw convention clampedYawOffsetFromDefault() expects). For an untilted mount - every weapon that sets neither default_pitch nor default_roll - the two inputs come straight back, with no arithmetic at all, so such a weapon behaves exactly as it always did. See WeaponMountTilt. */
+	private static double[] tudursvehiclemod$viewInMountFrame(double rawYaw, double rawPitch,
+			com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
+		com.example.tudursvehiclemod.asset.WeaponMountTilt tilt = aimRange.tilt();
+		if (!tilt.isTilted()) {
+			return new double[]{rawYaw, rawPitch};
+		}
+		double[] pitchYaw = tilt.toMountFrame(rawPitch, rawYaw);
+		return new double[]{pitchYaw[1], pitchYaw[0]};
+	}
+
+	/** The occupant's view, limited by this weapon's aim range, in the mount's own frame: {absolute yaw, pitch} (the absolute yaw has default_yaw added back in, like every cached current yaw here). The yaw and the pitch are worked out TOGETHER because in a tilted frame each of them depends on both of the raw view angles - which is why this takes both, where the untilted code could limit them separately. For an untilted mount it is exactly the two existing clamps, yaw by tudursvehiclemod$clampYawToAimRange() and pitch by tudursvehiclemod$clampPitchToAimRangeForRawYaw(), called the way they always were. */
+	private static double[] tudursvehiclemod$limitedAimInMountFrame(double rawYaw, double rawPitch,
+			com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
+		double[] view = tudursvehiclemod$viewInMountFrame(rawYaw, rawPitch, aimRange);
+		return new double[]{
+				tudursvehiclemod$clampYawToAimRange(view[0], aimRange),
+				tudursvehiclemod$clampPitchToAimRangeForRawYaw(view[1], view[0], aimRange)};
 	}
 
 	/** OFFSET from DefaultYaw for rotating a weapon part's own already-oriented model, NOT the absolute angle. tryFireWeapon needs the absolute angle instead - see clampYawToAimRange(). */
@@ -2830,10 +2950,14 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 
 	/** Whether rawYaw (vehicle-relative, same convention getWeaponAimYaw's own "relative" already uses) and rawPitch (absolute, same convention getWeaponAimPitch already uses) both fall within this weapon's own configured aim range without needing to be clamped at all - i.e. the weapon's own turret could actually reach this exact direction, not just swing as far as it mechanically can toward it. Reuses this class's own existing clamp helpers directly (rather than a second implementation of the same math) so this can never silently disagree with what the weapon actually does when it fires. */
 	public boolean tudursvehiclemod$isAimWithinRange(float rawYaw, float rawPitch, com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
-		double clampedYawOffset = tudursvehiclemod$clampedYawOffsetFromDefault(rawYaw, aimRange);
-		double rawYawOffset = net.minecraft.util.math.MathHelper.wrapDegrees((float) (rawYaw - aimRange.defaultYaw()));
-		double clampedPitch = tudursvehiclemod$clampPitchToAimRange(rawPitch, clampedYawOffset, aimRange);
-		return Math.abs(clampedYawOffset - rawYawOffset) < 0.01 && Math.abs(clampedPitch - rawPitch) < 0.01;
+		// The direction is given in the vehicle's frame; a tilted mount's limits are angles in its own frame, so it is converted first (a no-op for an untilted mount).
+		double[] view = tudursvehiclemod$viewInMountFrame(rawYaw, rawPitch, aimRange);
+		double mountYaw = view[0];
+		double mountPitch = view[1];
+		double clampedYawOffset = tudursvehiclemod$clampedYawOffsetFromDefault(mountYaw, aimRange);
+		double rawYawOffset = net.minecraft.util.math.MathHelper.wrapDegrees((float) (mountYaw - aimRange.defaultYaw()));
+		double clampedPitch = tudursvehiclemod$clampPitchToAimRange(mountPitch, clampedYawOffset, aimRange);
+		return Math.abs(clampedYawOffset - rawYawOffset) < 0.01 && Math.abs(clampedPitch - mountPitch) < 0.01;
 	}
 
 	/** Absolute angle version, for a real firing direction vector (- a plain linear clamp breaks near DefaultYaw=±180°, since atan2 only returns [-180,180]). */
@@ -2846,6 +2970,15 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
 		return net.minecraft.util.math.MathHelper.clamp(rawPitch,
 				aimRange.effectiveMinPitch(clampedYawOffsetFromDefault), aimRange.effectiveMaxPitch(clampedYawOffsetFromDefault));
+	}
+
+	/** Clamps pitch to the limits in force at the yaw this weapon's turret is ACTUALLY at, given as an ABSOLUTE yaw (the same convention the cached weaponPartCurrentYaw values and tudursvehiclemod$getEffectiveWeaponAim() use: default_yaw already added back in, so it is converted to an offset from default_yaw here). This - not the yaw the occupant is LOOKING at - is what pitch_zones must be judged by: a turret whose rotation speed is limited lags behind the view, and it is where the barrel physically is that decides whether it can clip the hull. The yaw is run through the weapon's yaw arc first, exactly like every other yaw clamp here, so a value that strayed outside the arc still selects the sector the turret is really held in. A null aimRange means no limits at all. */
+	private static double tudursvehiclemod$clampPitchAtActualYaw(double pitch, double actualAbsoluteYaw,
+			com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
+		if (aimRange == null) {
+			return pitch;
+		}
+		return tudursvehiclemod$clampPitchToAimRangeForRawYaw(pitch, actualAbsoluteYaw, aimRange);
 	}
 
 	/** Convenience for call sites that hold the RAW (unclamped) yaw offset rather than the already-clamped one - clamps the yaw first, then looks up the pitch limits at that clamped yaw. */
@@ -4273,6 +4406,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	private void tudursvehiclemod$startRecoilShake(WeaponDefinition weapon) {
 		this.dataTracker.set(RECOIL_CURRENT_MAGNITUDE, weapon.recoil());
 		float aimYaw = this.getWeaponAimYaw(weapon.seatIndex(), false, weapon.aimRange().orElse(null), 1.0f);
+		// The recoil acts on the VEHICLE, so it needs the yaw of the gun's direction in the vehicle's frame. For a tilted mount getWeaponAimYaw() gives an offset in the mount's own tilted frame, so the direction is converted (an untilted mount keeps the value above exactly as it was).
+		if (weapon.aimRange().isPresent() && weapon.aimRange().get().tilt().isTilted()) {
+			com.example.tudursvehiclemod.asset.WeaponAimRange tiltedRange = weapon.aimRange().get();
+			double[] mountAim = this.tudursvehiclemod$getEffectiveWeaponAim(weapon);
+			double[] inVehicleFrame = tiltedRange.tilt().toVehicleFrame(mountAim[1], mountAim[0]);
+			aimYaw = net.minecraft.util.math.MathHelper.wrapDegrees((float) (inVehicleFrame[1] - tiltedRange.defaultYaw()));
+		}
 		this.dataTracker.set(RECOIL_AIM_YAW, aimYaw);
 	}
 
@@ -5427,7 +5567,14 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				clampedYaw = effectiveAim[0];
 				clampedPitch = effectiveAim[1];
 			}
-			Vec3d clampedLocalDir = Vec3d.fromPolar((float) clampedPitch, (float) clampedYaw);
+			// The angles are in the mount's own frame, which for a tilted mount is not the vehicle's: turn them back into a direction in the vehicle's frame first (WeaponMountTilt#directionInVehicleFrame). For an untilted mount that is exactly Vec3d.fromPolar, as it always was.
+			Vec3d clampedLocalDir;
+			if (range.tilt().isTilted()) {
+				double[] tiltedDir = range.tilt().directionInVehicleFrame(clampedPitch, clampedYaw);
+				clampedLocalDir = new Vec3d(tiltedDir[0], tiltedDir[1], tiltedDir[2]);
+			} else {
+				clampedLocalDir = Vec3d.fromPolar((float) clampedPitch, (float) clampedYaw);
+			}
 			Vector3f worldDir = new Vector3f((float) clampedLocalDir.x, (float) clampedLocalDir.y, (float) clampedLocalDir.z);
 			bodyOrientation.transform(worldDir);
 			Vec3d aim = new Vec3d(worldDir.x, worldDir.y, worldDir.z);

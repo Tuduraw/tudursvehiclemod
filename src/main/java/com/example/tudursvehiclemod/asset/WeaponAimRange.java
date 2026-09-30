@@ -7,21 +7,50 @@ import java.util.List;
 
 /**
  * MC Heli's own AddWeapon "DefaultYaw, MinYaw, MaxYaw, MinPitch, MaxPitch" trailing parameters,
- * plus this mod's own optional pitch_zones (see {@link WeaponPitchZone}): yaw sectors in which the
- * pitch limits differ from the ordinary min_pitch / max_pitch - e.g. so a turret can't depress
- * into its own hull while it points across it. Empty (the default) means the ordinary limits
- * apply at every yaw, exactly as before this field existed.
+ * plus two optional additions of this mod's own:
+ *
+ * <ul>
+ * <li>pitch_zones (see {@link WeaponPitchZone}): yaw sectors in which the pitch limits differ from
+ * the ordinary min_pitch / max_pitch - e.g. so a turret can't depress into its own hull while it
+ * points across it. Empty (the default) means the ordinary limits apply at every yaw.
+ * <li>default_pitch / default_roll: the tilt of the mount's own reference frame, for a turret
+ * placed tilted (see {@link WeaponMountTilt}). Both 0 (the default) means an ordinary, upright
+ * mount, exactly as before these fields existed.
+ * </ul>
+ *
+ * <p>Whenever a tilt is set, default_yaw, the yaw/pitch limits and the pitch zones are all angles in
+ * the TILTED frame, not the vehicle's.
  */
 public record WeaponAimRange(double defaultYaw, double minYaw, double maxYaw, double minPitch, double maxPitch,
-		List<WeaponPitchZone> pitchZones) {
+		List<WeaponPitchZone> pitchZones, double defaultPitch, double defaultRoll) {
 	public static final Codec<WeaponAimRange> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Codec.DOUBLE.optionalFieldOf("default_yaw", 0.0).forGetter(WeaponAimRange::defaultYaw),
 			Codec.DOUBLE.optionalFieldOf("min_yaw", -180.0).forGetter(WeaponAimRange::minYaw),
 			Codec.DOUBLE.optionalFieldOf("max_yaw", 180.0).forGetter(WeaponAimRange::maxYaw),
 			Codec.DOUBLE.optionalFieldOf("min_pitch", -90.0).forGetter(WeaponAimRange::minPitch),
 			Codec.DOUBLE.optionalFieldOf("max_pitch", 90.0).forGetter(WeaponAimRange::maxPitch),
-			WeaponPitchZone.CODEC.listOf().optionalFieldOf("pitch_zones", List.of()).forGetter(WeaponAimRange::pitchZones)
+			WeaponPitchZone.CODEC.listOf().optionalFieldOf("pitch_zones", List.of()).forGetter(WeaponAimRange::pitchZones),
+			Codec.DOUBLE.optionalFieldOf("default_pitch", 0.0).forGetter(WeaponAimRange::defaultPitch),
+			Codec.DOUBLE.optionalFieldOf("default_roll", 0.0).forGetter(WeaponAimRange::defaultRoll)
 	).apply(instance, WeaponAimRange::new));
+
+	/**
+	 * This mount's tilt - see {@link WeaponMountTilt}. It is asked for every frame by every tilted part,
+	 * so a tilted mount's is built once and shared (a record can't hold extra instance fields, hence
+	 * the small cache keyed by the two angles). The untilted case - every existing weapon - is the
+	 * shared {@link WeaponMountTilt#NONE} and never touches the cache.
+	 */
+	public WeaponMountTilt tilt() {
+		if (defaultPitch == 0.0 && defaultRoll == 0.0) {
+			return WeaponMountTilt.NONE;
+		}
+		return TILT_CACHE.computeIfAbsent(new TiltKey(defaultPitch, defaultRoll), k -> new WeaponMountTilt(k.pitch(), k.roll()));
+	}
+
+	private record TiltKey(double pitch, double roll) {
+	}
+
+	private static final java.util.concurrent.ConcurrentHashMap<TiltKey, WeaponMountTilt> TILT_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
 	/**
 	 * The lower pitch bound in force at this yaw offset (degrees from default_yaw). The ordinary
