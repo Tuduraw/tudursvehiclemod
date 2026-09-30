@@ -388,10 +388,61 @@ fall and causes no practical issue).
   - `default_yaw` (default `0.0`)
   - `min_yaw`/`max_yaw` (default `-180.0`/`180.0`)
   - `min_pitch`/`max_pitch` (default `-90.0`/`90.0`)
+  - `pitch_zones` (default: not set): use this to change the pitch
+    limits, from the ordinary `min_pitch`/`max_pitch`, only for certain
+    directions (yaw ranges) - see "Varying the pitch limits by yaw range"
+    below. When not set, the ordinary limits apply in every direction.
 - **Example**:
   ```json
   "aim_range": { "default_yaw": 0.0, "min_yaw": -170.0, "max_yaw": 170.0, "min_pitch": -10.0, "max_pitch": 60.0 }
   ```
+
+#### Varying the pitch limits by yaw range (`pitch_zones`)
+
+For example, so that the gun of a tank or a warship can't depress into
+its own hull or superstructure: it restricts how far the gun may point
+downward, but only while it points in certain directions.
+`pitch_zones` is an array of objects with these fields:
+
+- `from_yaw` / `to_yaw` (required): the start and end of the range, in
+  degrees. Like `min_yaw`/`max_yaw`, they are **relative to
+  `default_yaw` taken as 0 degrees** (so a rear-facing turret with a
+  `default_yaw` of `180.0` reads the same way). The range runs from
+  `from_yaw` to `to_yaw` in the direction of **increasing** angle, and
+  may cross +-180 degrees (for example, `from_yaw` `150.0` with `to_yaw`
+  `-150.0` covers the 60 degrees directly behind `default_yaw`). If
+  `from_yaw` and `to_yaw` are equal the range is empty (it never means a
+  full circle).
+- `min_pitch` / `max_pitch` (optional): the limits within that range.
+  If one is left out, the ordinary `min_pitch`/`max_pitch` is used for
+  that side. **A zone can't widen the ordinary range**: a value outside
+  the ordinary `min_pitch`/`max_pitch` is pulled back to it (this feature
+  exists to keep the gun from interfering with the hull and the like, and
+  a value outside the range is more likely a typing mistake). If the
+  values end up crossed - say a `min_pitch` above the ordinary
+  `max_pitch` - the gun's elevation is held at a single value in that
+  range.
+
+Where ranges overlap, **the one written first** takes priority. The yaw
+used for the check is the direction the gun is **actually pointing**,
+after the `min_yaw`/`max_yaw` limits have been applied. While the gun
+points outside every range, the ordinary limits apply unchanged.
+
+- **Example** (a tank turret with the front as 0 degrees: only while it
+  points toward the rear hull, the depression is limited to -3 degrees):
+  ```json
+  "aim_range": {
+    "min_pitch": -10.0,
+    "max_pitch": 60.0,
+    "pitch_zones": [
+      { "from_yaw": 120.0, "to_yaw": -120.0, "min_pitch": -3.0 }
+    ]
+  }
+  ```
+
+`weapon_parts`'s own `aim_range` has the same format, so `pitch_zones`
+can be set there in the same way. The part's visible movement follows
+the same limits as the actual firing direction.
 
 ### `projectile_item`
 - **Format**: string (Identifier)

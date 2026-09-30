@@ -2452,7 +2452,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 		float targetPitch = 0f;
 		if (pitchFollow) {
-			targetPitch = aimRange != null ? (float) tudursvehiclemod$clampPitchToAimRange(rawPitch, aimRange) : rawPitch;
+			targetPitch = aimRange != null ? (float) tudursvehiclemod$clampPitchToAimRangeForRawYaw(rawPitch, rawYaw, aimRange) : rawPitch;
 		}
 		return new float[]{targetYaw, targetPitch};
 	}
@@ -2652,7 +2652,14 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (aimRange == null) {
 			return pitch;
 		}
-		return (float) tudursvehiclemod$clampPitchToAimRange(pitch, aimRange);
+		// The pitch limits can depend on the yaw this weapon is pointing at (pitch_zones - see WeaponAimRange), and this method has no yaw parameter of its own. The raw yaw is read from the SAME occupant / cache entry getWeaponAimYaw() reads it from (and, like it, refreshes nothing new - the cache write above already covers this tick), so the two never disagree about where the weapon points.
+		float rawRelativeYaw;
+		if (occupant == null) {
+			rawRelativeYaw = this.lastTrackedRelativeYawBySeat.getOrDefault(cacheKey, 0f);
+		} else {
+			rawRelativeYaw = net.minecraft.util.math.MathHelper.wrapDegrees(occupant.getYaw(tickProgress) - this.getYaw(tickProgress));
+		}
+		return (float) tudursvehiclemod$clampPitchToAimRangeForRawYaw(pitch, rawRelativeYaw, aimRange);
 	}
 
 	/** target * rest^-1 via proper quaternion composition, avoiding a gimbal-lock-like axis mix-up the naive rotateY(offset).rotateX(pitch) approach suffered near DefaultYaw=±90°. */
@@ -2754,8 +2761,9 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				float frozenPitch = 0f;
 				if (pitchFollow) {
 					float rawFrozenPitch = this.getWeaponAimPitch(seatIndex, pilotFallback, null, tickProgress);
+					float rawFrozenYawForPitch = this.getWeaponAimYaw(seatIndex, pilotFallback, null, tickProgress);
 					frozenPitch = aimRange != null
-							? (float) tudursvehiclemod$clampPitchToAimRange(rawFrozenPitch, aimRange)
+							? (float) tudursvehiclemod$clampPitchToAimRangeForRawYaw(rawFrozenPitch, rawFrozenYawForPitch, aimRange)
 							: rawFrozenPitch;
 				}
 				return tudursvehiclemod$computePartRotation(defaultYaw, frozenYaw, frozenPitch);
@@ -2772,7 +2780,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 		float pitch = 0f;
 		if (pitchFollow) {
-			pitch = aimRange != null ? (float) tudursvehiclemod$clampPitchToAimRange(rawPitch, aimRange) : rawPitch;
+			pitch = aimRange != null ? (float) tudursvehiclemod$clampPitchToAimRangeForRawYaw(rawPitch, rawYaw, aimRange) : rawPitch;
 		}
 		return tudursvehiclemod$computePartRotation(defaultYaw, absoluteYaw, pitch);
 	}
@@ -2824,7 +2832,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	public boolean tudursvehiclemod$isAimWithinRange(float rawYaw, float rawPitch, com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
 		double clampedYawOffset = tudursvehiclemod$clampedYawOffsetFromDefault(rawYaw, aimRange);
 		double rawYawOffset = net.minecraft.util.math.MathHelper.wrapDegrees((float) (rawYaw - aimRange.defaultYaw()));
-		double clampedPitch = tudursvehiclemod$clampPitchToAimRange(rawPitch, aimRange);
+		double clampedPitch = tudursvehiclemod$clampPitchToAimRange(rawPitch, clampedYawOffset, aimRange);
 		return Math.abs(clampedYawOffset - rawYawOffset) < 0.01 && Math.abs(clampedPitch - rawPitch) < 0.01;
 	}
 
@@ -2833,11 +2841,17 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		return aimRange.defaultYaw() + tudursvehiclemod$clampedYawOffsetFromDefault(rawYaw, aimRange);
 	}
 
-	/** Defensively normalizes min/max order first, in case a weapon's own data has them inverted. */
-	private static double tudursvehiclemod$clampPitchToAimRange(double rawPitch, com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
-		double lower = Math.min(aimRange.minPitch(), aimRange.maxPitch());
-		double upper = Math.max(aimRange.minPitch(), aimRange.maxPitch());
-		return net.minecraft.util.math.MathHelper.clamp(rawPitch, lower, upper);
+	/** Clamps rawPitch to the pitch limits in force at the yaw this weapon is ACTUALLY pointing at - i.e. after the yaw itself has been clamped to the weapon's own yaw arc (see tudursvehiclemod$clampedYawOffsetFromDefault(), whose result is what every call site passes as the yaw), not the raw, unclamped direction the shooter is looking. That matters for pitch_zones (see WeaponAimRange): a turret held at its yaw limit by the arc must use the pitch limits of the sector it is really pointing into, or the model would show one thing and the limit apply another. The ordinary limits apply at every yaw when the weapon has no pitch_zones, exactly as before. WeaponAimRange itself normalizes min/max order, in case a weapon's own data has them inverted. */
+	private static double tudursvehiclemod$clampPitchToAimRange(double rawPitch, double clampedYawOffsetFromDefault,
+			com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
+		return net.minecraft.util.math.MathHelper.clamp(rawPitch,
+				aimRange.effectiveMinPitch(clampedYawOffsetFromDefault), aimRange.effectiveMaxPitch(clampedYawOffsetFromDefault));
+	}
+
+	/** Convenience for call sites that hold the RAW (unclamped) yaw offset rather than the already-clamped one - clamps the yaw first, then looks up the pitch limits at that clamped yaw. */
+	private static double tudursvehiclemod$clampPitchToAimRangeForRawYaw(double rawPitch, double rawYaw,
+			com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
+		return tudursvehiclemod$clampPitchToAimRange(rawPitch, tudursvehiclemod$clampedYawOffsetFromDefault(rawYaw, aimRange), aimRange);
 	}
 
 	/** Applies the same rotation weaponPart visually undergoes to a static vehicle-local offset (e.g. an AddWeapon muzzle position), so the actual firing position follows the part's current rotation. */
