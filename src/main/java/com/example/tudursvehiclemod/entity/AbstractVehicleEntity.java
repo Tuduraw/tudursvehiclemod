@@ -2489,19 +2489,22 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				float[] target = tudursvehiclemod$computeWeaponPartTarget(part.seatIndex(), part.pilotFallback(),
 						aimRange, part.yawFollow(), part.pitchFollow(), 1.0f);
 				// Each axis's own cache is only updated when THIS part actually follows that specific axis - hasOwnStage being true from EITHER yawFollow OR pitchFollow alone previously updated BOTH unconditionally, even for a part (e.g. a yaw-only turret base, whose own pitchFollow is false) that never actually tracks the other axis at all. computeWeaponPartTarget() returns 0 for an axis a part doesn't follow, which - if written here regardless - would wrongly populate that axis's own cache with a value drifting toward 0, later misread by getEffectiveWeaponAim() (via this same part, since findTrackingPart() can select ANY part that follows at least one axis) as this whole weapon's own "effective" aim on that axis, completely unrelated to wherever the player is actually aiming.
+				// This stage's own current yaw/pitch, where it follows the axis; where it doesn't (one half of a split-axis turret), the weapon's OTHER part supplies it, so the boundary gate below always judges the whole turret. See tudursvehiclemod$stepStage().
+				Float[] weaponCached = weapon.isPresent() ? this.tudursvehiclemod$findCachedWeaponAim(weapon.get()) : new Float[]{null, null};
+				float currentYaw = part.yawFollow()
+						? this.weaponPartCurrentYaw.getOrDefault(part.part(), defaultYawForFirstTracking)
+						: (weaponCached[0] != null ? weaponCached[0] : defaultYawForFirstTracking);
+				float currentPitch = part.pitchFollow()
+						? this.weaponPartCurrentPitch.getOrDefault(part.part(), 0f)
+						: (weaponCached[1] != null ? weaponCached[1] : 0f);
+				float[] yawTargetSource = part.yawFollow() ? target : this.tudursvehiclemod$computeWeaponPartTarget(part.seatIndex(), part.pilotFallback(), aimRange, true, true, 1.0f);
+				Float[] next = tudursvehiclemod$stepStage(part.yawFollow(), part.pitchFollow(), currentYaw, currentPitch,
+						yawTargetSource[0], part.pitchFollow() ? target[1] : yawTargetSource[1], maxStep, aimRange);
 				if (part.yawFollow()) {
-					float currentYaw = this.weaponPartCurrentYaw.getOrDefault(part.part(), defaultYawForFirstTracking);
-					this.weaponPartCurrentYaw.put(part.part(), tudursvehiclemod$stepTowardsYaw(currentYaw, target[0], maxStep, aimRange));
+					this.weaponPartCurrentYaw.put(part.part(), next[0]);
 				}
 				if (part.pitchFollow()) {
-					float currentPitch = this.weaponPartCurrentPitch.getOrDefault(part.part(), 0f);
-					float steppedPitch = tudursvehiclemod$stepTowardsAngle(currentPitch, target[1], maxStep);
-					// pitch_zones must follow where the turret ACTUALLY is, not where the occupant is looking (see tudursvehiclemod$clampPitchAtActualYaw()'s own doc) - a turret with a limited rotation speed lags behind the view, so target[1] (limited at the TARGET yaw) can be wrong for the yaw the turret is at RIGHT NOW. The yaw used is this tick's own already-stepped one when this part follows yaw; a pitch-only part of a split-axis turret has no yaw of its own, so it takes the yaw of whichever part of this weapon does (the weapon's own effective yaw, same lookup firing uses).
-					float actualYawForPitch = this.weaponPartCurrentYaw.containsKey(part.part()) && part.yawFollow()
-							? this.weaponPartCurrentYaw.get(part.part())
-							: (float) this.tudursvehiclemod$getEffectiveWeaponAimYawForPart(part, weapon);
-					this.weaponPartCurrentPitch.put(part.part(),
-							(float) tudursvehiclemod$clampPitchAtActualYaw(steppedPitch, actualYawForPitch, aimRange));
+					this.weaponPartCurrentPitch.put(part.part(), next[1]);
 				}
 			}
 			if (hasParentStage) {
@@ -2509,19 +2512,22 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				float[] parentTarget = tudursvehiclemod$computeWeaponPartTarget(part.seatIndex(), part.pilotFallback(),
 						aimRange, childInfo.parentYawFollow(), childInfo.parentPitchFollow(), 1.0f);
 				// Per the same direct bug report/fix as hasOwnStage's own identical fix above: each axis's own parent-stage cache is only updated when THIS part's own childInfo actually follows that specific axis.
+				// Same as the own stage above, for the parent stage.
+				Float[] weaponCachedForParent = weapon.isPresent() ? this.tudursvehiclemod$findCachedWeaponAim(weapon.get()) : new Float[]{null, null};
+				float parentCurrentYaw = childInfo.parentYawFollow()
+						? this.weaponPartParentCurrentYaw.getOrDefault(part.part(), defaultYawForFirstTracking)
+						: (weaponCachedForParent[0] != null ? weaponCachedForParent[0] : defaultYawForFirstTracking);
+				float parentCurrentPitch = childInfo.parentPitchFollow()
+						? this.weaponPartParentCurrentPitch.getOrDefault(part.part(), 0f)
+						: (weaponCachedForParent[1] != null ? weaponCachedForParent[1] : 0f);
+				float[] parentYawTargetSource = childInfo.parentYawFollow() ? parentTarget : this.tudursvehiclemod$computeWeaponPartTarget(part.seatIndex(), part.pilotFallback(), aimRange, true, true, 1.0f);
+				Float[] parentNext = tudursvehiclemod$stepStage(childInfo.parentYawFollow(), childInfo.parentPitchFollow(), parentCurrentYaw, parentCurrentPitch,
+						parentYawTargetSource[0], childInfo.parentPitchFollow() ? parentTarget[1] : parentYawTargetSource[1], maxStep, aimRange);
 				if (childInfo.parentYawFollow()) {
-					float parentCurrentYaw = this.weaponPartParentCurrentYaw.getOrDefault(part.part(), defaultYawForFirstTracking);
-					this.weaponPartParentCurrentYaw.put(part.part(), tudursvehiclemod$stepTowardsYaw(parentCurrentYaw, parentTarget[0], maxStep, aimRange));
+					this.weaponPartParentCurrentYaw.put(part.part(), parentNext[0]);
 				}
 				if (childInfo.parentPitchFollow()) {
-					float parentCurrentPitch = this.weaponPartParentCurrentPitch.getOrDefault(part.part(), 0f);
-					float steppedParentPitch = tudursvehiclemod$stepTowardsAngle(parentCurrentPitch, parentTarget[1], maxStep);
-					// Same as the own stage above: judged by the parent stage's own CURRENT yaw (or, for a pitch-only parent stage, this weapon's effective yaw), not the view.
-					float actualParentYawForPitch = this.weaponPartParentCurrentYaw.containsKey(part.part()) && childInfo.parentYawFollow()
-							? this.weaponPartParentCurrentYaw.get(part.part())
-							: (float) this.tudursvehiclemod$getEffectiveWeaponAimYawForPart(part, weapon);
-					this.weaponPartParentCurrentPitch.put(part.part(),
-							(float) tudursvehiclemod$clampPitchAtActualYaw(steppedParentPitch, actualParentYawForPitch, aimRange));
+					this.weaponPartParentCurrentPitch.put(part.part(), parentNext[1]);
 				}
 			}
 		}
@@ -2578,10 +2584,64 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			return new double[]{0.0, 0.0};
 		}
 		com.example.tudursvehiclemod.asset.WeaponAimRange range = weapon.aimRange().get();
-		VehicleDefinition def = this.getDefinition();
+		Float[] cached = this.tudursvehiclemod$findCachedWeaponAim(weapon);
+		Float cachedYaw = cached[0];
+		Float cachedPitch = cached[1];
+		double yaw = cachedYaw != null ? cachedYaw : range.defaultYaw() + this.getWeaponAimYaw(weapon.seatIndex(), weapon.pilotUsable(), range, 1.0f);
+		double pitch = cachedPitch != null ? cachedPitch : this.getWeaponAimPitch(weapon.seatIndex(), weapon.pilotUsable(), range, 1.0f);
+		// The returned pair is what a projectile is actually fired along, so it must be consistent: the pitch is limited here by the yaw that is being RETURNED (the turret's actual one), whichever of the two sources each value came from. Without this, a cached pitch limited for one yaw could be paired with a different cached yaw - a split-axis turret's two parts are cached independently, and getWeaponAimPitch() above limits by the occupant's view yaw, which a slow turret has not reached yet. Already-compliant values pass through unchanged.
+		pitch = tudursvehiclemod$clampPitchAtActualYaw(pitch, yaw, range);
+		return new double[]{yaw, pitch};
+	}
+
+	/**
+	 * One tick of a speed-limited turret following its target, for ONE stage (the part's own, or its parent's): returns {nextYaw, nextPitch}, either of which may be null for an axis this stage does not follow.
+	 *
+	 * <p>The yaw is held back at the edge of a pitch zone the barrel is not yet inside the limits of (see WeaponAimRange#gateYawMove): the turret stops just short of the edge and WAITS, and while it waits the pitch is moved - at this same turret speed, not snapped - toward the limits of the sector it is waiting to enter, nearest the pitch it was heading for anyway. Once the pitch is inside, the yaw carries on across the edge in a later tick. A pitch that is already inside the limits of every sector the move crosses is not held up at all, so a turret that was never in the way turns without stopping, as before.
+	 *
+	 * <p>currentYawAbs / targetYawAbs are ABSOLUTE yaws (default_yaw added back in), the convention the cached values use; currentYawAbs and currentPitch of an axis this stage does not follow are those of the weapon's OTHER part (a split-axis turret's base and barrel are cached separately), so the gate always sees the whole turret. The pitch is still clamped to the limits at the yaw it ends up at, as a safety net for the one case the gate cannot see: a pitch outside the limits at the very first tick, with nothing yet to wait for.
+	 */
+	private static Float[] tudursvehiclemod$stepStage(boolean followsYaw, boolean followsPitch,
+			float currentYawAbs, float currentPitch, float targetYawAbs, float targetPitch, float maxStep,
+			com.example.tudursvehiclemod.asset.WeaponAimRange aimRange) {
+		Float nextYaw = null;
+		Float nextPitch = null;
+		// Where the yaw is heading this tick, and whether the boundary gate holds it. The gate is worked out whether or not THIS stage moves the yaw: the pitch-only half of a split-axis turret does not move the yaw (the base does), but it must still know that the base is waiting at an edge, or it would head for its ordinary target and never bring the pitch inside the limits the base is waiting for - and neither part would ever move again.
+		float steppedYaw = tudursvehiclemod$stepTowardsYaw(currentYawAbs, targetYawAbs, maxStep, aimRange);
+		float yawAfter = steppedYaw;
+		double[] waitingFor = null;
+		if (aimRange != null && !aimRange.pitchZones().isEmpty()) {
+			double defaultYaw = aimRange.defaultYaw();
+			double from = net.minecraft.util.math.MathHelper.wrapDegrees((float) (currentYawAbs - defaultYaw));
+			double to = from + net.minecraft.util.math.MathHelper.wrapDegrees((float) (steppedYaw - currentYawAbs));
+			com.example.tudursvehiclemod.asset.WeaponAimRange.YawGate gate = aimRange.gateYawMove(from, to, currentPitch);
+			if (gate.blocked()) {
+				waitingFor = gate.waitingFor();
+				yawAfter = (float) (currentYawAbs + (gate.allowedYawOffset() - from));
+			}
+		}
+		if (followsYaw) {
+			nextYaw = yawAfter;
+		}
+		if (followsPitch) {
+			// While the yaw waits at an edge the pitch heads for the limits of the sector beyond it (kept as near as possible to where it was going); otherwise straight for its target.
+			float goal = targetPitch;
+			if (waitingFor != null) {
+				goal = (float) net.minecraft.util.math.MathHelper.clamp(targetPitch, waitingFor[0], waitingFor[1]);
+			}
+			float stepped = tudursvehiclemod$stepTowardsAngle(currentPitch, goal, maxStep);
+			// The yaw the pitch is judged at. A stage that moves the yaw itself judges by the yaw it ends this tick at (yawAfter). A PITCH-ONLY stage - one half of a split-axis turret, whose yaw belongs to the base - judges by the yaw it is GIVEN (currentYawAbs): that is where the base has already settled, or will be released from, and the base only ever steps across a zone edge once the gate has found the pitch inside that zone's limits, so it is the position the pitch can safely be held to.
+			// Judging a pitch-only stage by a yaw it works out for itself (the base's NEXT step, yawAfter) looks equivalent but is not: when the base happens to be updated first it has ALREADY made that step, so the pitch gets held to the limits one step further along than the turret really is, and runs outside the limits of the sector the base is actually in. Over thousands of random split-axis configurations that left the barrel outside its limits in about one run in ten (and, with the base updated second, in a few), against none with the yaw it is given - in either update order, the two parts' order in weapon_parts being nothing the pack author controls.
+			nextPitch = aimRange == null ? stepped : (float) tudursvehiclemod$clampPitchAtActualYaw(stepped, followsYaw ? yawAfter : currentYawAbs, aimRange);
+		}
+		return new Float[]{nextYaw, nextPitch};
+	}
+
+	/** The RAW cached current {yaw, pitch} of a weapon's own parts (null for an axis nothing caches yet) - the first part of the weapon that follows each axis, own stage before parent stage, exactly the lookup tudursvehiclemod$getEffectiveWeaponAim() has always used. Unlike that method it applies no limits and falls back to nothing, so a caller can see what the turret really IS at right now. */
+	private Float[] tudursvehiclemod$findCachedWeaponAim(com.example.tudursvehiclemod.asset.WeaponDefinition weapon) {
 		Float cachedYaw = null;
 		Float cachedPitch = null;
-		for (com.example.tudursvehiclemod.asset.WeaponPart part : def.weaponParts()) {
+		for (com.example.tudursvehiclemod.asset.WeaponPart part : this.getDefinition().weaponParts()) {
 			if (part.weaponName().isEmpty() || !part.weaponName().get().equalsIgnoreCase(weapon.weaponName())) {
 				continue;
 			}
@@ -2604,11 +2664,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				break;
 			}
 		}
-		double yaw = cachedYaw != null ? cachedYaw : range.defaultYaw() + this.getWeaponAimYaw(weapon.seatIndex(), weapon.pilotUsable(), range, 1.0f);
-		double pitch = cachedPitch != null ? cachedPitch : this.getWeaponAimPitch(weapon.seatIndex(), weapon.pilotUsable(), range, 1.0f);
-		// The returned pair is what a projectile is actually fired along, so it must be consistent: the pitch is limited here by the yaw that is being RETURNED (the turret's actual one), whichever of the two sources each value came from. Without this, a cached pitch limited for one yaw could be paired with a different cached yaw - a split-axis turret's two parts are cached independently, and getWeaponAimPitch() above limits by the occupant's view yaw, which a slow turret has not reached yet. Already-compliant values pass through unchanged.
-		pitch = tudursvehiclemod$clampPitchAtActualYaw(pitch, yaw, range);
-		return new double[]{yaw, pitch};
+		return new Float[]{cachedYaw, cachedPitch};
 	}
 
 	/** This weapon's effective ABSOLUTE yaw as seen from one of its own weapon parts - the same yaw tudursvehiclemod$getEffectiveWeaponAim() would return for it, found from the part's own weapon mount. Used where a part that tracks only pitch (one half of a split-axis turret) needs the yaw of the OTHER part to judge pitch_zones by. Falls back to the weapon's own default yaw (or 0 with no aim range) when the weapon can't be resolved. */

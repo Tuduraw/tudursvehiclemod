@@ -92,6 +92,78 @@ public record WeaponAimRange(double defaultYaw, double minYaw, double maxYaw, do
 		return new double[]{lower, upper};
 	}
 
+	/**
+	 * How far, in degrees, short of a zone's edge a turret that has to wait stops. The edges of a zone
+	 * are INCLUSIVE (see WeaponPitchZone#contains), so stopping exactly on one would already be inside
+	 * the zone; this keeps the waiting turret just outside it, still under the limits it was under.
+	 */
+	public static final double BOUNDARY_EPSILON = 1.0e-3;
+
+	/** Slack, in degrees, when deciding whether a pitch is within a limit - float rounding must not make a pitch that is AT the limit look outside it. */
+	public static final double PITCH_TOLERANCE = 1.0e-3;
+
+	/**
+	 * Result of {@link #gateYawMove}: the yaw offset the turret may actually move to this tick, and - when
+	 * it had to stop short - the pitch limits of the sector it is waiting to enter ({@code waitingFor},
+	 * {min, max}), which the pitch must be brought inside before the yaw is allowed past the edge.
+	 */
+	public record YawGate(double allowedYawOffset, double[] waitingFor) {
+		public boolean blocked() {
+			return waitingFor != null;
+		}
+	}
+
+	/**
+	 * Decides how far a yaw move may go given the CURRENT pitch, so that the barrel is never swung into a
+	 * sector whose pitch limits it is outside of: a turret about to cross into such a sector stops short
+	 * of the edge and waits (the pitch, moving at the turret's own speed, is brought inside the limits
+	 * first - see {@link YawGate#waitingFor}), then carries on. A pitch already inside the limits of
+	 * every sector the move crosses is not held up at all.
+	 *
+	 * <p>{@code fromOffset} and {@code toOffset} are yaw offsets from default_yaw, in degrees, and the move
+	 * runs the SHORT way between them (|toOffset - fromOffset| is taken as at most one half turn, the
+	 * way the turret itself steps), so the move may cross +-180. Only edges strictly inside the move, up to
+	 * and including its far end, count: an edge the turret is already standing on is not crossed again.
+	 */
+	public YawGate gateYawMove(double fromOffset, double toOffset, double currentPitch) {
+		if (pitchZones.isEmpty()) {
+			return new YawGate(toOffset, null);
+		}
+		double delta = toOffset - fromOffset;
+		delta -= 360.0 * Math.floor((delta + 180.0) / 360.0);   // shortest signed way, in [-180, 180)
+		if (delta == 0.0) {
+			return new YawGate(toOffset, null);
+		}
+		double dir = Math.signum(delta);
+		// every zone edge that lies on the (unwrapped) path, nearest first. "On the path" is judged in the direction of travel: an edge counts when the move starts short of it and gets to it or past it - the edge the move ARRIVES at counts, the one it starts on does not. (Testing against a fixed (low, high] range instead counted the arrival edge only when moving toward increasing yaw, and let a turret reach an edge in the other direction unchecked.)
+		java.util.List<Double> edges = new java.util.ArrayList<>();
+		for (WeaponPitchZone zone : pitchZones) {
+			for (double edge : new double[]{zone.fromYaw(), zone.toYaw()}) {
+				for (int turn = -2; turn <= 2; turn++) {
+					double e = edge + 360.0 * turn;
+					double along = (e - fromOffset) * dir;          // distance to the edge in the direction of travel
+					if (along > 0.0 && along <= delta * dir) {
+						edges.add(e);
+					}
+				}
+			}
+		}
+		edges.sort((a, b) -> Double.compare(Math.abs(a - fromOffset), Math.abs(b - fromOffset)));
+		for (double edge : edges) {
+			// the limits just past the edge, in the direction of travel
+			double[] beyond = limits(edge + dir * BOUNDARY_EPSILON * 2.0);
+			if (currentPitch < beyond[0] - PITCH_TOLERANCE || currentPitch > beyond[1] + PITCH_TOLERANCE) {
+				return new YawGate(edge - dir * BOUNDARY_EPSILON, beyond);
+			}
+		}
+		return new YawGate(toOffset, null);
+	}
+
+	/** The pitch limits at a yaw offset, as {min, max} - the same ones {@link #effectiveMinPitch} and {@link #effectiveMaxPitch} give. */
+	public double[] pitchLimitsAt(double yawOffset) {
+		return limits(yawOffset);
+	}
+
 	private WeaponPitchZone zoneAt(double yawOffset) {
 		for (WeaponPitchZone zone : pitchZones) {
 			if (zone.contains(yawOffset)) {

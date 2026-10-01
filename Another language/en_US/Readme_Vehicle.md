@@ -445,6 +445,18 @@ held at the edge by `min_yaw`/`max_yaw`, the direction at that edge is
 used. While the gun points outside every range, the ordinary limits
 apply unchanged.
 
+**When crossing the edge of a range** (for a turret with
+`turret_rotation_speed` set): if the turret is about to swing into a range
+whose limits the current pitch is outside of, it **stops short of the edge**
+and moves the pitch inside the limits **at the turret's own speed**, then
+resumes turning once the pitch is inside (the pitch never jumps). If the
+pitch is already inside the limits when the edge is reached, the turret
+simply keeps turning without stopping. The pitch heads for the value within
+that range's limits nearest the pitch of the view. A split-axis turret (one
+part swivels, another elevates) behaves the same way. A turret without
+`turret_rotation_speed` moves in both axes instantly, so it has no such
+wait.
+
 The limits apply in the same way to the rest pose when the weapon is
 unmanned or unusable (for example when destroyed), and to a barrel left
 frozen after its occupant gets out. The rest pose's pitch is normally
