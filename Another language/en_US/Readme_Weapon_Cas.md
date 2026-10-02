@@ -254,6 +254,34 @@ CarrierLandingToAmmoRadius = 15.0
   CarrierYawOffset = 0
   ```
 
+### "Attack the designated entity" in lock mode
+
+With a `Carrier` weapon selected, turning lock mode on (the **B key** by default)
+makes every launch go **after the entity under the crosshair**: it is launched to
+attack that entity. The designation method such as `CasTargetMode` is not used.
+
+- While lock mode is on and a `Carrier` weapon is selected, the entity nearest the
+  crosshair (within 15 degrees of it, up to 1000 blocks away) is **highlighted**. A
+  target is a living entity or a vehicle that has not been destroyed (this vehicle,
+  the vehicle you are riding, and the aircraft it has launched are never targets)
+- Pressing the fire key then launches against the highlighted entity. When a
+  formation is launched, **every aircraft attacks the same target**
+- The launched aircraft first flies its take-off waypoints
+  (`CarrierLaunchWaypoint`) as usual, and only after taking off heads for the
+  target and attacks (it never makes straight for the target during take-off)
+- Altitude during the attack is handled the same way as when the lead of a
+  formation sends a wingman after a target, following `CasAttackStartAltitude`
+  and `CasAttackStopAltitude`
+- Once the target is destroyed (or lost) the aircraft returns to its ordinary
+  route, and returns and lands
+- **If nothing is highlighted, nothing is launched** (and no ammo is spent)
+- With lock mode off, or with a weapon other than `Carrier` selected, it behaves
+  as before (flying the route that `CasTargetMode` determines)
+
+When riding the lead of a formation that has already launched, commanding the
+wingmen (the B key toggles the mode, the fire key assigns a target, Alt+B
+releases every wingman's lock) works as it always has.
+
 ### `CasTargetMode`
 - **Format/description**: Exactly the same field as `CAS`'s own. For a
   `Carrier` weapon too, the key name stays **`CasTargetMode`**, not
@@ -369,3 +397,111 @@ CarrierLandingToAmmoRadius = 15.0
   launch route - it only applies on the ordinary route. Seat switching
   (Alt+Y) targets whichever aircraft in the formation launched last.
 - **Example**: `CarrierFormationSize = 3` / `CarrierFormationType = Delta`
+
+
+---
+
+## `Midget`(launching a midget submarine)
+
+> **On verification**: the feature described in this section has only been verified at the
+> design stage (a standalone simulation of the collision-avoidance logic) - **it has not been
+> tested in an actual game.** Its autopilot bypasses the submarine's own ordinary piloting
+> systems (the ascend/descend keys, hatch animation, etc.) entirely, writing yaw, pitch and
+> velocity directly instead. For that reason it does not support what `Carrier` does: flying
+> in formation, landing (surfacing), seat linkage with the mothership, or counting ammo as
+> "in flight". Please test thoroughly before relying on it.
+
+Same idea as `Carrier` (launching an aircraft): launches one submersible craft (typically a
+vehicle whose `entity_type` is `submarine`) from **this weapon's own `AddWeapon` mount
+position** to fly a fixed route by itself. The main differences from `Carrier`:
+
+- **Always exactly one** craft is launched (no formation, unlike `Carrier`)
+- A waypoint's Y is a **depth below the water surface**, not an altitude (the same idea as a
+  torpedo's own `TargetDepth` - positive is deeper, 0 is the surface)
+- To avoid underwater terrain and land, it probes ahead at a fixed interval and surfaces to
+  avoid whatever it finds (details below)
+- There is no runway to land on. Recovery retraces the launch route
+  (`MidgetLaunchWaypoint`) in reverse, back to the launch position on the mothership.
+
+### Collision avoidance
+
+- Probes ahead every `MidgetDetectRange` (default **50** blocks)
+- The probing interval is `MidgetDetectInterval` (default **10** ticks)
+- While the way ahead is blocked, it **keeps rising** toward the surface. Each time it has
+  risen another `MidgetAvoidStep` (default **1** block), it probes again at once, ignoring
+  the interval. If still blocked it keeps rising.
+- It levels off at the depth where the way is clear, and holds that depth as a ceiling: it
+  does not go back deeper than that without the way ahead being clear too. The return to the
+  route's own depth is likewise one block at a time, each time confirming the way ahead is
+  clear.
+- If it rises all the way to the surface and is still blocked (land, say), it stops and
+  waits there.
+- Since it is slow, the detection range and interval are both set looser than an aircraft's
+  own ground-attack terrain detection.
+
+### `MidgetVehicle`
+- **Format**: string (this weapon type does nothing if left unset)
+- **Description**: the file name (without extension) of the vehicle to launch. If it names a
+  vehicle whose `entity_type` is not `submarine`, it still launches, but the autopilot does
+  nothing.
+- **Example**: `MidgetVehicle = ko_hyoteki`
+
+### `MidgetWeaponIndex`
+- **Format**: integer (default `0`)
+- **Description**: the index (into the launched craft's own `weapons` array, starting from
+  0) of the weapon it fires on an attack waypoint (below).
+- **Example**: `MidgetWeaponIndex = 0`
+
+### `MidgetAccuracy`
+- **Format**: number (default `0`)
+- **Description**: the same idea as `CasAccuracy` - scatter on where each waypoint lands.
+- **Example**: `MidgetAccuracy = 2`
+
+### `MidgetTimeout` / `MidgetStuckTimeout`
+- **Format**: seconds (default `600` / `60`)
+- **Description**: the same idea as `CasTimeout`/`CasStuckTimeout`. `MidgetStuckTimeout` also
+  applies to time spent stopped at the surface, blocked.
+- **Example**: `MidgetTimeout = 600`
+
+### `MidgetYawOffset` / `MidgetTargetYawOffset`
+- **Format/Description**: exactly the same as `CasYawOffset`/`CasTargetYawOffset`.
+
+### `MidgetDetectRange` / `MidgetDetectInterval` / `MidgetAvoidStep`
+- **Format**: number (default `50` / `10` / `1`)
+- **Description**: see "Collision avoidance" above.
+- **Example**: `MidgetDetectRange = 50` / `MidgetDetectInterval = 10` / `MidgetAvoidStep = 1`
+
+### `MidgetRecovery`
+- **Format**: boolean (default `true`)
+- **Description**: with `false`, it stops at the end of the route instead of returning to
+  the mothership.
+- **Example**: `MidgetRecovery = false`
+
+### `MidgetLaunchWaypoint` / `MidgetWaypoint`
+- **Format**: repeated lines of `relX,depth,relZ,speed(%),attack(true/false)`
+- **Description**: the same relative-coordinate idea as `CarrierLaunchWaypoint`/
+  `CarrierWaypoint` (`MidgetLaunchWaypoint` relative to this weapon's own mount position,
+  `MidgetWaypoint` relative to the marked point), except the Y component is a **depth**, not
+  an altitude. A negative depth cannot be given (it would be above the surface). Recovery
+  retraces `MidgetLaunchWaypoint` **in reverse**.
+- **Example**:
+  ```
+  MidgetLaunchWaypoint = 0,0,10,60,false
+  MidgetLaunchWaypoint = 0,5,30,60,false
+  MidgetWaypoint = 0,15,200,80,false
+  MidgetWaypoint = -20,15,250,60,true
+  ```
+
+### Example
+```
+DisplayName = Midget Sub Launch
+Type = Midget
+MidgetVehicle = ko_hyoteki
+MidgetWeaponIndex = 0
+MidgetTimeout = 900
+MidgetLaunchWaypoint = 0,0,10,60,false
+MidgetWaypoint = 0,15,200,80,false
+MidgetWaypoint = -20,15,250,60,true
+Round = 2
+ReloadTime = 2400
+```

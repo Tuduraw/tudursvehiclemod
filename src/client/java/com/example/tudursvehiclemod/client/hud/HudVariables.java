@@ -290,7 +290,7 @@ public final class HudVariables {
 		double originY = vehicle.getY();
 		return switch (selectedWeapon.weaponType()) {
 			case MACHINE_GUN -> MortarMarkerRenderer.tudursvehiclemod$computeMachineGunDistance(client, player, vehicle, selectedWeapon);
-			case CAS, CARRIER -> MortarMarkerRenderer.tudursvehiclemod$computeCasCarrierDistance(player, selectedWeapon);
+			case CAS, CARRIER, MIDGET -> MortarMarkerRenderer.tudursvehiclemod$computeCasCarrierDistance(player, selectedWeapon);
 			case AS_MISSILE, MK_ROCKET -> {
 				Vec3d eyePos = player.getCameraPosVec(1.0f);
 				Vec3d origin = new Vec3d(eyePos.x, originY, eyePos.z);

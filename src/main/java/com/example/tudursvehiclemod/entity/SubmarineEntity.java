@@ -43,6 +43,57 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 	protected static final double DIVE_GRAVITY_SINK_RATE = 0.02;
 	/** MC Heli's own SubmergedDamageHeight tick rate - see tudursvehiclemod$updateSubmergedDamage()'s own doc. */
 	protected static final int SUBMERGED_DAMAGE_INTERVAL_TICKS = 20;
+
+	// ---- Midget (WeaponType.MIDGET) autonomous launch state - see tudursvehiclemod$initializeMidgetLaunch()'s own doc. ----
+	/** Non-null exactly while this submarine is flying a scripted Midget route - see tudursvehiclemod$initializeMidgetLaunch()'s own doc for what each entry means; null for an ordinary, player-spawned submarine (which skips every bit of the autopilot below entirely). */
+	private java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> midgetLaunchWaypoints;
+	private java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> midgetRouteWaypoints;
+	/** 0-based index into midgetLaunchWaypoints first, then (once past its end) into midgetRouteWaypoints, then (once recovering) back through midgetLaunchWaypoints in reverse - see tudursvehiclemod$updateMidgetAutopilot()'s own doc for the exact phase logic. */
+	private int midgetWaypointIndex;
+	/** The world position and rotation basis the launch waypoints are relative to (the mount position and the mothership's own launch-time facing) - fixed for this submarine's whole life, including its own eventual recovery leg. */
+	private double midgetMountX, midgetMountZ, midgetForwardX, midgetForwardZ;
+	/** The world position the ROUTE waypoints are relative to (the shooter's own marked point) - separate from the mount position since a route is typically marked far from the mothership. */
+	private double midgetRouteOriginX, midgetRouteOriginZ;
+	private int midgetAttackWeaponIndex;
+	private int midgetAgeTicks, midgetTimeoutTicks, midgetStuckTicks, midgetStuckTimeoutTicks;
+	private boolean midgetRecoveryEnabled;
+	private MidgetNavigator midgetNavigator;
+	/** Set once, the first tick this submarine's own autopilot runs, so the hatch is closed (and physics switches to diving) without repeating tudursvehiclemod$tryToggleHatch()'s own level-attitude gate every tick. */
+	private boolean midgetHatchClosedOnce;
+
+	/** True exactly while this submarine is flying an autonomous Midget route - see tudursvehiclemod$initializeMidgetLaunch()'s own doc. */
+	public boolean tudursvehiclemod$isMidgetAutopilotActive() {
+		return this.midgetLaunchWaypoints != null;
+	}
+
+	/**
+	 * Called once, right after this submarine is spawned by tudursvehiclemod$fireMidgetLaunch() (AbstractVehicleEntity),
+	 * to set up its own scripted route. Mirrors AircraftEntity's own Carrier-launch setters in spirit, but a midget's
+	 * own route is depth-based (MidgetWaypoint, not CasWaypoint) and it is recovered by returning to mountX/Y/Z rather
+	 * than by landing on a runway, so none of that class's own fields are reused here.
+	 */
+	public void tudursvehiclemod$initializeMidgetLaunch(
+			java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> launchWaypoints,
+			java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> routeWaypoints,
+			double mountX, double mountZ, double forwardX, double forwardZ,
+			double routeOriginX, double routeOriginZ, int attackWeaponIndex,
+			int timeoutTicks, int stuckTimeoutTicks, boolean recoveryEnabled,
+			double detectRange, int detectIntervalTicks, double avoidStep) {
+		this.midgetLaunchWaypoints = launchWaypoints;
+		this.midgetRouteWaypoints = routeWaypoints;
+		this.midgetWaypointIndex = 0;
+		this.midgetMountX = mountX;
+		this.midgetMountZ = mountZ;
+		this.midgetForwardX = forwardX;
+		this.midgetForwardZ = forwardZ;
+		this.midgetRouteOriginX = routeOriginX;
+		this.midgetRouteOriginZ = routeOriginZ;
+		this.midgetAttackWeaponIndex = attackWeaponIndex;
+		this.midgetTimeoutTicks = timeoutTicks;
+		this.midgetStuckTimeoutTicks = stuckTimeoutTicks;
+		this.midgetRecoveryEnabled = recoveryEnabled;
+		this.midgetNavigator = new MidgetNavigator(detectRange, detectIntervalTicks, avoidStep);
+	}
 	protected static final float SUBMERGED_DAMAGE_PER_TICK = 2.0f;
 	/** Same grace period as AircraftEntity's own level-flight assist (100 ticks = 5 seconds). */
 	protected static final int LEVEL_ASSIST_GRACE_TICKS = 100;
@@ -293,12 +344,167 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 	}
 
 	/** Max speed while diving specifically (def.maxSpeed() is surfaced-only). Falls back to effective max speed/3 if dive_max_speed isn't configured. */
+	/**
+	 * One tick of autonomous Midget flight: works out the current leg's absolute target (x, z, depth), steers
+	 * yaw/pitch/velocity toward it directly (bypassing the ordinary player-input-driven physics entirely - see
+	 * updateVehicleMovement()'s own doc for why), advances to the next waypoint once reached, fires the attack
+	 * weapon on an attack leg, and recovers (despawns) once back at the mount position. Collision avoidance is
+	 * entity.MidgetNavigator's own already-verified logic; this method's own job is purely translating its
+	 * {yaw, pitch, vertical speed} outputs into this entity's actual position each tick.
+	 */
+	private void tudursvehiclemod$updateMidgetAutopilot(VehicleDefinition def) {
+		if (!this.midgetHatchClosedOnce) {
+			this.setHatchOpen(false);
+			this.midgetHatchClosedOnce = true;
+		}
+		this.midgetAgeTicks++;
+		if (this.midgetAgeTicks > this.midgetTimeoutTicks) {
+			this.discard();
+			return;
+		}
+		double[] target = this.tudursvehiclemod$midgetCurrentTarget();
+		if (target == null) {
+			// Recovered: every leg (launch, route, and - if recoveryEnabled - the return trip) is done.
+			this.discard();
+			return;
+		}
+		double targetX = target[0];
+		double targetZ = target[1];
+		double routeDepth = target[2];
+		boolean attackLeg = target[3] != 0.0;
+		float speedFraction = (float) target[4];
+
+		double dx = targetX - this.getX();
+		double dz = targetZ - this.getZ();
+		double horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+		if (horizontalDistance <= MidgetNavigator.WAYPOINT_REACHED_BLOCKS) {
+			this.midgetStuckTicks = 0;
+			this.midgetWaypointIndex++;
+			// Re-evaluate THIS tick against the new leg immediately, rather than coasting toward the just-reached point for one more tick with stale steering.
+			this.tudursvehiclemod$updateMidgetAutopilot(def);
+			return;
+		}
+
+		float desiredYaw = MidgetNavigator.bearingDegrees(this.getX(), this.getZ(), targetX, targetZ);
+		float yawError = MathHelper.wrapDegrees(desiredYaw - this.getYaw());
+		float rudder = MidgetNavigator.rudderInput(this.getYaw(), desiredYaw);
+		// Direct yaw control (see updateVehicleMovement()'s own doc) - def.turnSpeed() is this hull's own configured turn rate, the same one ordinary rudder input would ramp toward.
+		this.setYaw(MathHelper.wrapDegrees(this.getYaw() - rudder * def.turnSpeed()));
+		this.setBodyYaw(this.getYaw());
+
+		double depthNow = this.tudursvehiclemod$midgetDepthNow();
+		final double fx = this.getX();
+		final double fz = this.getZ();
+		final double fy = this.getY();
+		final float fyaw = this.getYaw();
+		MidgetNavigator.PathProbe probe = (range, candidateDepth) -> MidgetHullProbe.blocked(
+				(x0, y0, z0, x1, y1, z1) -> this.tudursvehiclemod$midgetSegmentBlocked(x0, y0, z0, x1, y1, z1),
+				fx, fy, fz, fyaw, def.width() * def.scale() / 2.0, def.height() * def.scale() / 2.0,
+				range, depthNow, candidateDepth);
+		double goalDepth = this.midgetNavigator.tick(routeDepth, depthNow, probe);
+		boolean stuckAtSurface = this.midgetNavigator.mustHold();
+		if (stuckAtSurface) {
+			this.midgetStuckTicks++;
+		} else {
+			this.midgetStuckTicks = 0;
+		}
+		if (this.midgetStuckTicks > this.midgetStuckTimeoutTicks) {
+			this.discard();
+			return;
+		}
+
+		float targetPitch = MidgetNavigator.targetPitch(goalDepth, depthNow);
+		this.setPitch(MidgetNavigator.approachPitch(this.getPitch(), targetPitch, DIVE_PITCH_RATE_PER_TICK));
+		double buoyancyY = stuckAtSurface ? 0.0 : MidgetNavigator.buoyancyVelocityY(goalDepth, depthNow, this.getVelocity().y);
+
+		float throttleFraction = stuckAtSurface ? 0f : MidgetNavigator.throttleTarget(speedFraction, yawError, false);
+		double speed = throttleFraction * this.tudursvehiclemod$getDiveMaxSpeed(def);
+		Vec3d heading = Vec3d.fromPolar(this.getPitch(), this.getYaw());
+		Vec3d velocity = heading.multiply(speed).add(0.0, buoyancyY, 0.0);
+		this.setVelocity(velocity);
+		this.move(net.minecraft.entity.MovementType.SELF, this.getVelocity());
+		this.velocityDirty = true;
+
+		if (attackLeg && this.midgetAttackWeaponIndex >= 0) {
+			this.tryFireWeapon(this.midgetAttackWeaponIndex, null);
+		}
+	}
+
+	/** This submarine's own depth: positive = below the water surface at its own current horizontal position, 0 at the surface - matches MidgetNavigator's own convention. Falls back to treating this submarine as already at the surface if no water is found at all (should not happen for a vehicle that was launched underwater, but avoids a stuck NaN/garbage depth if it ever does). */
+	private double tudursvehiclemod$midgetDepthNow() {
+		java.util.OptionalDouble surfaceY = this.tudursvehiclemod$findTrueWaterSurfaceY();
+		return surfaceY.isPresent() ? Math.max(0.0, surfaceY.getAsDouble() - this.getY()) : 0.0;
+	}
+
+	/** Thin wrapper so the PathProbe lambda above can call a world raycast without MidgetHullProbe itself needing any Minecraft dependency - see that class's own doc for why the check is a straight, flat ray at the candidate depth rather than a ramp. FluidHandling.NONE: water never counts as an obstacle, only the block collision shape does. */
+	private boolean tudursvehiclemod$midgetSegmentBlocked(double x0, double y0, double z0, double x1, double y1, double z1) {
+		net.minecraft.util.math.Vec3d from = new net.minecraft.util.math.Vec3d(x0, y0, z0);
+		net.minecraft.util.math.Vec3d to = new net.minecraft.util.math.Vec3d(x1, y1, z1);
+		net.minecraft.world.RaycastContext context = new net.minecraft.world.RaycastContext(from, to,
+				net.minecraft.world.RaycastContext.ShapeType.COLLIDER, net.minecraft.world.RaycastContext.FluidHandling.NONE, this);
+		net.minecraft.util.hit.BlockHitResult result = this.getEntityWorld().raycast(context);
+		return result.getType() == net.minecraft.util.hit.HitResult.Type.BLOCK;
+	}
+
+	/**
+	 * The current leg's absolute {targetX, targetZ, routeDepth, attack(0/1), speedFraction}, or null once every
+	 * leg (launch, route, and - if enabled - the return trip) is behind this submarine.
+	 *
+	 * <p>Phases, in order: (1) midgetLaunchWaypoints, relative to the mount position/facing - the scripted
+	 * liftoff clear of the mothership's own hull; (2) midgetRouteWaypoints, relative to the marked point/facing -
+	 * the patrol/strike route itself; (3) if midgetRecoveryEnabled, midgetLaunchWaypoints AGAIN, this time
+	 * walked in REVERSE and never attacking, returning to the mount position where this submarine is then
+	 * recovered (discarded) - a deliberately simple "retrace the liftoff" recovery rather than tracking the
+	 * mothership's own possibly-since-moved position.
+	 */
+	private double[] tudursvehiclemod$midgetCurrentTarget() {
+		int launchCount = this.midgetLaunchWaypoints.size();
+		int routeCount = this.midgetRouteWaypoints.size();
+		int index = this.midgetWaypointIndex;
+		if (index < launchCount) {
+			return this.tudursvehiclemod$midgetWaypointToTarget(this.midgetLaunchWaypoints.get(index),
+					this.midgetMountX, this.midgetMountZ, this.midgetForwardX, this.midgetForwardZ, false);
+		}
+		index -= launchCount;
+		if (index < routeCount) {
+			com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint wp = this.midgetRouteWaypoints.get(index);
+			return this.tudursvehiclemod$midgetWaypointToTarget(wp, this.midgetRouteOriginX, this.midgetRouteOriginZ,
+					this.midgetForwardX, this.midgetForwardZ, wp.attack());
+		}
+		if (!this.midgetRecoveryEnabled) {
+			return null;
+		}
+		index -= routeCount;
+		int returnIndex = launchCount - 1 - index;
+		if (returnIndex < 0) {
+			return null;
+		}
+		return this.tudursvehiclemod$midgetWaypointToTarget(this.midgetLaunchWaypoints.get(returnIndex),
+				this.midgetMountX, this.midgetMountZ, this.midgetForwardX, this.midgetForwardZ, false);
+	}
+
+	/** Rotates/translates one MidgetWaypoint's own relX/relZ into world coordinates by originX/Z and forwardX/Z - the same "relative to the marked point, rotated to face the shooter's own direction" convention CasWaypoint/CarrierAircraftConfig already use, applied here to a MidgetWaypoint instead. */
+	private double[] tudursvehiclemod$midgetWaypointToTarget(com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint wp,
+			double originX, double originZ, double forwardX, double forwardZ, boolean attack) {
+		// forwardX/Z is a unit vector; its own perpendicular (rightX/Z) completes the 2D rotation basis.
+		double rightX = -forwardZ;
+		double rightZ = forwardX;
+		double worldX = originX + forwardX * wp.relZ() + rightX * wp.relX();
+		double worldZ = originZ + forwardZ * wp.relZ() + rightZ * wp.relX();
+		return new double[]{worldX, worldZ, wp.depth(), attack ? 1.0 : 0.0, wp.speedFraction()};
+	}
+
 	protected float tudursvehiclemod$getDiveMaxSpeed(VehicleDefinition def) {
 		return def.diveMaxSpeed().orElse(this.tudursvehiclemod$getEffectiveMaxSpeed() / 3f);
 	}
 
 	@Override
 	protected void updateVehicleMovement(VehicleDefinition def) {
+		// A Midget's own autonomous route takes over movement ENTIRELY, bypassing every bit of the ordinary surfaced/diving physics below (hatch-state switching, the ascend/descend keys, roll lean, wake, broaching correction and all) - a deliberate simplification given this feature's own scope: it drives yaw/pitch/velocity directly from entity.MidgetNavigator's own already-verified pure logic, rather than threading autonomous control through the player-input plumbing those branches are built around. Untested in an actual game at the time this was written - see Readme_Weapon_Cas.md's own Midget section for the caveat.
+		if (this.tudursvehiclemod$isMidgetAutopilotActive()) {
+			this.tudursvehiclemod$updateMidgetAutopilot(def);
+			return;
+		}
 		// If this vehicle is currently following a Drone Center's own GROUND route, this sets this tick's own steering/throttle inputs from that route and then falls straight through into the ordinary physics below with those inputs already in place - deliberately NOT a separate movement path of its own (see AbstractVehicleEntity's own tudursvehiclemod$updateGroundWaypointAutopilot() doc for why driving inputs, rather than velocity, is what keeps this vehicle type's own part animation/roll/sound behavior working unchanged).
 		this.tudursvehiclemod$applyGroundWaypointAutopilotInputs(def);
 		// A sinking wreck's attitude and descent are driven entirely by AbstractVehicleEntity's own tudursvehiclemod$applySinkingMotion(), which already ran this tick. Returning here leaves that untouched - this vehicle's own buoyancy would otherwise spring it straight back to the surface and the wreck would never go under. move() is still applied so the descent actually happens.

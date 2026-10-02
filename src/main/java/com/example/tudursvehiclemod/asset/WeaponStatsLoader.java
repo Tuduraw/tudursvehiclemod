@@ -178,6 +178,8 @@ public final class WeaponStatsLoader {
 		java.util.List<String> casWaypointLines = new java.util.ArrayList<>();
 		// "CarrierWaypoint = relX,relY,relZ,speedPercent,attack" - same format as CasWaypoint's own (see CarrierAircraftConfig's own doc), one weapon file can have any number of these.
 		java.util.List<String> carrierWaypointLines = new java.util.ArrayList<>();
+		java.util.List<String> midgetWaypointLines = new java.util.ArrayList<>();
+		java.util.List<String> midgetLaunchWaypointLines = new java.util.ArrayList<>();
 		// "CarrierLaunchWaypoint = relX,relY,relZ,speedPercent,gear,bay,speedBoostKmh" - a separate dedicated liftoff route flown FIRST (see CarrierAircraftConfig's own launchWaypoints doc). this line format has no "attack" column at all (unlike CasWaypoint/CarrierWaypoint) - launch waypoints never attack, see CarrierAircraftConfig's own doc.
 		java.util.List<String> carrierLaunchWaypointLines = new java.util.ArrayList<>();
 		// "CarrierLandingWaypoint = relX,relY,relZ,speedPercent,gear,bay,speedBoostKmh" - same format as CarrierLaunchWaypoint's own, a separate dedicated final-approach route flown before the existing single-point approach (see CarrierAircraftConfig's own landingWaypoints doc).
@@ -204,6 +206,10 @@ public final class WeaponStatsLoader {
 				casWaypointLines.add(value);
 			} else if (key.equals("carrierwaypoint")) {
 				carrierWaypointLines.add(value);
+			} else if (key.equals("midgetwaypoint")) {
+				midgetWaypointLines.add(value);
+			} else if (key.equals("midgetlaunchwaypoint")) {
+				midgetLaunchWaypointLines.add(value);
 			} else if (key.equals("carrierlaunchwaypoint")) {
 				carrierLaunchWaypointLines.add(value);
 			} else if (key.equals("carrierlandingwaypoint")) {
@@ -640,6 +646,48 @@ public final class WeaponStatsLoader {
 			}
 		}
 
+		// MidgetVehicle/MidgetWeaponIndex/MidgetAccuracy/MidgetTimeout/MidgetStuckTimeout/MidgetYawOffset/MidgetTargetYawOffset/MidgetDetect*/MidgetAvoidStep/MidgetRecovery and the repeated MidgetWaypoint/MidgetLaunchWaypoint lines - see MidgetConfig's own doc. Same shape as the Carrier parsing above, under a "Midget" prefix.
+		Optional<MidgetConfig> midget = Optional.empty();
+		String midgetVehicleValue = entries.get("midgetvehicle");
+		if (midgetVehicleValue != null && !midgetVehicleValue.isBlank()) {
+			java.util.List<MidgetConfig.MidgetWaypoint> midgetWaypoints = new java.util.ArrayList<>();
+			for (String waypointLine : midgetWaypointLines) {
+				MidgetConfig.MidgetWaypoint parsed = MidgetConfig.MidgetWaypoint.parse(waypointLine);
+				if (parsed != null) {
+					midgetWaypoints.add(parsed);
+				} else {
+					LOGGER.warn("[tudursvehiclemod] Weapon '{}' has a malformed MidgetWaypoint line (expected relX,depth,relZ,speedPercent,attack with a depth of 0 or more): '{}'", weaponName, waypointLine);
+				}
+			}
+			java.util.List<MidgetConfig.MidgetWaypoint> midgetLaunchWaypoints = new java.util.ArrayList<>();
+			for (String waypointLine : midgetLaunchWaypointLines) {
+				MidgetConfig.MidgetWaypoint parsed = MidgetConfig.MidgetWaypoint.parse(waypointLine);
+				if (parsed != null) {
+					midgetLaunchWaypoints.add(parsed);
+				} else {
+					LOGGER.warn("[tudursvehiclemod] Weapon '{}' has a malformed MidgetLaunchWaypoint line (expected relX,depth,relZ,speedPercent,attack with a depth of 0 or more): '{}'", weaponName, waypointLine);
+				}
+			}
+			if (midgetWaypoints.isEmpty()) {
+				LOGGER.warn("[tudursvehiclemod] Weapon '{}' sets MidgetVehicle but has no valid MidgetWaypoint lines - Midget launch left unconfigured", weaponName);
+			} else {
+				int midgetWeaponIndex = Math.max(0, (int) toFloat(entries.get("midgetweaponindex"), 0.0f));
+				float midgetAccuracy = Math.max(0f, toFloat(entries.get("midgetaccuracy"), 0f));
+				int midgetTimeoutTicks = Math.max(1, net.minecraft.util.math.MathHelper.ceil(toFloat(entries.get("midgettimeout"), 600.0f) * 20f));
+				int midgetStuckTimeoutTicks = Math.max(1, net.minecraft.util.math.MathHelper.ceil(toFloat(entries.get("midgetstucktimeout"), 60.0f) * 20f));
+				float midgetYawOffset = toFloat(entries.get("midgetyawoffset"), 0.0f);
+				float midgetTargetYawOffset = toFloat(entries.get("midgettargetyawoffset"), 0.0f);
+				// 50 blocks / every 10 ticks / 1 block per surfacing step by default - see entity.MidgetNavigator's own doc.
+				double midgetDetectRange = Math.max(1.0, toFloat(entries.get("midgetdetectrange"), 50.0f));
+				int midgetDetectInterval = Math.max(1, (int) toFloat(entries.get("midgetdetectinterval"), 10.0f));
+				double midgetAvoidStep = Math.max(0.1, toFloat(entries.get("midgetavoidstep"), 1.0f));
+				boolean midgetRecovery = !"false".equalsIgnoreCase(String.valueOf(entries.get("midgetrecovery")).strip());
+				midget = Optional.of(new MidgetConfig(midgetVehicleValue.strip(), midgetWeaponIndex, midgetAccuracy, midgetTimeoutTicks, midgetStuckTimeoutTicks,
+						midgetYawOffset, midgetTargetYawOffset, midgetLaunchWaypoints, midgetWaypoints,
+						midgetDetectRange, midgetDetectInterval, midgetAvoidStep, midgetRecovery));
+			}
+		}
+
 		return new WeaponStats(damage, velocity, cooldownTicks, gravity, sound, soundVolume, soundPitch,
 				soundPitchRandom, soundDelayTicks, bulletModel, bulletTexture, 1.0f,
 				displayName, magazineSize, reloadTicks, maxAmmo, weaponType, explosionPower, explosionDestroysBlocks, flaming,
@@ -653,7 +701,7 @@ public final class WeaponStatsLoader {
 				sight, lockTimeTicks, lockRange, lockTimePerBlock, turnRateDegreesPerTick, casTargetMode, casAttackStartAltitude, casAttackStopAltitude, ridableOnly, proximityFuseDist, rigidityTimeTicks, group, modeNum,
 				trajectoryParticle, trajectoryParticleStartTick, disableSmoke, muzzleFlash, muzzleFlashSmoke, cartridge,
 				recoil, recoilDurationTicks, recoilRecessionRateMultiplier, destruct,
-				cameraRotationSpeedPitch, fixCameraPitch, displayMortarDistance, casStrike, carrierAircraft, usableWhileDiving,
+				cameraRotationSpeedPitch, fixCameraPitch, displayMortarDistance, casStrike, carrierAircraft, midget, usableWhileDiving,
 				fuelPerAmmo, customTypeId);
 	}
 
@@ -724,6 +772,7 @@ public final class WeaponStatsLoader {
 			case "targetingpod" -> WeaponType.TARGETING_POD;
 			case "cas" -> WeaponType.CAS;
 			case "carrier" -> WeaponType.CARRIER;
+			case "midget" -> WeaponType.MIDGET;
 			// A new, project-specific Type (not from MC Heli's own documented list) - see WeaponType.DROP_TANK's own doc.
 			case "droptank" -> WeaponType.DROP_TANK;
 			default -> WeaponType.OTHER;

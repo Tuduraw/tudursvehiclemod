@@ -22,8 +22,8 @@ corresponding `Readme_Weapon_<Type>.md`.
   `AAMissile` / `ATMissile` / `Missile` / `ASWeapon` / `TVMissile`)
 - `Readme_Weapon_Special.md` — special weapons (`Dispenser` / `Smoke` /
   `Dummy` / `TargetingPod`)
-- `Readme_Weapon_Cas.md` — support-aircraft launch weapons (`CAS` /
-  `Carrier`)
+- `Readme_Weapon_Cas.md` — support-aircraft/midget-submarine launch
+  weapons (`CAS` / `Carrier` / `Midget`)
 
 Only fields that are partially or fully incompatible with MC Heli are
 listed below. For every other field, see MC Heli's own documentation
@@ -39,7 +39,7 @@ listed below. For every other field, see MC Heli's own documentation
   (`Readme_Weapon_Bomb.md`), `Torpedo` (`Readme_Weapon_Torpedo.md`),
   `ASMissile`/`MkRocket`/`AAMissile`/`ATMissile`/`Missile`/`ASWeapon`/`TVMissile`
   (`Readme_Weapon_Missile.md`), `Dispenser`/`Smoke`/`Dummy`/`TargetingPod`
-  (`Readme_Weapon_Special.md`), `CAS`/`Carrier` (`Readme_Weapon_Cas.md`).
+  (`Readme_Weapon_Special.md`), `CAS`/`Carrier`/`Midget` (`Readme_Weapon_Cas.md`).
   Any unsupported or unrecognized value is treated as "other" and never
   fires a live round.
 - **Example**: `Type = MachineGun`

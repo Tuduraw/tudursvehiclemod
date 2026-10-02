@@ -1011,6 +1011,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			return;
 		}
 		// Later extended by a direct request for a Drone Center dummy-pilot aircraft attack feature to also cover a normal (non-CAS/Carrier) Drone-Center-bound aircraft, not just a CAS/Carrier wingman's own player-initiated lock: an active lock (carrierLockedTargetUuid != null, however it got there - tudursvehiclemod$tryLockCarrierTarget()'s own crosshair-based assignment, OR entity.DummyPilotEntity's own combat AI via tudursvehiclemod$updateDroneCombatLock()) pursues/attacks its own assigned target INSTEAD of every other dispatch below, unconditionally, checked first before even formation-follow/CAS/Carrier-specific routing - this takes priority over everything else for as long as the lock stays active. tudursvehiclemod$updateCarrierLockPursuit() itself clears carrierLockedTargetUuid (falling through to ordinary dispatch on the very next tick) once the target is destroyed/removed, or shaken off.
+		this.tudursvehiclemod$activateCarrierLaunchDesignation();
 		if (this.carrierLockedTargetUuid != null) {
 			this.tudursvehiclemod$updateCarrierLockPursuit(def);
 			return;
@@ -1462,6 +1463,28 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		this.carrierLockAttackStartAltitudeOverride = attackStartAltitude;
 		this.carrierLockAttackStopAltitudeOverride = attackStopAltitude;
 		this.carrierLockDiveTargetYOffsetOverride = diveTargetYOffset;
+	}
+
+	/** A target designated AT LAUNCH (the mothership's Carrier weapon fired while its lock mode was on - see AbstractVehicleEntity#tudursvehiclemod$findCarrierLaunchTarget()), waiting to become this aircraft's ordinary Carrier lock (carrierLockedTargetUuid) the moment its own scripted launch route is flown. It is NOT applied at spawn: the lock pursuit (tudursvehiclemod$updateCarrierLockPursuit()) takes over from the waypoint route unconditionally the instant a lock exists, which would send the aircraft straight at the target from the deck, skipping the take-off waypoints entirely. Null when nothing was designated - the ordinary route flight, exactly as before. */
+	private java.util.UUID carrierLaunchDesignatedTargetUuid;
+	/** The weapon slot this aircraft attacks the designated target with - see carrierLockedTargetWeaponIndex's own doc (the same value). */
+	private int carrierLaunchDesignatedWeaponIndex;
+
+	/** Called once at spawn by the mothership's launch code. See carrierLaunchDesignatedTargetUuid's own doc: the target only becomes an actual lock once the launch route has been flown (tudursvehiclemod$activateCarrierLaunchDesignation()). A null targetUuid designates nothing. */
+	public void tudursvehiclemod$setCarrierLaunchDesignatedTarget(java.util.UUID targetUuid, int weaponIndex) {
+		this.carrierLaunchDesignatedTargetUuid = targetUuid;
+		this.carrierLaunchDesignatedWeaponIndex = weaponIndex;
+	}
+
+	/** Promotes the designated-at-launch target to an ordinary Carrier lock once this aircraft has flown every one of its own launch waypoints (droneWaypointIndex >= carrierLaunchWaypointCount - the same test the formation-follow logic uses to tell the scripted take-off from the main route). Runs every tick from the drone autopilot; a cheap null check when nothing was designated. Once promoted the designation is spent: if the lock later ends (target destroyed, or shaken off - see CARRIER_LOCK_SHAKEN_OFF_TICKS) the aircraft simply carries on with its ordinary route and landing, exactly as a wingman released from a player-assigned lock does. */
+	private void tudursvehiclemod$activateCarrierLaunchDesignation() {
+		if (this.carrierLaunchDesignatedTargetUuid == null || this.droneWaypointIndex < this.carrierLaunchWaypointCount) {
+			return;
+		}
+		java.util.UUID target = this.carrierLaunchDesignatedTargetUuid;
+		int weaponIndex = this.carrierLaunchDesignatedWeaponIndex;
+		this.carrierLaunchDesignatedTargetUuid = null;
+		this.tudursvehiclemod$assignCarrierLockTarget(target, weaponIndex);
 	}
 
 	/** Sets/replaces THIS wingman's own current lock - see carrierLockedTargetUuid's own doc. Resets carrierLockedTargetBestDistance/carrierLockedTargetStagnantTicks/carrierLockClimbingToSafeAltitude/carrierLockApproachingWaypoint unconditionally (even if targetUuid happens to equal the previous one already locked - a fresh assignment starts fresh regardless), matching VehicleProjectileEntity's own tudursvehiclemod$setGuidanceTargetEntity()'s own identical reset-on-(re)assignment behavior. carrierLockApproachingWaypoint starts true - a freshly-locked target is always approached via the waypoint first, never dived on immediately. Also stamps carrierLockAssignmentSequence (see that field's own doc) so the NEXT fallback reassignment, if every wingman is busy again by then, correctly treats this as the freshest assignment (least likely to be picked again immediately). */

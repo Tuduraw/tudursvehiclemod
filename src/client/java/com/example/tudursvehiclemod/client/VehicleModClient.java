@@ -523,7 +523,13 @@ public class VehicleModClient implements ClientModInitializer {
 			// The server re-validates seat/cooldown, so this is just "tell it which mount I meant".
 			com.example.tudursvehiclemod.entity.AbstractVehicleEntity effectiveVehicleForFire =
 					client.player != null ? tudursvehiclemod$getClientEffectiveVehicle(client.player) : null;
-			if (effectiveVehicleForFire != null && effectiveVehicleForFire.tudursvehiclemod$isCarrierLockModeActive()) {
+			// With a CARRIER weapon selected, lock mode is not the wingman command: it makes the launch itself go after the entity under the crosshair (see AbstractVehicleEntity#tudursvehiclemod$isCarrierLaunchDesignated()), so the fire key has to keep sending its ordinary fire packet instead of the lock one. The server does the rest (it highlights the target, and refuses the shot when there is none).
+			boolean carrierWeaponSelected = effectiveVehicleForFire != null
+					&& selectedWeaponIndex >= 0
+					&& selectedWeaponIndex < effectiveVehicleForFire.getDefinition().weapons().size()
+					&& effectiveVehicleForFire.getDefinition().weapons().get(selectedWeaponIndex).weaponType()
+							== com.example.tudursvehiclemod.asset.WeaponType.CARRIER;
+			if (effectiveVehicleForFire != null && effectiveVehicleForFire.tudursvehiclemod$isCarrierLockModeActive() && !carrierWeaponSelected) {
 				// Lock mode replaces the fire key's own normal action entirely - locking is instantaneous, so wasPressed() (once per press) rather than isPressed() (every tick while held, matching normal fire's own auto-fire-while-held behavior).
 				if (fireWeaponKey.wasPressed()) {
 					ClientPlayNetworking.send(new com.example.tudursvehiclemod.network.LockCarrierTargetPayload());

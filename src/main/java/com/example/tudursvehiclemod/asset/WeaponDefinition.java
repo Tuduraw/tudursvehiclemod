@@ -327,6 +327,11 @@ public record WeaponDefinition(
 		return WeaponStatsLoader.get(weaponName).carrierAircraft();
 	}
 
+	/** See MidgetConfig's own doc - Type=MIDGET only. */
+	public java.util.Optional<MidgetConfig> midget() {
+		return WeaponStatsLoader.get(weaponName).midget();
+	}
+
 	/** ProximityFuseDist - AAMissile/ATMissile only, see WeaponStats's own doc. */
 	public float proximityFuseDist() {
 		return WeaponStatsLoader.get(weaponName).proximityFuseDist();

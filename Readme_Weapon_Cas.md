@@ -152,6 +152,30 @@ CarrierLandingToAmmoRadius = 15.0
   CarrierYawOffset = 0
   ```
 
+### ロックモードでの「指定エンティティへの攻撃」
+
+`Carrier`武器を選択している間にロックモード(既定は**Bキー**で切替)をONにすると、
+発艦するたびに、**視線上のエンティティを目標として発艦・攻撃**します。
+`CasTargetMode`などの指定方式は使われません。
+
+- ロックモードがONで、`Carrier`武器を選択している間、視線の先(視線から15度以内、
+  最大1000ブロック)にいる最も視線に近いエンティティが**強調表示**されます。
+  対象は、生きているエンティティと、破壊されていない乗り物です(自機、搭乗中の乗り物、
+  自機から発艦した機体は対象になりません)
+- その状態で発射キーを押すと、強調表示されたエンティティを目標として発艦します。
+  編隊で発艦する場合は、**全機が同じ目標**を攻撃します
+- 発艦機は、まず通常どおり離陸用のウェイポイント(`CarrierLaunchWaypoint`)を飛び、
+  離陸を終えてから目標へ向かい、攻撃します(離陸中に目標へ直行することはありません)
+- 攻撃の高度の扱いは、編隊の隊長機から僚機へ目標を指示した場合と同じで、
+  `CasAttackStartAltitude`・`CasAttackStopAltitude`に従います
+- 目標を倒した(または見失った)あとは、通常のルートに戻り、帰投・着艦します
+- **強調表示される目標がいない場合は、発艦しません**(弾薬も消費しません)
+- ロックモードがOFFのとき、または`Carrier`以外の武器を選択しているときは、
+  従来どおりの動作です(`CasTargetMode`で決まるルートを飛びます)
+
+発艦済みの編隊の隊長機に搭乗している場合の、僚機への目標指示(Bキーで切替、
+発射キーで目標を割り当て、Alt+Bで全僚機のロックを解除)は、これまでどおりです。
+
 ### `CasTargetMode`
 - **書式・説明**: `CAS`側と全く同じ項目です。`Carrier`武器の場合も、
   キー名は`CarrierTargetMode`ではなく**`CasTargetMode`のまま**指定します
@@ -248,3 +272,107 @@ CarrierLandingToAmmoRadius = 15.0
   適用されず、通常ルートにのみ適用されます。座席切り替え(Alt+Y)は、
   編隊中最後に発艦した機体を対象とします。
 - **例**: `CarrierFormationSize = 3` / `CarrierFormationType = Delta`
+
+
+---
+
+## `Midget`(特殊潜航艇の発艦)
+
+> **検証について**: この節で説明する機能は、設計段階の検証(衝突回避ロジック単体の
+> シミュレーション)のみを行っており、**ゲーム内での動作確認は行っていません。**
+> 自律制御は、既存の潜水艦の操縦システム(上昇・下降キー、ハッチの開閉アニメーション
+> 等)を経由せず、ヨー・ピッチ・速度を直接書き換える簡易な方式です。そのため、
+> 編隊飛行・着艦(着水)・母艦との座席連動・弾薬の「出撃中」カウントといった、
+> `Carrier`が持つ機能には対応していません。実際にお使いになる前に、十分な動作確認を
+> お願いします。
+
+`Carrier`(空母艦載機発艦)と同じ考え方で、**この武器自身の`AddWeapon`マウント位置**
+から、搭載艇(通常は`entity_type`が`submarine`の機体)を1隻発艦させ、固定ルートを
+自律航行させます。`Carrier`との主な違いは次のとおりです。
+
+- 発艦するのは**常に1隻**です(`Carrier`のような編隊発艦はありません)
+- ウェイポイントのYは、高度ではなく**水面からの相対的な深度**です(魚雷の
+  `TargetDepth`と同じ考え方。正の値が深く、0が水面)
+- 水中地形や陸地への衝突を避けるため、前方を一定間隔で検知し、塞がっていれば
+  浮上して回避します(詳細は下記)
+- 着艦(着水)用の滑走路はありません。回収は、発艦ルート(`MidgetLaunchWaypoint`)を
+  逆順にたどり、母艦への発艦地点(マウント位置)へ戻ることで行います
+
+### 衝突回避について
+
+- `MidgetDetectRange`(既定**50**ブロック)ごとに前方を検知します
+- 検知の間隔は`MidgetDetectInterval`(既定**10**tick)です
+- 前方が塞がっている間は、水面へ向けて**浮上を続け**ます。浮上量
+  `MidgetAvoidStep`(既定**1**ブロック)進むごとに、間隔を無視してただちに
+  再検知します。それでも塞がっていれば、さらに浮上を続けます
+- 塞がらなくなった深度で水平に戻り、その深度を上限として、ルートの深度より
+  深くは戻りません。ルートの深度へ戻る動作も、1ブロックずつ、前方が塞がって
+  いないことを確認しながら行います
+- 水面まで浮上しても塞がっている場合(陸地など)は、その場で停止して待機します
+- 低速であることを踏まえ、検知距離・検知間隔は、航空機の地上目標攻撃時の
+  検知よりゆるめに設定しています
+
+### `MidgetVehicle`
+- **書式**: 文字列(省略時はこの武器タイプが機能しません)
+- **説明**: 発艦する機体のファイル名(拡張子なし)。`entity_type`が`submarine`
+  以外の機体を指定した場合、発艦自体は行われますが、自律航行は機能しません。
+- **例**: `MidgetVehicle = ko_hyoteki`
+
+### `MidgetWeaponIndex`
+- **書式**: 整数(既定値`0`)
+- **説明**: 発艦した艇自身が、攻撃用のウェイポイント(後述)で使用する武器の
+  インデックス(0から始まる、艇自身の`weapons`配列への添字)。
+- **例**: `MidgetWeaponIndex = 0`
+
+### `MidgetAccuracy`
+- **書式**: 数値(既定値`0`)
+- **説明**: `CasAccuracy`と同じ考え方の、ウェイポイントの着弾位置のばらつきです。
+- **例**: `MidgetAccuracy = 2`
+
+### `MidgetTimeout` / `MidgetStuckTimeout`
+- **書式**: 秒数(既定値はそれぞれ`600`・`60`)
+- **説明**: `CasTimeout`/`CasStuckTimeout`と同じ考え方です。`MidgetStuckTimeout`は、
+  水面で塞がれて停止し続けた時間にも適用されます。
+- **例**: `MidgetTimeout = 600`
+
+### `MidgetYawOffset` / `MidgetTargetYawOffset`
+- **書式・説明**: `CasYawOffset`/`CasTargetYawOffset`と全く同じです。
+
+### `MidgetDetectRange` / `MidgetDetectInterval` / `MidgetAvoidStep`
+- **書式**: 数値(既定値はそれぞれ`50`・`10`・`1`)
+- **説明**: 上記「衝突回避について」を参照してください。
+- **例**: `MidgetDetectRange = 50` / `MidgetDetectInterval = 10` / `MidgetAvoidStep = 1`
+
+### `MidgetRecovery`
+- **書式**: 真偽値(既定値`true`)
+- **説明**: `false`の場合、ルートの終端で停止したまま、母艦への帰還を行いません。
+- **例**: `MidgetRecovery = false`
+
+### `MidgetLaunchWaypoint` / `MidgetWaypoint`
+- **書式**: `相対X,深度,相対Z,速度(%),攻撃(true/false)`の繰り返し行
+- **説明**: `CarrierLaunchWaypoint`/`CarrierWaypoint`と同じ相対座標の考え方
+  (`MidgetLaunchWaypoint`はこの武器自身のマウント位置、`MidgetWaypoint`は
+  照準で指定した地点が基準)ですが、Y成分が高度ではなく**深度**である点が
+  異なります。深度に負の値は指定できません(水面より上になるため)。
+  回収時は、`MidgetLaunchWaypoint`を**逆順に**たどります。
+- **例**:
+  ```
+  MidgetLaunchWaypoint = 0,0,10,60,false
+  MidgetLaunchWaypoint = 0,5,30,60,false
+  MidgetWaypoint = 0,15,200,80,false
+  MidgetWaypoint = -20,15,250,60,true
+  ```
+
+### 記載例
+```
+DisplayName = Midget Sub Launch
+Type = Midget
+MidgetVehicle = ko_hyoteki
+MidgetWeaponIndex = 0
+MidgetTimeout = 900
+MidgetLaunchWaypoint = 0,0,10,60,false
+MidgetWaypoint = 0,15,200,80,false
+MidgetWaypoint = -20,15,250,60,true
+Round = 2
+ReloadTime = 2400
+```

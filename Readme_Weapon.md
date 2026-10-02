@@ -12,14 +12,14 @@ MCヘリ互換の`Key = Value`テキスト形式です(JSONではありません
 - `Readme_Weapon_Torpedo.md` — 魚雷(`Torpedo`)
 - `Readme_Weapon_Missile.md` — 誘導兵器(`ASMissile`/`MkRocket`/`AAMissile`/`ATMissile`/`Missile`/`ASWeapon`/`TVMissile`)
 - `Readme_Weapon_Special.md` — 特殊武器(`Dispenser`/`Smoke`/`Dummy`/`TargetingPod`)
-- `Readme_Weapon_Cas.md` — 支援機発艦武器(`CAS`/`Carrier`)
+- `Readme_Weapon_Cas.md` — 支援機発艦武器(`CAS`/`Carrier`/`Midget`)
 
 以下に、MCヘリと部分的または完全に非互換な項目のみ記載します。それ以外の項目についてはMCヘリ側のドキュメントを参照してください(詳細な作業は保留中)。
 
 ### `Type`
 - **書式**: 文字列
 - **説明**: 武器の挙動タイプ。必須項目です。MCヘリと異なる実装や独自の武器タイプも存在するため、使用可能な値と詳細は各`Readme_Weapon_○○.md`を参照してください:
-  `MachineGun`/`Rocket`(専用のドキュメントはありません。MCヘリ側のドキュメントを参照)、`Bomb`/`Depth`(`Readme_Weapon_Bomb.md`)、`Torpedo`(`Readme_Weapon_Torpedo.md`)、`ASMissile`/`MkRocket`/`AAMissile`/`ATMissile`/`Missile`/`ASWeapon`/`TVMissile`(`Readme_Weapon_Missile.md`)、`Dispenser`/`Smoke`/`Dummy`/`TargetingPod`(`Readme_Weapon_Special.md`)、`CAS`/`Carrier`(`Readme_Weapon_Cas.md`)。
+  `MachineGun`/`Rocket`(専用のドキュメントはありません。MCヘリ側のドキュメントを参照)、`Bomb`/`Depth`(`Readme_Weapon_Bomb.md`)、`Torpedo`(`Readme_Weapon_Torpedo.md`)、`ASMissile`/`MkRocket`/`AAMissile`/`ATMissile`/`Missile`/`ASWeapon`/`TVMissile`(`Readme_Weapon_Missile.md`)、`Dispenser`/`Smoke`/`Dummy`/`TargetingPod`(`Readme_Weapon_Special.md`)、`CAS`/`Carrier`/`Midget`(`Readme_Weapon_Cas.md`)。
   未対応・不明な値は全て「その他」として扱われ、実弾を発射する挙動にはなりません。
 - **例**: `Type = MachineGun`
 

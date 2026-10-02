@@ -2038,6 +2038,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		this.tudursvehiclemod$updateFuelCanSlot();
 		this.tudursvehiclemod$updateSeatMountGrace();
 		this.tudursvehiclemod$updateMissileLockOnIndicators();
+		this.tudursvehiclemod$updateCarrierLaunchTargetPreview();
 		this.tudursvehiclemod$updateDamageSmoke();
 		this.tudursvehiclemod$updateRecoilShakePhysics();
 		// This vehicle now ACTUALLY mounts
@@ -5429,6 +5430,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (magazineSize > 0 && this.weaponAmmo[weaponIndex] <= 0) {
 			return false;
 		}
+		// A Carrier launch made with this vehicle's lock mode on is sent after the entity under the shooter's crosshair, so with nothing there the shot is refused HERE - before anything below happens. Everything past this point is the shot actually being fired (recoil, the fire bit, heat, the ammo, the cooldown, the sound), and a key press aimed at empty sky must cost none of it. (tudursvehiclemod$fireCarrierLaunch() looks the target up again for the launch itself.)
+		if (shooter != null && this.tudursvehiclemod$isCarrierLaunchDesignated(weaponIndex)
+				&& this.tudursvehiclemod$findCarrierLaunchTarget(shooter) == null) {
+			return false;
+		}
 
 		// Recoil (part_type=2) needs to trigger only on
 		// an ACTUAL shot, not merely a fire ATTEMPT blocked by this
@@ -5523,7 +5529,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.SMOKE
 				|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.TARGETING_POD
 				|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CAS
-				|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CARRIER) {
+				|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CARRIER
+				|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.MIDGET) {
 			// This line was missing entirely, despite
 			// this method's own doc comment already (incorrectly) claiming
 			// cooldown was handled - meaning these 2 weapon types could
@@ -5553,6 +5560,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 						if (shooter != null) {
 							Vec3d shooterViewDir = shooter.getRotationVec(1.0f);
 							tudursvehiclemod$fireCarrierLaunch(weapon, serverWorld, noProjectileSpawnPos, tudursvehiclemod$computeCasCarrierTargetPoint(shooter, weapon), shooterViewDir.x, shooterViewDir.z, shooter, weaponIndex, actualFormationSize);
+						}
+					}
+					// A midget submarine, launched the same way as Carrier (from THIS weapon's own mount position) but flown and recovered entirely differently - see tudursvehiclemod$fireMidgetLaunch()'s own doc.
+					case MIDGET -> {
+						if (shooter != null) {
+							Vec3d shooterViewDir = shooter.getRotationVec(1.0f);
+							tudursvehiclemod$fireMidgetLaunch(weapon, serverWorld, noProjectileSpawnPos, tudursvehiclemod$computeCasCarrierTargetPoint(shooter, weapon), shooterViewDir.x, shooterViewDir.z, shooter, weaponIndex);
 						}
 					}
 					default -> {
@@ -6109,7 +6123,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			java.util.UUID shooterUuid,
 			int mothershipSeatIndex,
 			int mothershipWeaponIndex,
-			java.util.List<int[]> sharedAccuracyPerturbations) {
+			java.util.List<int[]> sharedAccuracyPerturbations,
+			java.util.UUID designatedTargetUuid) {
 	}
 
 	/** One staggered Carrier formation launch currently in progress on this vehicle (as the mothership), keyed by mothershipWeaponIndex in carrierPendingLaunches. Ticked down by tudursvehiclemod$updateCarrierLaunchSequences(), called once per server tick from tick() itself; a no-op whenever carrierPendingLaunches is empty, so this costs nothing for a ship that never fires a formation Carrier launch. */
@@ -7031,6 +7046,108 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		return null;
 	}
 
+	/**
+	 * Launches a midget submarine from a WeaponType.MIDGET weapon's own mount position - the same "launch a
+	 * vehicle from here" idea as tudursvehiclemod$fireCarrierLaunch(), but far simpler: no formation (a midget
+	 * sortie is always one boat), no landing/runway (it is recovered by retracing its own liftoff route - see
+	 * SubmarineEntity's own tudursvehiclemod$midgetCurrentTarget() doc), and the route is depth-based
+	 * (MidgetConfig.MidgetWaypoint), not CasWaypoint. See WeaponType's own MIDGET doc for why this exists.
+	 *
+	 * <p>Untested in an actual game at the time this was written - see Readme_Weapon_Cas.md's own Midget section.
+	 */
+	private void tudursvehiclemod$fireMidgetLaunch(WeaponDefinition weapon, ServerWorld serverWorld, Vec3d spawnPos,
+			Vec3d targetPos, double shooterForwardX, double shooterForwardZ, ServerPlayerEntity shooter, int mothershipWeaponIndex) {
+		org.slf4j.Logger logger = VehicleMod_LoggerHolder.LOGGER;
+		java.util.Optional<com.example.tudursvehiclemod.asset.MidgetConfig> maybeConfig = weapon.midget();
+		if (maybeConfig.isEmpty()) {
+			logger.warn("[Midget] Weapon '{}' has Type=Midget but no valid MidgetVehicle/MidgetWaypoint configuration was parsed from its own .txt file - see WeaponStatsLoader's own log output at reload time for the specific parsing warning.", weapon.weaponName());
+			return;
+		}
+		com.example.tudursvehiclemod.asset.MidgetConfig config = maybeConfig.get();
+		// Same yaw-offset handling as tudursvehiclemod$fireCarrierLaunch() - see that method's own doc.
+		double effectiveForwardX = shooterForwardX;
+		double effectiveForwardZ = shooterForwardZ;
+		if (config.yawOffsetDegrees() != 0f) {
+			double offsetRad = Math.toRadians(config.yawOffsetDegrees());
+			double cos = Math.cos(offsetRad);
+			double sin = Math.sin(offsetRad);
+			effectiveForwardX = shooterForwardX * cos - shooterForwardZ * sin;
+			effectiveForwardZ = shooterForwardX * sin + shooterForwardZ * cos;
+		}
+		if (config.targetYawOffsetDegrees() != 0f) {
+			double targetOffsetRad = Math.toRadians(config.targetYawOffsetDegrees());
+			double targetCos = Math.cos(targetOffsetRad);
+			double targetSin = Math.sin(targetOffsetRad);
+			double rotatedX = effectiveForwardX * targetCos - effectiveForwardZ * targetSin;
+			double rotatedZ = effectiveForwardX * targetSin + effectiveForwardZ * targetCos;
+			effectiveForwardX = rotatedX;
+			effectiveForwardZ = rotatedZ;
+		}
+		final double finalForwardX = effectiveForwardX;
+		final double finalForwardZ = effectiveForwardZ;
+		if (config.waypoints().isEmpty()) {
+			logger.warn("[Midget] Weapon '{}' has a MidgetConfig with zero MidgetWaypoint entries.", weapon.weaponName());
+			return;
+		}
+		java.util.Optional<net.minecraft.util.Identifier> maybeId = com.example.tudursvehiclemod.asset.VehicleRegistry.getIdByFileName(config.vehicleFileName());
+		java.util.Optional<VehicleDefinition> maybeDef = com.example.tudursvehiclemod.asset.VehicleRegistry.getByFileName(config.vehicleFileName());
+		if (maybeId.isEmpty() || maybeDef.isEmpty()) {
+			logger.warn("[Midget] Weapon '{}' names MidgetVehicle='{}', but no currently-loaded vehicle file has that name - currently known vehicle file names: {}",
+					weapon.weaponName(), config.vehicleFileName(), com.example.tudursvehiclemod.asset.VehicleRegistry.getAll().keySet());
+			return;
+		}
+		net.minecraft.util.Identifier vehicleId = maybeId.get();
+		VehicleDefinition def = maybeDef.get();
+		net.minecraft.entity.EntityType<?> entityType = net.minecraft.registry.Registries.ENTITY_TYPE.get(def.entityType());
+
+		double spawnX = spawnPos.x;
+		double spawnY = spawnPos.y;
+		double spawnZ = spawnPos.z;
+
+		// Same "face the mount's own configured direction" logic as tudursvehiclemod$fireCarrierLaunch() - see that method's own doc.
+		com.example.tudursvehiclemod.asset.WeaponOffset mountOffset = weapon.offsets().isEmpty()
+				? new com.example.tudursvehiclemod.asset.WeaponOffset(0, 0, 0, 0, 0, java.util.Optional.empty())
+				: weapon.offsets().get(0);
+		Vec3d localMountDir = Vec3d.fromPolar((float) mountOffset.mountPitch(), (float) mountOffset.mountYaw());
+		Vector3f worldMountDir = new Vector3f((float) localMountDir.x, (float) localMountDir.y, (float) localMountDir.z);
+		this.tudursvehiclemod$getBodyOrientation().transform(worldMountDir);
+		double mountForwardLength = Math.sqrt(worldMountDir.x * worldMountDir.x + worldMountDir.z * worldMountDir.z);
+		double mountForwardX = mountForwardLength > 1.0e-4 ? worldMountDir.x / mountForwardLength : 0.0;
+		double mountForwardZ = mountForwardLength > 1.0e-4 ? worldMountDir.z / mountForwardLength : 1.0;
+		float spawnYaw = mountForwardLength > 1.0e-4
+				? (float) Math.toDegrees(Math.atan2(-mountForwardX, mountForwardZ))
+				: this.getYaw();
+
+		Entity spawned = entityType.create(serverWorld, entity -> {
+			if (entity instanceof AbstractVehicleEntity vehicle) {
+				vehicle.setVehicleDefinitionId(vehicleId);
+				vehicle.tudursvehiclemod$fillAllWeaponAmmoAndFuel();
+				vehicle.tudursvehiclemod$syncWeaponAmmo();
+			}
+			if (entity instanceof SubmarineEntity submarine) {
+				submarine.tudursvehiclemod$initializeMidgetLaunch(config.launchWaypoints(), config.waypoints(),
+						spawnX, spawnZ, mountForwardX, mountForwardZ,
+						targetPos.x, targetPos.z, config.weaponIndex(),
+						config.timeoutTicks(), config.stuckTimeoutTicks(), config.recovery(),
+						config.detectRange(), config.detectIntervalTicks(), config.avoidStep());
+			}
+		}, net.minecraft.util.math.BlockPos.ofFloored(spawnX, spawnY, spawnZ), net.minecraft.entity.SpawnReason.TRIGGERED, false, false);
+
+		if (spawned == null) {
+			logger.warn("[Midget] Vehicle '{}' (file '{}', entity type '{}') was found, but EntityType.create() returned null - could not launch the midget submarine at all.",
+					vehicleId, config.vehicleFileName(), def.entityType());
+			return;
+		}
+		if (!(spawned instanceof SubmarineEntity)) {
+			logger.warn("[Midget] Vehicle '{}' (file '{}') is not a SubmarineEntity (actual class: {}) - it will spawn, but its own route was never assigned, since only SubmarineEntity supports the Midget autopilot.",
+					vehicleId, config.vehicleFileName(), spawned.getClass().getSimpleName());
+			serverWorld.spawnEntity(spawned);
+			return;
+		}
+		spawned.refreshPositionAndAngles(spawnX, spawnY, spawnZ, spawnYaw, 0f);
+		serverWorld.spawnEntity(spawned);
+	}
+
 	private void tudursvehiclemod$fireCarrierLaunch(WeaponDefinition weapon, ServerWorld serverWorld, Vec3d spawnPos, Vec3d targetPos, double shooterForwardX, double shooterForwardZ, ServerPlayerEntity shooter, int mothershipWeaponIndex, int actualFormationSize) {
 		org.slf4j.Logger logger = VehicleMod_LoggerHolder.LOGGER;
 		java.util.Optional<com.example.tudursvehiclemod.asset.CarrierAircraftConfig> maybeConfig = weapon.carrierAircraft();
@@ -7116,11 +7233,21 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				sharedAccuracyPerturbations.add(new int[]{0, 0, 0});
 			}
 		}
+		// With this vehicle's lock mode on, the launch is sent after whatever the shooter has under the crosshair (the one highlighted - see tudursvehiclemod$updateCarrierLaunchTargetPreview()) instead of flying its configured route alone, whatever CasTargetMode the weapon uses to place that route. Nothing to designate means nothing is launched, as a lead's wingman command does nothing without a target either: a lock-mode launch that has no target to go after is far more likely a stray key press than a request for a sortie (the refusal itself is in tryFireWeapon(), ahead of the fire side effects).
+		java.util.UUID designatedTargetUuid = null;
+		if (shooter != null && this.tudursvehiclemod$isCarrierLaunchDesignated(mothershipWeaponIndex)) {
+			Entity designated = this.tudursvehiclemod$findCarrierLaunchTarget(shooter);
+			if (designated == null) {
+				// Not reached in practice: tryFireWeapon() refuses the shot before any of its side effects when there is no target (and this runs in the same tick, so one cannot vanish in between). Kept so a future caller that skips that check cannot launch a sortie with nothing to attack - at the price, for such a caller, of the ammo already being spent.
+				return;
+			}
+			designatedTargetUuid = designated.getUuid();
+		}
 		CarrierLaunchContext context = new CarrierLaunchContext(config, vehicleId, def, entityType, targetBlockPos,
 				spawnX, spawnY, spawnZ, finalSpawnYaw, mothershipLaunchForwardX, mothershipLaunchForwardZ,
 				finalForwardX, finalForwardZ, shooter != null ? shooter.getUuid() : null,
 				shooter != null ? this.tudursvehiclemod$getAssignedSeatIndex(shooter) : -1, mothershipWeaponIndex,
-				sharedAccuracyPerturbations);
+				sharedAccuracyPerturbations, designatedTargetUuid);
 
 		// The lead aircraft (index 0) always spawns immediately - matches the original single-aircraft behavior exactly when there's no formation at all (formationOffsets.size() == 1).
 		double[] leadOffset = formationOffsets.get(0);
@@ -7217,6 +7344,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				// Per CarrierLaunchWaypoint's own speedBoostKmh doc: mothershipLaunchForwardX/Z (the SAME basis finalSpawnYaw was itself derived from) is the direction waypoint 0's own boost (if any) is applied along, since this callback runs before refreshPositionAndAngles() below actually sets this aircraft's own getYaw() - see tudursvehiclemod$setCarrierSpeedBoosts()'s own doc for why a direction can't just be read off the aircraft itself yet at this point.
 				aircraft.tudursvehiclemod$setCarrierSpeedBoosts(speedBoostFlags, mothershipLaunchForwardX, mothershipLaunchForwardZ);
 				aircraft.tudursvehiclemod$setCarrierLaunchWaypointCount(config.launchWaypoints().size());
+				// Every aircraft of the formation is sent after the same designated target (null when the launch designated none - the ordinary route flight). It only becomes a lock once the launch waypoints are flown - see AircraftEntity#carrierLaunchDesignatedTargetUuid.
+				aircraft.tudursvehiclemod$setCarrierLaunchDesignatedTarget(ctx.designatedTargetUuid(), config.weaponIndex());
 				aircraft.tudursvehiclemod$setCasTimeoutTicks(config.timeoutTicks());
 				aircraft.tudursvehiclemod$setCasStuckTimeoutTicks(config.stuckTimeoutTicks());
 				aircraft.tudursvehiclemod$setDroneLink(targetBlockPos);
@@ -7714,6 +7843,95 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 		this.tudursvehiclemod$previousLockOnTargetIds = currentTargetIds;
 		this.tudursvehiclemod$syncMissileLockProgress();
+	}
+
+	/** How far (blocks) tudursvehiclemod$findCarrierLaunchTarget() searches, and the half-angle (degrees) of the cone around the shooter's own view it searches - the same values an airborne Carrier lead's own lock-candidate search uses (AircraftEntity#CARRIER_LOCK_SEARCH_RANGE / CARRIER_LOCK_ON_CONE_DEGREES), so aiming at a target to launch against feels exactly like aiming at one to send a wingman after. */
+	private static final double CARRIER_LAUNCH_TARGET_RANGE = 1000.0;
+	private static final double CARRIER_LAUNCH_TARGET_CONE_DEGREES = 15.0;
+
+	/** Entity IDs this vehicle highlighted last tick as a Carrier launch target preview - see tudursvehiclemod$updateCarrierLaunchTargetPreview(). Kept apart from tudursvehiclemod$previousLockOnTargetIds (the missile lock-on preview's own) so the two previews can never switch each other's highlight off. */
+	private int tudursvehiclemod$carrierLaunchPreviewId = -1;
+
+	/**
+	 * The entity a Carrier weapon fired RIGHT NOW would be launched against: whatever is nearest the shooter's own crosshair, within CARRIER_LAUNCH_TARGET_RANGE and CARRIER_LAUNCH_TARGET_CONE_DEGREES - a living entity or a vehicle that has not been destroyed. Deliberately not restricted to air or surface targets (a Carrier aircraft can be sent after anything it can reach). Never this vehicle, whatever the shooter is riding, one of the aircraft this vehicle has itself launched (sending a wing after its own sister ship would be meaningless), or a carrier runway platform. Null when nothing qualifies.
+	 *
+	 * <p>The search is the one the airborne lead's lock mode already does (AircraftEntity#tudursvehiclemod$findCarrierLockCandidate()), on the mothership's side: the same cone, the same range, the same exclusions apart from the formation roster, which does not exist yet before a launch.
+	 */
+	private Entity tudursvehiclemod$findCarrierLaunchTarget(net.minecraft.server.network.ServerPlayerEntity shooter) {
+		Vec3d eyePos = shooter.getEyePos();
+		Vec3d viewDir = shooter.getRotationVec(1.0f);
+		double minDot = Math.cos(Math.toRadians(CARRIER_LAUNCH_TARGET_CONE_DEGREES));
+		net.minecraft.util.math.Box searchBox = shooter.getBoundingBox().expand(CARRIER_LAUNCH_TARGET_RANGE);
+		java.util.Set<java.util.UUID> ownLaunched = new java.util.HashSet<>();
+		for (java.util.List<java.util.UUID> launched : this.carrierLinkedAircraftBySeat.values()) {
+			ownLaunched.addAll(launched);
+		}
+		Entity best = null;
+		double bestDot = minDot;
+		for (Entity candidate : this.getEntityWorld().getOtherEntities(shooter, searchBox,
+				e -> (e instanceof net.minecraft.entity.LivingEntity living && living.isAlive()
+						|| e instanceof AbstractVehicleEntity vehicleCandidate && !vehicleCandidate.tudursvehiclemod$isDestroyed())
+						&& !(e instanceof CarrierRunwayPlatformEntity)
+						&& e != this && e != shooter.getVehicle()
+						&& !ownLaunched.contains(e.getUuid()))) {
+			Vec3d toCandidate = candidate.getEntityPos().subtract(eyePos);
+			double distance = toCandidate.length();
+			if (distance < 1.0 || distance > CARRIER_LAUNCH_TARGET_RANGE) {
+				continue;
+			}
+			double dot = toCandidate.normalize().dotProduct(viewDir);
+			if (dot > bestDot) {
+				bestDot = dot;
+				best = candidate;
+			}
+		}
+		return best;
+	}
+
+	/**
+	 * Whether a launch of the weapon at weaponIndex is sent after a designated target: only a CARRIER weapon, and only while this vehicle's lock mode (the one a Carrier lead's wingman command uses) is on. False otherwise, in which case nothing is previewed and a launch is the ordinary route flight.
+	 *
+	 * <p>The selection (tudursvehiclemod$getSelectedWeaponIndex()) is one synced value per vehicle, not one per occupant, so the preview and a launch agree on which weapon is meant whoever is seated where.
+	 */
+	private boolean tudursvehiclemod$isCarrierLaunchDesignated(int weaponIndex) {
+		if (!this.tudursvehiclemod$isCarrierLockModeActive()) {
+			return false;
+		}
+		java.util.List<WeaponDefinition> weapons = this.getDefinition().weapons();
+		return weaponIndex >= 0 && weaponIndex < weapons.size()
+				&& weapons.get(weaponIndex).weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CARRIER;
+	}
+
+	/**
+	 * While this vehicle's lock mode is on and a CARRIER weapon is selected, highlights whatever a launch would be sent after - the same highlight the airborne lead's own lock mode and the missile lock-on preview use, so the player sees the target the same way in every case. Switched off the moment the mode is turned off, the weapon deselected, or the crosshair moves on. A no-op (one comparison) for a vehicle that is not in that state, which is every vehicle most of the time.
+	 */
+	private void tudursvehiclemod$updateCarrierLaunchTargetPreview() {
+		if (!(this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld)) {
+			return;
+		}
+		Entity candidate = null;
+		int selectedIndex = this.tudursvehiclemod$getSelectedWeaponIndex();
+		if (this.tudursvehiclemod$isCarrierLaunchDesignated(selectedIndex)) {
+			WeaponDefinition weapon = this.getDefinition().weapons().get(selectedIndex);
+			Entity shooterEntity = this.tudursvehiclemod$resolveWeaponTrackingOccupant(weapon.seatIndex(), weapon.pilotUsable());
+			if (shooterEntity instanceof net.minecraft.server.network.ServerPlayerEntity shooter) {
+				candidate = this.tudursvehiclemod$findCarrierLaunchTarget(shooter);
+			}
+		}
+		int currentId = candidate != null ? candidate.getId() : -1;
+		if (currentId == this.tudursvehiclemod$carrierLaunchPreviewId) {
+			return;
+		}
+		if (this.tudursvehiclemod$carrierLaunchPreviewId != -1) {
+			Entity previous = serverWorld.getEntityById(this.tudursvehiclemod$carrierLaunchPreviewId);
+			if (previous != null) {
+				this.tudursvehiclemod$setEntityHighlighted(previous, false);
+			}
+		}
+		if (candidate != null) {
+			this.tudursvehiclemod$setEntityHighlighted(candidate, true);
+		}
+		this.tudursvehiclemod$carrierLaunchPreviewId = currentId;
 	}
 
 	/** Entity.setGlowing() is insufficient for this mod's own vehicle entities (see HIGHLIGHT_ACTIVE's own doc), and non-vehicle entities also avoid setGlowing() (see HIGHLIGHTED_ENTITY_IDS's own doc) - shared dispatch every lock-on-style highlight call site (missile lock-on preview, Carrier target-lock candidate preview, TargetingPod spotting) now goes through: an AbstractVehicleEntity target gets the mesh-accurate tudursvehiclemod$setHighlighted() (set ON THE TARGET ITSELF); anything else is added to/removed from THIS vehicle's own HIGHLIGHTED_ENTITY_IDS list instead (this vehicle being "the tracker" - see that field's own doc for why tracking it there, rather than on the target, is the deliberate, meaningful choice for non-vehicle entities). Now an instance method (previously static) since it needs "this" as the tracker for the non-vehicle case. */
