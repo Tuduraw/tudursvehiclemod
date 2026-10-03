@@ -110,7 +110,12 @@ details).
     own aim direction, computes "the point it would return to firing
     altitude" via ballistic calculation. The reticle's own elevation
     angle directly determines impact distance, behaving like a typical
-    indirect-fire weapon
+    indirect-fire weapon. When aiming level or downward, it targets the
+    point where the line of sight meets the water or ground (or, if
+    nothing is hit within 1000 blocks, a point that far away
+    horizontally at firing altitude). When a target is designated by
+    looking down at it in lock mode, this point is also the route's
+    reference point.
   - `Raycast`: raycasts directly along the aim direction, and targets the
     first point that hits a block (or a fixed maximum-distance point if
     nothing is hit)
@@ -171,6 +176,24 @@ details).
   - For a Drone Center dummy pilot, the attack start/stop altitudes set at
     the Drone Center are used in the same way, as the run-start and
     release distances.
+  - Once it has no torpedo left to fire, it stops attacking and returns to
+    its ordinary route. A CAS or Carrier aircraft does not reload in
+    flight, so it returns as soon as its magazine is empty; a dummy
+    pilot's aircraft keeps attacking for as long as it can reload from its
+    reserve.
+  - **When a target point is marked** (an ordinary CAS or Carrier strike,
+    without lock mode): on reaching an attack leg of the route (a
+    `CasWaypoint`/`CarrierWaypoint` whose attack flag is `true`), instead
+    of firing along the route it makes the same run against the marked
+    point (at the water or ground surface). A point has no heading, so the
+    side the aircraft is on is taken as square on. It drops one torpedo
+    per attack leg, and returns to the route once it has released and is
+    breaking away.
+  - In a formation, every aircraft makes its own run. A wingman that has
+    finished its run and dropped back into formation keeps to the height
+    of the route's waypoint, not the leader's, for as long as the leader
+    is still attacking (so it does not follow a leader making its low
+    torpedo run down to the water).
 - **Example**: `CasAttackStartAltitude = 200` / `CasAttackStopAltitude = 40`
 
 ### `CasTorpedoAltitude`
@@ -365,7 +388,16 @@ releases every wingman's lock) works as it always has.
 
 ### `CarrierWaypoint`
 - **Format**: the same format as `CasWaypoint`
-- **Description**: The ordinary patrol/attack route.
+- **Description**: The ordinary patrol/attack route. Horizontally
+  (relative X and Z) it is relative to the marked point, as with
+  `CasWaypoint`. What the height (relative Y) is relative to depends on
+  the attack flag:
+  - Attack flag `false` (moving): relative to **the launch point** (this
+    weapon's own `AddWeapon` position, at its height at the moment of
+    launch) - the same reference as `CarrierLaunchWaypoint`.
+  - Attack flag `true` (a bombing, torpedo or strafing leg): relative to
+    **the marked point**, so the attack is flown at a height relative to
+    the target.
 - **Example**:
   ```
   CarrierWaypoint = 0,80,300,80,false

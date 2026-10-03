@@ -7366,8 +7366,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 					com.example.tudursvehiclemod.asset.CasWaypoint carrierWaypoint = config.waypoints().get(i);
 					double[] rotated = tudursvehiclemod$rotateCasOffset(
 							carrierWaypoint.relX(), carrierWaypoint.relZ(), finalForwardX, finalForwardZ);
+					// Height: an attack waypoint's relY is relative to the marked point, like its X/Z (the attack is flown against the target, so its height belongs to the target). Every other waypoint - plain movement - has its relY relative to the LAUNCH point (spawnY, this weapon's own mount position at launch), the same as CarrierLaunchWaypoint: far easier to write in a weapon file, since it no longer depends on where the target happens to be marked. Converted here into the same marked-point-relative form the route is stored in (as the launch waypoints just above are), so nothing downstream changes, and since the stored route is what gets saved, it carries over a reload unchanged.
+					int storedRouteRelY = carrierWaypoint.attack()
+							? carrierWaypoint.relY()
+							: (int) Math.round(spawnY + carrierWaypoint.relY() - targetBlockPos.getY());
 					com.example.tudursvehiclemod.block.DroneWaypoint droneWaypoint = new com.example.tudursvehiclemod.block.DroneWaypoint(
-							(int) Math.round(rotated[0]), carrierWaypoint.relY(), (int) Math.round(rotated[1]),
+							(int) Math.round(rotated[0]), storedRouteRelY, (int) Math.round(rotated[1]),
 							carrierWaypoint.speedFraction(), 0f, 1.0f, 1.0f);
 					// Per the same reasoning as CAS's own accuracy perturbation: applied to every waypoint here (including the first) since, unlike CAS, this aircraft's own spawn position is fixed at the AddWeapon mount point regardless of the route - perturbing waypoint 0 doesn't create any spawn-position mismatch the way it would for CAS. Uses ctx.sharedAccuracyPerturbations() (computed once for the whole staggered launch sequence) rather than an independent random value per aircraft - see this whole feature's own doc for why that mattered for formation flying specifically.
 					int[] perturbation = ctx.sharedAccuracyPerturbations().get(i);
@@ -7715,8 +7719,19 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		double horizontalSpeed = Math.sqrt(aimDir.x * aimDir.x + aimDir.z * aimDir.z) * velocity;
 		double verticalSpeed = aimDir.y * velocity;
 		if (verticalSpeed <= 0.0 || gravity <= 0f) {
-			// Aiming level or downward (or a pathologically zero/negative gravity, impossible via the fallback above but defensive regardless) - no meaningful "returns to launch height" point exists at all; falls back to the raw aim direction at a fixed, arbitrary reasonable distance instead, matching the general shape of the old raycast fallback (max-range point) for a shot that would never arc back down.
-			return start.add(aimDir.multiply(CAS_CARRIER_DEFAULT_VELOCITY * 20.0));
+			// Aiming level or downward (or a pathologically zero/negative gravity, impossible via the fallback above but defensive regardless) - no meaningful "returns to launch height" point exists, so the point is where the line of sight actually meets the water or ground. This used to be the raw aim direction CAS_CARRIER_DEFAULT_VELOCITY * 20 (3940 blocks) out, height included: aiming only a few degrees down put the strike's own reference point hundreds of blocks underground - and every route waypoint's height is relative to it. Lock mode (looking down at the designated ship) all but always lands here, so a Carrier/CAS aircraft that went back to its route after the attack (or after a reload dropped its lock) dived for a waypoint far below the sea (a diagnostic log showed a route target height of -204). Water counts as a hit (SOURCE_ONLY), so aiming at the sea gives the sea surface, not the seabed.
+			Vec3d sightEnd = start.add(aimDir.multiply(CAS_CARRIER_RAYCAST_RANGE));
+			net.minecraft.util.hit.HitResult sightHit = this.getEntityWorld().raycast(new net.minecraft.world.RaycastContext(start, sightEnd,
+					net.minecraft.world.RaycastContext.ShapeType.COLLIDER, net.minecraft.world.RaycastContext.FluidHandling.SOURCE_ONLY, shooter));
+			if (sightHit.getType() == net.minecraft.util.hit.HitResult.Type.BLOCK) {
+				return sightHit.getPos();
+			}
+			// Nothing within range (looking at the horizon): that far out horizontally, at the launch height - the same height every other case of this method returns.
+			double levelAimLength = Math.sqrt(aimDir.x * aimDir.x + aimDir.z * aimDir.z);
+			if (levelAimLength < 1.0e-4) {
+				return start;
+			}
+			return start.add(aimDir.x / levelAimLength * CAS_CARRIER_RAYCAST_RANGE, 0.0, aimDir.z / levelAimLength * CAS_CARRIER_RAYCAST_RANGE);
 		}
 		double stepHorizontalVelocity = horizontalSpeed;
 		double stepVerticalVelocity = verticalSpeed;
@@ -8513,6 +8528,14 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	/** WeaponReserveAmmo itself (unlike weaponAmmo, the live magazine count already exposed via getWeaponAmmoState()) had no public accessor at all before this - 0 for an out-of-range weaponIndex, matching that same method's own "nothing to report" convention. */
+	/** Rounds left in weaponIndex's own magazine right now (server-side truth; the synced getWeaponAmmoState() is for display). 0 for an index out of range. */
+	public int tudursvehiclemod$getWeaponMagazineAmmo(int weaponIndex) {
+		if (weaponIndex < 0 || weaponIndex >= this.weaponAmmo.length) {
+			return 0;
+		}
+		return this.weaponAmmo[weaponIndex];
+	}
+
 	public int tudursvehiclemod$getWeaponReserveAmmo(int weaponIndex) {
 		if (weaponIndex < 0 || weaponIndex >= this.weaponReserveAmmo.length) {
 			return 0;

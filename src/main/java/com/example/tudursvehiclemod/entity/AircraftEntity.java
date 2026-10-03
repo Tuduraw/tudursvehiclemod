@@ -1012,7 +1012,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		}
 		// Later extended by a direct request for a Drone Center dummy-pilot aircraft attack feature to also cover a normal (non-CAS/Carrier) Drone-Center-bound aircraft, not just a CAS/Carrier wingman's own player-initiated lock: an active lock (carrierLockedTargetUuid != null, however it got there - tudursvehiclemod$tryLockCarrierTarget()'s own crosshair-based assignment, OR entity.DummyPilotEntity's own combat AI via tudursvehiclemod$updateDroneCombatLock()) pursues/attacks its own assigned target INSTEAD of every other dispatch below, unconditionally, checked first before even formation-follow/CAS/Carrier-specific routing - this takes priority over everything else for as long as the lock stays active. tudursvehiclemod$updateCarrierLockPursuit() itself clears carrierLockedTargetUuid (falling through to ordinary dispatch on the very next tick) once the target is destroyed/removed, or shaken off.
 		this.tudursvehiclemod$activateCarrierLaunchDesignation();
-		if (this.carrierLockedTargetUuid != null) {
+		if (this.carrierLockedTargetUuid != null || this.torpedoPointTarget != null) {
 			this.tudursvehiclemod$updateCarrierLockPursuit(def);
 			return;
 		}
@@ -1063,7 +1063,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 				boolean formationAttackActive = this.casAttackFlags != null
 						&& this.droneWaypointIndex < this.casAttackFlags.size()
 						&& this.casAttackFlags.get(this.droneWaypointIndex);
-				this.tudursvehiclemod$updateCasAutoFire(formationAttackActive, this.casWeaponIndex);
+				this.tudursvehiclemod$updateRouteAttack(formationAttackActive);
 				// Once the LEADER itself begins its own landing sequence, this wingman stops following it and independently begins its own (using its own existing carrierFormationIndex-based queue stagger, completely unchanged from before this feature existed).
 				if (leaderAircraft.carrierReturning || leaderAircraft.carrierWaitingToLand) {
 					if (this.carrierLaunchMothershipUuid == null) {
@@ -1122,7 +1122,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 				boolean attackActive = this.casAttackFlags != null
 						&& this.droneWaypointIndex < this.casAttackFlags.size()
 						&& this.casAttackFlags.get(this.droneWaypointIndex);
-				this.tudursvehiclemod$updateCasAutoFire(attackActive, this.casWeaponIndex);
+				this.tudursvehiclemod$updateRouteAttack(attackActive);
 			}
 			return;
 		}
@@ -1829,6 +1829,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			}
 			this.casAttackFlags = attackFlags;
 			this.casWeaponIndex = view.getInt("CasWeaponIndex", 0);
+			this.dataTracker.set(CAS_WAYPOINT_SPEED_FRACTION, view.getFloat("CasWaypointSpeedFraction", 0.0f));
 			this.casTimeoutTicksRemaining = view.getInt("CasTimeoutTicksRemaining", 1200);
 			this.casStuckTimeoutTicks = view.getInt("CasStuckTimeoutTicks", 1200);
 			this.casTicksSinceLastProgress = view.getInt("CasTicksSinceLastProgress", 0);
@@ -1901,6 +1902,8 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			}
 			view.putString("CasAttackFlags", attackFlagsSb.toString());
 			view.putInt("CasWeaponIndex", this.casWeaponIndex);
+			// The autopilot's own throttle (CAS_WAYPOINT_SPEED_FRACTION) - not saved before, so every reload restarted it from 0 and the aircraft slowed almost to a stop before ramping back up.
+			view.putFloat("CasWaypointSpeedFraction", this.dataTracker.get(CAS_WAYPOINT_SPEED_FRACTION));
 			view.putInt("CasTimeoutTicksRemaining", this.casTimeoutTicksRemaining);
 			view.putInt("CasStuckTimeoutTicks", this.casStuckTimeoutTicks);
 			view.putInt("CasTicksSinceLastProgress", this.casTicksSinceLastProgress);
@@ -2350,6 +2353,11 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		double[] rotatedOffset = tudursvehiclemod$rotateCasOffset(this.droneFormationLateralOffset, this.droneFormationLongitudinalOffset, leaderForwardX, leaderForwardZ);
 		double targetX = leader.getX() + rotatedOffset[0];
 		double targetY = leader.getY();
+		// While the leader is attacking (chasing a locked target, or making a torpedo run against a point) its height is that attack's, not the route's - a torpedo run is flown at CasTorpedoAltitude, a few blocks off the water - and a wingman that has finished its own attack and dropped back into formation used to follow it all the way down. Hold the route's height for the current waypoint instead until the leader is back on the route.
+		if (leader instanceof AircraftEntity leaderAircraft && leaderAircraft.tudursvehiclemod$isAttacking()) {
+			Double routeY = this.tudursvehiclemod$currentRouteWaypointY();
+			targetY = routeY != null ? routeY : Math.max(leader.getY(), this.getY());
+		}
 		double targetZ = leader.getZ() + rotatedOffset[1];
 
 		double dx = targetX - this.getX();
@@ -2449,6 +2457,90 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 	private static final float CARRIER_LOCK_CLIMB_ANGLE_DEGREES = 45.0f;
 	/** How far (blocks, both +X and +Z) the approach waypoint (see carrierLockApproachingWaypoint's own doc) sits from a ground/water target - a fixed offset direction rather than one dynamically computed from this wingman's own current position, per that same direct request. Deliberately generous - the whole point is giving this wingman enough distance to actually complete its own turn before committing to the dive. */
 	private static final double CARRIER_LOCK_APPROACH_OFFSET = 200.0;
+	/**
+	 * A torpedo run against a fixed POINT rather than an entity: set when a route's attack leg comes up with a torpedo as the
+	 * attack weapon (see tudursvehiclemod$updateRouteAttack()), so the drop is made through the same beam run an entity target
+	 * gets instead of being fired along the route. The point is the strike's own marked point (the drone link) at the water or
+	 * ground surface; with no heading of its own, the side the aircraft is on is taken as its beam (torpedoPointYaw). One
+	 * torpedo per attack leg: the run ends once the release has gone out and it breaks away, or when no shot is left.
+	 */
+	private Vec3d torpedoPointTarget;
+	private float torpedoPointYaw;
+	private int torpedoPointLegIndex = -1;
+	private boolean torpedoPointReleased;
+
+	/**
+	 * Whether weaponIndex can still fire at all: a magazine with rounds in it, an unlimited magazine, or - for an aircraft that
+	 * reloads in flight - reserve rounds to reload from. A CAS/Carrier-launched aircraft never reloads mid-flight (see
+	 * isCasOrCarrierAutonomous()), so for it an empty magazine is the end. Used to end an attack that has nothing left to fire.
+	 */
+	public boolean tudursvehiclemod$hasShotsLeft(int weaponIndex) {
+		java.util.List<com.example.tudursvehiclemod.asset.WeaponDefinition> weapons = this.getDefinition().weapons();
+		if (weaponIndex < 0 || weaponIndex >= weapons.size()) {
+			return false;
+		}
+		if (weapons.get(weaponIndex).magazineSize() <= 0 || this.tudursvehiclemod$getWeaponMagazineAmmo(weaponIndex) > 0) {
+			return true;
+		}
+		return !this.tudursvehiclemod$isCasOrCarrierAutonomous() && this.tudursvehiclemod$getWeaponReserveAmmo(weaponIndex) > 0;
+	}
+
+	/**
+	 * The route's own attack: on an attack leg, every weapon is fired as the route flies (updateCasAutoFire) - except a torpedo,
+	 * which can only be dropped level, at the right height and some way off, so instead the attack leg starts a beam run against
+	 * the strike's marked point (see torpedoPointTarget's own doc). Once per attack leg, and only with a shot left to fire.
+	 */
+	private void tudursvehiclemod$updateRouteAttack(boolean attackActive) {
+		java.util.List<com.example.tudursvehiclemod.asset.WeaponDefinition> weapons = this.getDefinition().weapons();
+		boolean torpedo = this.casWeaponIndex >= 0 && this.casWeaponIndex < weapons.size()
+				&& weapons.get(this.casWeaponIndex).weaponType() == com.example.tudursvehiclemod.asset.WeaponType.TORPEDO;
+		if (!torpedo) {
+			this.tudursvehiclemod$updateCasAutoFire(attackActive, this.casWeaponIndex);
+			return;
+		}
+		this.tudursvehiclemod$updateCasAutoFire(false, this.casWeaponIndex);
+		net.minecraft.util.math.BlockPos center = this.tudursvehiclemod$getDroneCenterPos();
+		if (!attackActive || center == null || this.torpedoPointTarget != null || this.carrierLockedTargetUuid != null
+				|| this.torpedoPointLegIndex == this.droneWaypointIndex || !this.tudursvehiclemod$hasShotsLeft(this.casWeaponIndex)) {
+			return;
+		}
+		// The marked point at the surface - found from high above it, the same ground/water measurement the run itself uses (it falls back to the marked block's own height if nothing is found below).
+		double probeY = center.getY() + 128.0;
+		double altitude = this.tudursvehiclemod$altitudeAboveGroundOrWater(new Vec3d(center.getX() + 0.5, probeY, center.getZ() + 0.5));
+		double surfaceY = altitude >= 256.0 ? center.getY() : probeY - altitude;
+		this.torpedoPointTarget = new Vec3d(center.getX() + 0.5, surfaceY, center.getZ() + 0.5);
+		// No heading of its own: the beam is taken to face this aircraft (TorpedoRunPlanner's beam direction is (cos yaw, sin yaw)), so the run sets up on the side the aircraft is already on.
+		this.torpedoPointYaw = (float) Math.toDegrees(Math.atan2(this.getZ() - this.torpedoPointTarget.z, this.getX() - this.torpedoPointTarget.x));
+		this.torpedoPointLegIndex = this.droneWaypointIndex;
+		this.torpedoPointReleased = false;
+		this.carrierLockedTargetWeaponIndex = this.casWeaponIndex;
+		this.torpedoRunPlanner.reset();
+		this.carrierLockedTargetBestDistance = Double.MAX_VALUE;
+		this.carrierLockedTargetStagnantTicks = 0;
+		this.carrierLockClimbingToSafeAltitude = false;
+		this.carrierLockApproachingWaypoint = true;
+	}
+
+	/** True while this aircraft is off its route attacking: chasing a locked target, or making a torpedo run against a fixed point. */
+	public boolean tudursvehiclemod$isAttacking() {
+		return this.carrierLockedTargetUuid != null || this.torpedoPointTarget != null;
+	}
+
+	/** The absolute height of the route waypoint this aircraft is currently on (drone link + the waypoint's own relative height), or null with no route or no link. */
+	private Double tudursvehiclemod$currentRouteWaypointY() {
+		net.minecraft.util.math.BlockPos center = this.tudursvehiclemod$getDroneCenterPos();
+		if (center == null || this.casWaypointOverride == null || this.casWaypointOverride.isEmpty()) {
+			return null;
+		}
+		int index = MathHelper.clamp(this.droneWaypointIndex, 0, this.casWaypointOverride.size() - 1);
+		return (double) (center.getY() + this.casWaypointOverride.get(index).relY());
+	}
+
+	/** Drops the current combat lock, so the aircraft goes back to its route - used by a dummy pilot whose aircraft has nothing left to fire (see DummyPilotEntity's own aircraft hand-off). */
+	public void tudursvehiclemod$releaseDroneCombatLock() {
+		this.carrierLockedTargetUuid = null;
+	}
+
 	/** The torpedo attack's own state across ticks - see TorpedoRunPlanner's own doc and tudursvehiclemod$updateCarrierLockPursuit(). Reset whenever a new lock is assigned. */
 	private final TorpedoRunPlanner torpedoRunPlanner = new TorpedoRunPlanner();
 	/** How close to dead level (degrees) the aircraft's own pitch must be for a torpedo to be released. */
@@ -2495,17 +2587,21 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		if (!(this.getEntityWorld() instanceof ServerWorld serverWorld)) {
 			return;
 		}
-		Entity target = serverWorld.getEntity(this.carrierLockedTargetUuid);
-		boolean targetGone = target == null || target.isRemoved()
-				|| (target instanceof AbstractVehicleEntity targetVehicle && targetVehicle.tudursvehiclemod$isDestroyed())
-				|| (target instanceof LivingEntity targetLiving && !targetLiving.isAlive());
-		if (targetGone) {
-			this.carrierLockedTargetUuid = null;
-			return;
+		// A torpedo run against a fixed point (torpedoPointTarget - see its own doc) uses this same routine with no entity: target stays null, its position stands in for the entity's, and it always counts as a surface target. An entity lock always takes precedence.
+		boolean pointMode = this.carrierLockedTargetUuid == null && this.torpedoPointTarget != null;
+		Entity target = pointMode ? null : serverWorld.getEntity(this.carrierLockedTargetUuid);
+		if (!pointMode) {
+			boolean targetGone = target == null || target.isRemoved()
+					|| (target instanceof AbstractVehicleEntity targetVehicle && targetVehicle.tudursvehiclemod$isDestroyed())
+					|| (target instanceof LivingEntity targetLiving && !targetLiving.isAlive());
+			if (targetGone) {
+				this.carrierLockedTargetUuid = null;
+				return;
+			}
 		}
 		// Relying on Entity's own isOnGround()/isTouchingWater(), already documented elsewhere in this project as unreliable for this mod's own vehicle entities - was misclassifying stationary ground targets as AIRBORNE, letting wingmen dive straight at their raw position with this whole safety mechanism never engaging at all. Measures directly instead, reusing the SAME tudursvehiclemod$altitudeAboveGroundOrWater() helper already proven correct for the wingman's own altitude (see that method's own doc), applied to the TARGET's own position here. GROUND_OR_WATER_TARGET_ALTITUDE_THRESHOLD (well above AIRBORNE_TARGET_MIN_ALTITUDE's own 3.0) accounts for a real target vehicle's own entity-position anchor point potentially sitting meaningfully above its own visual base/wheels.
-		Vec3d targetPos = target.getEntityPos();
-		boolean groundOrWaterTarget = this.tudursvehiclemod$altitudeAboveGroundOrWater(targetPos) < GROUND_OR_WATER_TARGET_ALTITUDE_THRESHOLD;
+		Vec3d targetPos = pointMode ? this.torpedoPointTarget : target.getEntityPos();
+		boolean groundOrWaterTarget = pointMode || this.tudursvehiclemod$altitudeAboveGroundOrWater(targetPos) < GROUND_OR_WATER_TARGET_ALTITUDE_THRESHOLD;
 		// Reused for both that hysteresis and the fire-alignment lookup further below.
 		com.example.tudursvehiclemod.asset.WeaponDefinition attackWeapon = def.weapons().get(
 				MathHelper.clamp(this.carrierLockedTargetWeaponIndex, 0, Math.max(0, def.weapons().size() - 1)));
@@ -2517,6 +2613,17 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		boolean torpedoRun = groundOrWaterTarget && attackWeapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.TORPEDO;
 		// Held below the weapon's own TorpedoMaxAltitude (by TORPEDO_RUN_ALTITUDE_MARGIN), since tryFireWeapon() refuses a torpedo launched from any higher: a run flown above that limit could never release at all and would just keep making runs - which is what the old fixed 15-block limit did to CasTorpedoAltitude's own 20-block default.
 		double torpedoRunAltitude = Math.max(1.0, Math.min(attackWeapon.casTorpedoAltitude(), attackWeapon.torpedoMaxAltitude() - TORPEDO_RUN_ALTITUDE_MARGIN));
+		// A torpedo run with nothing left to fire is over: back to the route. Other attacks end through the shaken-off clock once they can no longer close on the target, but a torpedo run keeps reaching its release point and breaking away again, run after run, so it would never end that way. A point run is only ever a torpedo run.
+		// Not during HOLD, though: a one-round torpedo empties its magazine the instant it is released, and ending there cut short the 5 ticks of level flight the release point is meant to be followed by - the run ends at the BREAK that follows instead.
+		boolean holdingAfterRelease = this.torpedoRunPlanner.phase() == TorpedoRunPlanner.Phase.HOLD;
+		if ((torpedoRun && !holdingAfterRelease && !this.tudursvehiclemod$hasShotsLeft(this.carrierLockedTargetWeaponIndex)) || (pointMode && !torpedoRun)) {
+			if (pointMode) {
+				this.torpedoPointTarget = null;
+			} else {
+				this.carrierLockedTargetUuid = null;
+			}
+			return;
+		}
 
 		Vec3d selfPos = this.getEntityPos();
 		// Rather than one relative to the target's own (possibly elevated, or on different terrain entirely) Y - see tudursvehiclemod$altitudeAboveGroundOrWater()'s own doc. Computed once here, reused for the hysteresis update below AND the below-obstacle check further down.
@@ -2538,7 +2645,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			this.carrierLockClimbingToSafeAltitude = false;
 		}
 
-		if (this.isGearDeployed() && this.getY() > target.getY() + 2.0) {
+		if (this.isGearDeployed() && this.getY() > targetPos.y + 2.0) {
 			this.toggleLandingGear();
 		}
 
@@ -2585,11 +2692,15 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			double turnSpeed = Math.max(Math.sqrt(velocityForTurn.x * velocityForTurn.x + velocityForTurn.z * velocityForTurn.z),
 					def.maxSpeed() * CARRIER_LOCK_PURSUIT_THROTTLE_FRACTION);
 			double turnRadius = turnSpeed / Math.toRadians(Math.max(0.1f, effectiveTurnRate));
-			torpedoCommand = this.torpedoRunPlanner.update(selfPos.x, selfPos.z, currentTrackedYaw, targetPos.x, targetPos.z, target.getYaw(),
+			torpedoCommand = this.torpedoRunPlanner.update(selfPos.x, selfPos.z, currentTrackedYaw, targetPos.x, targetPos.z, pointMode ? this.torpedoPointYaw : target.getYaw(),
 					attackStartAltitude, attackStopAltitude, turnRadius);
 			if (torpedoCommand.enteredRun()) {
 				this.carrierLockedTargetBestDistance = Double.MAX_VALUE;
 				this.carrierLockedTargetStagnantTicks = 0;
+			}
+			// A point run takes one torpedo: once it has gone out and the aircraft is breaking away, the run is over and the route resumes (from the next tick; this one still flies the break-away heading).
+			if (pointMode && this.torpedoPointReleased && torpedoCommand.phase() == TorpedoRunPlanner.Phase.BREAK) {
+				this.torpedoPointTarget = null;
 			}
 		}
 		// Per this method's own doc: firing (and the actual dive itself) is additionally suppressed while still approaching the waypoint, on top of the obstacle-avoidance/climb case above.
@@ -2607,6 +2718,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 				this.carrierLockedTargetStagnantTicks++;
 				if (this.carrierLockedTargetStagnantTicks >= CARRIER_LOCK_SHAKEN_OFF_TICKS) {
 					this.carrierLockedTargetUuid = null;
+					this.torpedoPointTarget = null;
 					return;
 				}
 			}
@@ -2744,6 +2856,9 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 					&& this.carrierLockedTargetWeaponIndex >= 0 && this.carrierLockedTargetWeaponIndex < def.weapons().size()
 					&& this.tryFireWeapon(this.carrierLockedTargetWeaponIndex, null, target)) {
 				this.torpedoRunPlanner.markFired();
+				if (pointMode) {
+					this.torpedoPointReleased = true;
+				}
 			}
 			return;
 		}

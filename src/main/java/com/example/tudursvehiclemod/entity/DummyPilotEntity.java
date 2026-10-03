@@ -133,6 +133,11 @@ public class DummyPilotEntity extends LivingEntity {
 		}
 
 		if (vehicle instanceof AircraftEntity aircraft) {
+			// Nothing left to fire: drop the lock and leave the aircraft to its own route. Handing the lock back every tick (as below) would otherwise keep it attacking - a torpedo bomber making run after run - with nothing to attack with.
+			if (!aircraft.tudursvehiclemod$hasShotsLeft(this.combatWeaponIndex)) {
+				aircraft.tudursvehiclemod$releaseDroneCombatLock();
+				return;
+			}
 			// Per this method's own doc: hands off entirely to the same mechanism an actual player-initiated Carrier lock uses - AircraftEntity's own tick dispatch takes over this aircraft's own flight/attack behavior for as long as the lock stays active, with no further involvement from this pilot at all beyond re-confirming the target every reacquire cycle.
 			aircraft.tudursvehiclemod$updateDroneCombatLock(target.getUuid(), this.combatWeaponIndex,
 					this.combatAttackStartAltitude, this.combatAttackStopAltitude, this.combatDiveTargetYOffset);
