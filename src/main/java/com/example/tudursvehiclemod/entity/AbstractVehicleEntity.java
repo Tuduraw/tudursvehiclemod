@@ -3581,9 +3581,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	/** Called the instant a pilot (re)takes the controls, including re-boarding mid-air after being abandoned. */
 	protected void onPilotMounted() {
 		// Carrier-launched aircraft and dummy pilots both already have an established, autonomous cruiseSpeed - resetting it here would wrongly interrupt it.
+		// Otherwise the cruise speed starts from how fast the vehicle is actually moving forward right now, rather than from 0: taking the controls of something already under way - moving into the pilot seat mid-flight from another seat, or re-boarding mid-air - used to drop the speed to 0.0 and make it build back up with the throttle. A vehicle at rest is still started from (about) 0, as before. Same forward-component measure as the cruise speed taken when a pilot leaves (AircraftEntity's own wasPiloted handling).
 		if (!(this instanceof AircraftEntity aircraft && aircraft.tudursvehiclemod$isCarrierPlayerControlled())
 				&& !(this.getControllingPassenger() instanceof com.example.tudursvehiclemod.entity.DummyPilotEntity)) {
-			this.cruiseSpeed = 0f;
+			Vec3d mountVelocity = this.getVelocity();
+			double mountYawRad = Math.toRadians(this.getYaw());
+			this.cruiseSpeed = (float) (mountVelocity.x * -Math.sin(mountYawRad) + mountVelocity.z * Math.cos(mountYawRad));
 		}
 		this.setFreeLook(false);
 		this.setDescending(false);
