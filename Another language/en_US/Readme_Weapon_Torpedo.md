@@ -8,8 +8,9 @@ have meaning for `Type = Torpedo`.
 ## Firing restrictions
 
 - Can only be used while the vehicle's own attitude is close to level
-  (both pitch and roll within ±15 degrees) and at low altitude (judged by
-  distance to the ground/water surface directly below)
+  (both pitch and roll within ±15 degrees) and at low altitude (the
+  distance to the ground/water surface directly below must be no more
+  than `TorpedoMaxAltitude`, 40 blocks by default)
 - A submarine (see `Readme_Vehicle_Submarine.md`) can use this weapon
   type even while submerged (hatch closed)
 
@@ -20,7 +21,9 @@ have meaning for `Type = Torpedo`.
 Right after firing, it inherits the vehicle's own velocity and falls
 under `Gravity`. **The instant it hits the water, it switches to a
 dedicated underwater cruise phase**, and from then on is no longer
-affected by `Gravity`.
+affected by `Gravity`. Underwater it levels out gradually from the angle
+it entered the water at and runs at `TargetDepth` (the same for every
+torpedo, whatever `GuidedTorpedo` is set to).
 
 **Example**:
 ```
@@ -58,16 +61,37 @@ Round = 3
 - **Example**: `TargetDepth = 3.0`
 
 ## `GuidedTorpedo`
-- **Format**: boolean (default: `true`)
-- **Description**: When `true` (default), homes toward the block that was
-  specified at the moment it hit the water (the aim point at the time of
-  firing) - horizontal direction is fixed, while pitch at the moment of
-  water entry is gradually corrected toward the target depth. When
-  `false`, it becomes an unguided torpedo that travels straight from
-  wherever it entered the water (speed control via
-  `AccelerationInWater` / `VelocityInWater` still applies - only the
-  course correction itself is skipped).
-- **Example**: `GuidedTorpedo = false`
+- **Format**: boolean (default: `false`)
+- **Description**: Whether it is steered horizontally underwater. Keeping
+  to `TargetDepth` happens either way.
+  - `false` (default): an unguided torpedo. It runs straight on in the
+    direction it was travelling when it entered the water.
+  - `true`: a guided torpedo. The kind of guidance is switched with lock
+    mode (the **B key** by default - the same key as commanding
+    wingmen):
+    - Lock mode off: it heads for the aim point at the moment of firing
+      (the point under the crosshair). Once within 3 blocks of that
+      point it runs straight on.
+    - Lock mode on: while this weapon is selected, the entity nearest
+      the crosshair (within 15 degrees of it, up to 1000 blocks away) is
+      highlighted. When fired, the torpedo chases that entity (like a
+      missile's lock-on). It cannot be fired with nothing highlighted.
+  - How fast it turns is set by `TurnRate` (degrees per tick). At 0 or
+    less, it turns at 2 degrees per tick.
+  - Either way, once it has passed its target (the target is behind it at
+    close range), it carries straight on rather than turning back - so it
+    never ends up circling the target.
+  - Fired by an AI (a wingman, a Carrier aircraft or a dummy pilot), it
+    chases the target that AI is attacking (lock mode plays no part).
+- **Example**: `GuidedTorpedo = true`
+
+## `TorpedoMaxAltitude`
+- **Format**: number, in blocks (default: `40`)
+- **Description**: The highest altitude a torpedo can be fired (dropped)
+  from, measured from the ground or water surface directly below the
+  vehicle. It cannot be fired from any higher. This used to be fixed at
+  15 blocks.
+- **Example**: `TorpedoMaxAltitude = 30`
 
 ## `GravityInWater`
 - **Format**: number (default: the same value as the ordinary `Gravity`)

@@ -296,6 +296,40 @@ public final class MidgetNavigator {
 		return error > 0f ? 1.0f : -1.0f;
 	}
 
+	/** What a midget chasing a designated target should do this tick - see {@link #pursuitDecision}. */
+	public enum Pursuit {
+		/** Keep heading for the target. */
+		CHASE,
+		/** In range and pointed at it: attack (and, once a shot actually goes out, stop chasing). */
+		ATTACK,
+		/** Ran past it at close range: stop chasing and carry on with the route rather than turn back. */
+		GIVE_UP
+	}
+
+	/** How far (degrees) the heading may be off the target's bearing for an attack. */
+	public static final float PURSUIT_ATTACK_AIM_TOLERANCE_DEGREES = 15f;
+
+	/**
+	 * A midget chasing a designated target (the mothership fired its Midget weapon in lock mode): attack once within
+	 * attackRange and pointed at the target; give up once the target is BEHIND it at close range (within about two turn
+	 * radii) - a target it has run past and could only reach by turning back, which with a turning circle about as big as
+	 * the distance left is exactly how an endless orbit around the target starts. A target behind it but further away is
+	 * still chased (far away, turning round cannot become an orbit).
+	 */
+	public static Pursuit pursuitDecision(double x, double z, float yaw, double targetX, double targetZ, double attackRange, double turnRadius) {
+		double dx = targetX - x;
+		double dz = targetZ - z;
+		double distance = Math.sqrt(dx * dx + dz * dz);
+		float error = Math.abs(wrapDegrees(bearingDegrees(x, z, targetX, targetZ) - yaw));
+		if (distance <= attackRange && error <= PURSUIT_ATTACK_AIM_TOLERANCE_DEGREES) {
+			return Pursuit.ATTACK;
+		}
+		if (error > 90f && distance <= 2.0 * turnRadius + WAYPOINT_REACHED_BLOCKS) {
+			return Pursuit.GIVE_UP;
+		}
+		return Pursuit.CHASE;
+	}
+
 	/** Back to a fresh start (used when a new route leg begins that should not inherit an old ceiling). */
 	public void reset() {
 		this.avoiding = false;

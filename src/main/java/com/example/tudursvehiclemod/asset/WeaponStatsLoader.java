@@ -310,8 +310,10 @@ public final class WeaponStatsLoader {
 		// Bound - see this record's own doc.
 		float bounceStrength = Math.max(0.0f, toFloat(entries.get("bound"), 0.0f));
 
-		// GuidedTorpedo - Type=Torpedo only, defaults to true (this project's own original, always-guided behavior).
-		boolean guidedTorpedo = !"false".equalsIgnoreCase(entries.getOrDefault("guidedtorpedo", "true").strip());
+		// GuidedTorpedo - Type=Torpedo only, defaults to false (straight-running) - see this record's own doc.
+		boolean guidedTorpedo = "true".equalsIgnoreCase(entries.getOrDefault("guidedtorpedo", "false").strip());
+		// TorpedoMaxAltitude - Type=Torpedo only - see this record's own doc.
+		float torpedoMaxAltitude = Math.max(0.0f, toFloat(entries.get("torpedomaxaltitude"), 40.0f));
 
 		// Piercing - see this record's own doc.
 		int piercingCount = Math.max(0, (int) toFloat(entries.get("piercing"), 0.0f));
@@ -351,6 +353,8 @@ public final class WeaponStatsLoader {
 		// CasAttackStartAltitude/CasAttackStopAltitude - see this record's own doc for the full reasoning. Defaults to 100.0/40.0 whenever the key is absent, matching this project's own current behavior.
 		float casAttackStartAltitude = toFloat(entries.get("casattackstartaltitude"), 200.0f);
 		float casAttackStopAltitude = toFloat(entries.get("casattackstopaltitude"), 40.0f);
+		// CasTorpedoAltitude - see WeaponStats's own doc.
+		float casTorpedoAltitude = toFloat(entries.get("castorpedoaltitude"), 20.0f);
 
 		// RidableOnly - see this record's own doc (informational only in this project - every weapon here is already vehicle-mounted).
 		boolean ridableOnly = !"false".equalsIgnoreCase(entries.getOrDefault("ridableonly", "true").strip());
@@ -682,9 +686,11 @@ public final class WeaponStatsLoader {
 				int midgetDetectInterval = Math.max(1, (int) toFloat(entries.get("midgetdetectinterval"), 10.0f));
 				double midgetAvoidStep = Math.max(0.1, toFloat(entries.get("midgetavoidstep"), 1.0f));
 				boolean midgetRecovery = !"false".equalsIgnoreCase(String.valueOf(entries.get("midgetrecovery")).strip());
+				// MidgetAttackRange - see MidgetConfig's own doc.
+				double midgetAttackRange = Math.max(1.0, toFloat(entries.get("midgetattackrange"), 60.0f));
 				midget = Optional.of(new MidgetConfig(midgetVehicleValue.strip(), midgetWeaponIndex, midgetAccuracy, midgetTimeoutTicks, midgetStuckTimeoutTicks,
 						midgetYawOffset, midgetTargetYawOffset, midgetLaunchWaypoints, midgetWaypoints,
-						midgetDetectRange, midgetDetectInterval, midgetAvoidStep, midgetRecovery));
+						midgetDetectRange, midgetDetectInterval, midgetAvoidStep, midgetRecovery, midgetAttackRange));
 			}
 		}
 
@@ -696,9 +702,9 @@ public final class WeaponStatsLoader {
 				bombletCount, bombletDeployTicks, bombletSpreadRate, bombletModel, bombletTexture, targetDepthOffset, diveDistance,
 				rotationSpeedPerSecond, dispenseItem, dispenseRange, smokeColor, smokeSize, smokeMaxAge,
 				targetingPodTargets, targetingPodLength, targetingPodRadius, targetingPodMarkTimeSeconds,
-				explosionAltitude, delayFuseTicks, timeFuseTicks, bounceStrength, gravityInWater, guidedTorpedo,
+				explosionAltitude, delayFuseTicks, timeFuseTicks, bounceStrength, gravityInWater, guidedTorpedo, torpedoMaxAltitude,
 				piercingCount, accuracyDegrees, fuelAirExplosive, bulletColor, bulletColorInWater,
-				sight, lockTimeTicks, lockRange, lockTimePerBlock, turnRateDegreesPerTick, casTargetMode, casAttackStartAltitude, casAttackStopAltitude, ridableOnly, proximityFuseDist, rigidityTimeTicks, group, modeNum,
+				sight, lockTimeTicks, lockRange, lockTimePerBlock, turnRateDegreesPerTick, casTargetMode, casAttackStartAltitude, casAttackStopAltitude, casTorpedoAltitude, ridableOnly, proximityFuseDist, rigidityTimeTicks, group, modeNum,
 				trajectoryParticle, trajectoryParticleStartTick, disableSmoke, muzzleFlash, muzzleFlashSmoke, cartridge,
 				recoil, recoilDurationTicks, recoilRecessionRateMultiplier, destruct,
 				cameraRotationSpeedPitch, fixCameraPitch, displayMortarDistance, casStrike, carrierAircraft, midget, usableWhileDiving,

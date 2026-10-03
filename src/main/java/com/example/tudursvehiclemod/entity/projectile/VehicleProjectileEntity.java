@@ -617,6 +617,81 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		this.gravityInWater = gravityInWater;
 	}
 
+	/** Torpedo horizontal guidance (server only) - see tudursvehiclemod$setTorpedoGuidance(). At most one of these is set: the point under the shooter's crosshair at the moment of firing, or the entity it is chasing. Both null: runs straight. */
+	private Vec3d torpedoAimPos;
+	private Integer torpedoTrackEntityId;
+	private float torpedoTurnRateDegreesPerTick;
+	/** Within this horizontal distance (blocks) of its aim point a point-guided torpedo stops steering and runs straight on through. */
+	static final double TORPEDO_AIM_ARRIVAL_DISTANCE = 3.0;
+	/** Steering rate (degrees/tick) used when the weapon's own TurnRate is not positive. */
+	static final float TORPEDO_DEFAULT_TURN_RATE = 2.0f;
+
+	/**
+	 * Called once, right after firing, by tryFireWeapon for a GuidedTorpedo=true torpedo: steers it, once in the water,
+	 * toward aimPos (a fixed point - lock mode off) or the entity trackEntityId (lock mode on), turning at most
+	 * turnRateDegreesPerTick. The steering only ever changes the heading; depth-keeping is the same as for any torpedo.
+	 *
+	 * <p>It never circles its goal: a point-guided torpedo stops steering once it is within TORPEDO_AIM_ARRIVAL_DISTANCE of
+	 * its point, and either kind stops steering once its goal is BEHIND it while within about two turn radii - a goal
+	 * it has run past and could only reach by turning back, which with a turning circle about as big as the distance
+	 * left is exactly what produces an endless orbit. From then on it runs straight. A goal behind it but far away is
+	 * still turned toward (far away, a turn of any size cannot become an orbit). A chased entity that dies or is removed
+	 * also ends the steering.
+	 */
+	public void tudursvehiclemod$setTorpedoGuidance(Vec3d aimPos, Integer trackEntityId, float turnRateDegreesPerTick) {
+		this.torpedoAimPos = trackEntityId == null ? aimPos : null;
+		this.torpedoTrackEntityId = trackEntityId;
+		this.torpedoTurnRateDegreesPerTick = turnRateDegreesPerTick > 0f ? turnRateDegreesPerTick : TORPEDO_DEFAULT_TURN_RATE;
+	}
+
+	/** One tick of torpedo horizontal guidance while cruising (server only) - updates the synced CRUISE_YAW_DEGREES, which the client reads to follow the turn. See tudursvehiclemod$setTorpedoGuidance()'s own doc. */
+	private void tudursvehiclemod$steerTorpedo() {
+		if (this.getEntityWorld().isClient() || (this.torpedoAimPos == null && this.torpedoTrackEntityId == null)) {
+			return;
+		}
+		Vec3d goal = this.torpedoAimPos;
+		if (this.torpedoTrackEntityId != null) {
+			net.minecraft.entity.Entity tracked = this.getEntityWorld().getEntityById(this.torpedoTrackEntityId);
+			if (tracked == null || tracked.isRemoved()
+					|| (tracked instanceof net.minecraft.entity.LivingEntity living && !living.isAlive())) {
+				this.torpedoTrackEntityId = null;
+				return;
+			}
+			goal = tracked.getEntityPos();
+		}
+		float currentYaw = this.dataTracker.get(CRUISE_YAW_DEGREES);
+		float[] decision = tudursvehiclemod$torpedoSteer(currentYaw, this.getX(), this.getZ(), goal.x, goal.z,
+				this.currentCruiseSpeed, this.torpedoTurnRateDegreesPerTick, this.torpedoAimPos != null);
+		if (decision == null) {
+			this.torpedoAimPos = null;
+			this.torpedoTrackEntityId = null;
+			return;
+		}
+		this.dataTracker.set(CRUISE_YAW_DEGREES, decision[0]);
+	}
+
+	/**
+	 * The steering decision itself, as a plain function so it can be tested: the next heading {yaw}, or null to stop
+	 * steering for good (see tudursvehiclemod$setTorpedoGuidance()'s own doc for when).
+	 */
+	static float[] tudursvehiclemod$torpedoSteer(float currentYaw, double x, double z, double goalX, double goalZ,
+			double speed, float turnRateDegreesPerTick, boolean fixedPoint) {
+		double dx = goalX - x;
+		double dz = goalZ - z;
+		double distance = Math.sqrt(dx * dx + dz * dz);
+		if (fixedPoint && distance <= TORPEDO_AIM_ARRIVAL_DISTANCE) {
+			return null;
+		}
+		float desired = (float) Math.toDegrees(Math.atan2(-dx, dz));
+		float error = MathHelper.wrapDegrees(desired - currentYaw);
+		double turnRadius = Math.max(speed, 0.05) / Math.toRadians(turnRateDegreesPerTick);
+		if (Math.abs(error) > 90f && distance <= 2.0 * turnRadius + TORPEDO_AIM_ARRIVAL_DISTANCE) {
+			return null;
+		}
+		float step = MathHelper.clamp(error, -turnRateDegreesPerTick, turnRateDegreesPerTick);
+		return new float[]{MathHelper.wrapDegrees(currentYaw + step)};
+	}
+
 	/** Called once, right after firing, by tryFireWeapon for WeaponType.TORPEDO - see WeaponStats's own guidedTorpedo doc. Written through GUIDED_TORPEDO's own synced DataTracker field (see that field's own doc for why this needs to reach the CLIENT too, not just stay server-side). */
 	public void tudursvehiclemod$setGuidedTorpedo(boolean guidedTorpedo) {
 		this.dataTracker.set(GUIDED_TORPEDO, guidedTorpedo);
@@ -694,7 +769,7 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		builder.add(ACCELERATION_IN_WATER_TARGET, 4.0f);
 		builder.add(VELOCITY_IN_WATER_RATE, 0.5f);
 		builder.add(TARGET_DEPTH_OFFSET, 2.0f);
-		builder.add(GUIDED_TORPEDO, true);
+		builder.add(GUIDED_TORPEDO, false);
 	}
 
 	@Override
@@ -1793,33 +1868,23 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		this.underwaterCruisePhase = UnderwaterCruisePhase.CRUISING;
 		this.currentCruiseSpeed = MathHelper.lerp(this.dataTracker.get(VELOCITY_IN_WATER_RATE), this.currentCruiseSpeed, this.dataTracker.get(ACCELERATION_IN_WATER_TARGET));
 
+		this.tudursvehiclemod$steerTorpedo();
 		float cruiseYawDegrees = this.dataTracker.get(CRUISE_YAW_DEGREES);
 		float initialPitch = this.dataTracker.get(CRUISE_INITIAL_PITCH);
 		float initialDepthError = this.dataTracker.get(CRUISE_INITIAL_DEPTH_ERROR);
 		float targetDepthY = this.dataTracker.get(CRUISE_TARGET_DEPTH_Y);
 
 		double currentDepthError = this.getY() - targetDepthY;
-		// Per Readme_Weapon.txt's own GuidedTorpedo doc: false means this
-		// torpedo travels in a straight line once submerged, with no
-		// homing/course-correction behavior at all - stays at its own
-		// initialPitch (the angle it actually entered the water at)
-		// throughout, rather than gradually correcting towards its own
-		// target depth the way a guided torpedo does. Still gets
-		// AccelerationInWater/VelocityInWater's own underwater speed
-		// ramp either way - that's a separate concern from steering.
+		// Depth-keeping, for EVERY torpedo: the pitch eases from the angle it entered the water at toward level as the depth error closes, so it settles at its TargetDepth. This used to apply only to a GuidedTorpedo=true torpedo - a GuidedTorpedo=false one kept its entry angle for good, so one dropped from an aircraft (which always enters the water nose-down) just ran on down to the bottom. GuidedTorpedo now only decides the horizontal steering (see tudursvehiclemod$steerTorpedo()).
 		float torpedoPitch;
-		if (!this.dataTracker.get(GUIDED_TORPEDO)) {
-			torpedoPitch = initialPitch;
+		// How much of the STARTING depth error is still remaining (1 = none closed yet, 0 = fully closed/at target depth) - clamped so this can never exceed the starting error's own magnitude or flip sign.
+		float remainingFraction;
+		if (Math.abs(initialDepthError) < 1.0E-3) {
+			remainingFraction = 0f; // already essentially at target depth the instant CRUISING began - stays level throughout.
 		} else {
-			// How much of the STARTING depth error is still remaining (1 = none closed yet, 0 = fully closed/at target depth) - clamped so this can never exceed the starting error's own magnitude or flip sign (which would otherwise happen right as this torpedo crosses past its own target depth).
-			float remainingFraction;
-			if (Math.abs(initialDepthError) < 1.0E-3) {
-				remainingFraction = 0f; // already essentially at target depth the instant CRUISING began - stays level throughout.
-			} else {
-				remainingFraction = MathHelper.clamp((float) (currentDepthError / initialDepthError), 0f, 1f);
-			}
-			torpedoPitch = initialPitch * remainingFraction;
+			remainingFraction = MathHelper.clamp((float) (currentDepthError / initialDepthError), 0f, 1f);
 		}
+		torpedoPitch = initialPitch * remainingFraction;
 
 		float yawRad = (float) Math.toRadians(cruiseYawDegrees);
 		float pitchRad = (float) Math.toRadians(torpedoPitch);

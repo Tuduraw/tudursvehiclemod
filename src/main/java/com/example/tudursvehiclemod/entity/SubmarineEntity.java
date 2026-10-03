@@ -61,9 +61,48 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 	/** Set once, the first tick this submarine's own autopilot runs, so the hatch is closed (and physics switches to diving) without repeating tudursvehiclemod$tryToggleHatch()'s own level-attitude gate every tick. */
 	private boolean midgetHatchClosedOnce;
 
+	/** The entity this midget was launched against in lock mode - see tudursvehiclemod$setMidgetDesignatedTarget(). Null when there is none, or once the attack is over. */
+	private java.util.UUID midgetDesignatedTargetUuid;
+	private double midgetAttackRange;
+
+	/**
+	 * Called once at launch by AbstractVehicleEntity#tudursvehiclemod$fireMidgetLaunch() when the mothership fired in lock mode:
+	 * once its launch route is flown, this midget goes after targetUuid instead of starting its route - chasing it at the depth
+	 * and speed of the route's first waypoint, and attacking with its own attack weapon (MidgetWeaponIndex) once within
+	 * attackRange and pointed at it (see MidgetNavigator#pursuitDecision()). The attack is over when a shot actually goes out,
+	 * when the target is gone, or when it runs past the target at close range; then it carries on with its route from the first
+	 * waypoint, and is recovered as usual. A null targetUuid designates nothing - the ordinary route.
+	 */
+	public void tudursvehiclemod$setMidgetDesignatedTarget(java.util.UUID targetUuid, double attackRange) {
+		this.midgetDesignatedTargetUuid = targetUuid;
+		this.midgetAttackRange = attackRange;
+	}
+
+	/** The designated target, once this midget has flown its launch route and while the target is still there; null otherwise. A target that is gone ends the attack (the designation is dropped). */
+	private net.minecraft.entity.Entity tudursvehiclemod$midgetPursuitTarget() {
+		if (this.midgetDesignatedTargetUuid == null || this.midgetWaypointIndex < this.midgetLaunchWaypoints.size()
+				|| !(this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld)) {
+			return null;
+		}
+		net.minecraft.entity.Entity target = serverWorld.getEntity(this.midgetDesignatedTargetUuid);
+		if (target == null || target.isRemoved()
+				|| (target instanceof AbstractVehicleEntity targetVehicle && targetVehicle.tudursvehiclemod$isDestroyed())
+				|| (target instanceof net.minecraft.entity.LivingEntity living && !living.isAlive())) {
+			this.midgetDesignatedTargetUuid = null;
+			return null;
+		}
+		return target;
+	}
+
 	/** True exactly while this submarine is flying an autonomous Midget route - see tudursvehiclemod$initializeMidgetLaunch()'s own doc. */
 	public boolean tudursvehiclemod$isMidgetAutopilotActive() {
 		return this.midgetLaunchWaypoints != null;
+	}
+
+	/** See AbstractVehicleEntity's own doc: a midget flying its route is exempt from running out of fuel. Server-side state only (the route is not synced), which is where every fuel consequence is decided. */
+	@Override
+	protected boolean tudursvehiclemod$isRunningOwnAutopilotRoute() {
+		return this.tudursvehiclemod$isMidgetAutopilotActive();
 	}
 
 	/**
@@ -362,7 +401,15 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 			this.discard();
 			return;
 		}
-		double[] target = this.tudursvehiclemod$midgetCurrentTarget();
+		// Chasing a designated target (lock mode) takes the place of the route until the attack is over - see tudursvehiclemod$setMidgetDesignatedTarget()'s own doc. The route waypoint index is left where it is (on the route's first waypoint) meanwhile.
+		net.minecraft.entity.Entity pursuitTarget = this.tudursvehiclemod$midgetPursuitTarget();
+		double[] target;
+		if (pursuitTarget != null) {
+			com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint firstRouteWaypoint = this.midgetRouteWaypoints.get(0);
+			target = new double[]{pursuitTarget.getX(), pursuitTarget.getZ(), firstRouteWaypoint.depth(), 0.0, firstRouteWaypoint.speedFraction()};
+		} else {
+			target = this.tudursvehiclemod$midgetCurrentTarget();
+		}
 		if (target == null) {
 			// Recovered: every leg (launch, route, and - if recoveryEnabled - the return trip) is done.
 			this.discard();
@@ -377,7 +424,7 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		double dx = targetX - this.getX();
 		double dz = targetZ - this.getZ();
 		double horizontalDistance = Math.sqrt(dx * dx + dz * dz);
-		if (horizontalDistance <= MidgetNavigator.WAYPOINT_REACHED_BLOCKS) {
+		if (pursuitTarget == null && horizontalDistance <= MidgetNavigator.WAYPOINT_REACHED_BLOCKS) {
 			this.midgetStuckTicks = 0;
 			this.midgetWaypointIndex++;
 			// Re-evaluate THIS tick against the new leg immediately, rather than coasting toward the just-reached point for one more tick with stale steering.
@@ -418,6 +465,8 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		double buoyancyY = stuckAtSurface ? 0.0 : MidgetNavigator.buoyancyVelocityY(goalDepth, depthNow, this.getVelocity().y);
 
 		float throttleFraction = stuckAtSurface ? 0f : MidgetNavigator.throttleTarget(speedFraction, yawError, false);
+		// The synced throttle is what the engine sound (client.sound.VehicleEngineSoundManager) and the spinning parts (getSpinningPartSpeedMultiplier()) both read, and the client-side propeller below; this autopilot sets the velocity directly and never set it, so the engine stayed at idle and nothing turned. Set from the very fraction the velocity is built from, so what is heard and seen matches how fast it is actually going.
+		this.setThrottleDirect(throttleFraction);
 		double speed = throttleFraction * this.tudursvehiclemod$getDiveMaxSpeed(def);
 		Vec3d heading = Vec3d.fromPolar(this.getPitch(), this.getYaw());
 		Vec3d velocity = heading.multiply(speed).add(0.0, buoyancyY, 0.0);
@@ -425,7 +474,19 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		this.move(net.minecraft.entity.MovementType.SELF, this.getVelocity());
 		this.velocityDirty = true;
 
-		if (attackLeg && this.midgetAttackWeaponIndex >= 0) {
+		if (pursuitTarget != null) {
+			double turnRadius = Math.max(speed, 0.05) / Math.toRadians(Math.max(0.1f, def.turnSpeed()));
+			MidgetNavigator.Pursuit decision = MidgetNavigator.pursuitDecision(this.getX(), this.getZ(), this.getYaw(),
+					pursuitTarget.getX(), pursuitTarget.getZ(), this.midgetAttackRange, turnRadius);
+			if (decision == MidgetNavigator.Pursuit.ATTACK && this.midgetAttackWeaponIndex >= 0) {
+				// tryFireWeapon() returns true only when a shot actually went out; then the attack is over. The target is passed along, so a guided torpedo chases it.
+				if (this.tryFireWeapon(this.midgetAttackWeaponIndex, null, pursuitTarget)) {
+					this.midgetDesignatedTargetUuid = null;
+				}
+			} else if (decision == MidgetNavigator.Pursuit.GIVE_UP) {
+				this.midgetDesignatedTargetUuid = null;
+			}
+		} else if (attackLeg && this.midgetAttackWeaponIndex >= 0) {
 			this.tryFireWeapon(this.midgetAttackWeaponIndex, null);
 		}
 	}
@@ -513,6 +574,11 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 			return;
 		}
 		if (this.getControllingPassenger() == null && !this.tudursvehiclemod$isFollowingGroundRoute() && this.getEntityWorld().isClient()) {
+			// propellerRotation is a plain client-side field (not synced), advanced only by the ordinary physics further down, which this branch skips - so an unpiloted submarine that IS under way (a launched midget, driven by the server) never turned its propeller on the client. Turned here whenever the synced throttle says the boat is running, at the same rate as below; an ordinary unpiloted submarine sits at throttle 0 and stays still, as before.
+			this.prevPropellerRotation = this.propellerRotation;
+			if (Math.abs(this.getThrottle()) > 0f) {
+				this.propellerRotation += 12f;
+			}
 			// Unlike every other vehicle type's own version of this same "skip local physics recomputation, but still apply move() with the network-synced velocity" guard (CarEntity/ShipEntity/HelicopterEntity/StaticEmplacementEntity/VtolEntity), this one was a bare return - no move() call at all. That's exactly the FIRST, broken attempt at this guard documented elsewhere (docs/IMPLEMENTATION_NOTES.md "滑走路上エンティティの振動問題"): leaving the client relying purely on vanilla's own passive position interpolation, with none of the velocity-driven smoothing that move() itself provides - producing visible teleport-like stutter for an unpiloted submarine specifically (surfaced and drifting, being carried on a runway, settled after its own pilot disembarked mid-motion, etc.) Corrected to match every other vehicle type's own already-working version.
 			// Also fixes a second, related bug this same investigation surfaced: this.roll (this hull's own visible bank angle - a plain, non-DataTracker field VehicleEntityRenderer.java's own state.roll actually renders, confirmed by direct reference there, unlike CarEntity's own since-corrected false lead) was ALSO frozen by this early return, at whatever angle it happened to hold the instant this guard first engaged - a submarine that was actively banking (surfaced, turning) the moment its own pilot disembarked would otherwise stay visually tilted forever afterward, never leveling out, even though the server's own roll correctly decays back to 0 the whole time (both this hull's own surfaced-with-no-input and diving branches below target exactly 0 roll once genuinely unpiloted). Replicated that same "decay toward level" formula here.
 			this.prevRoll = this.roll;

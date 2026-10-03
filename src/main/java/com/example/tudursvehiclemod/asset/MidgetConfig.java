@@ -26,10 +26,13 @@ import java.util.List;
  * detectIntervalTicks the submarine looks detectRange blocks ahead for terrain and, if the way is
  * blocked, surfaces avoidStep blocks at a time, looking again at every step. See
  * entity.MidgetNavigator.
+ *
+ * <p>attackRange (MidgetAttackRange) is how close a midget launched in lock mode gets to its designated target before
+ * attacking it - see entity.SubmarineEntity's own tudursvehiclemod$setMidgetDesignatedTarget().
  */
 public record MidgetConfig(String vehicleFileName, int weaponIndex, float accuracy, int timeoutTicks, int stuckTimeoutTicks,
 		float yawOffsetDegrees, float targetYawOffsetDegrees, List<MidgetWaypoint> launchWaypoints, List<MidgetWaypoint> waypoints,
-		double detectRange, int detectIntervalTicks, double avoidStep, boolean recovery) {
+		double detectRange, int detectIntervalTicks, double avoidStep, boolean recovery, double attackRange) {
 
 	/**
 	 * One stop of a midget's route: x/z in blocks (relative to the marked point for a route waypoint,

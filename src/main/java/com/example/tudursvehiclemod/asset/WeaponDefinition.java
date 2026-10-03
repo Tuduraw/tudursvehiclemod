@@ -227,6 +227,11 @@ public record WeaponDefinition(
 		return WeaponStatsLoader.get(weaponName).guidedTorpedo();
 	}
 
+	/** See WeaponStats's own doc - Type=Torpedo only. */
+	public float torpedoMaxAltitude() {
+		return WeaponStatsLoader.get(weaponName).torpedoMaxAltitude();
+	}
+
 	/** Piercing - see WeaponStats's own doc. */
 	public int piercingCount() {
 		return WeaponStatsLoader.get(weaponName).piercingCount();
@@ -295,6 +300,11 @@ public record WeaponDefinition(
 	/** CasAttackStopAltitude - CAS/CARRIER only, see WeaponStats's own doc. */
 	public float casAttackStopAltitude() {
 		return WeaponStatsLoader.get(weaponName).casAttackStopAltitude();
+	}
+
+	/** See WeaponStats's own doc - CAS/CARRIER, TORPEDO only. */
+	public float casTorpedoAltitude() {
+		return WeaponStatsLoader.get(weaponName).casTorpedoAltitude();
 	}
 
 	/** RidableOnly - see WeaponStats's own doc. */

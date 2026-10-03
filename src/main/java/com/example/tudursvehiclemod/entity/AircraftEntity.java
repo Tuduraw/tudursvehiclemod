@@ -455,7 +455,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		}
 		return super.damage(world, source, amount);
 	}
-	/** Gentle, from behind" Carrier landing approach that stays in motion the whole way (no speed-dependent settling) - see tudursvehiclemod$updateCarrierReturnToBase()'s own doc for how these are all used together. */
+	/** Gentle, from behind" Carrier landing approach that stays in motion the whole way (no speed-dependent settling) - see tudursvehiclemod$updateCarrierReturnToBase()'s own doc for how these are all used together. No longer the landing speed itself: each CarrierLandingWaypoint's own speedFraction (its speed% column) now sets the speed for the leg leading to it, as the docs always described. Kept only as the fallback for a waypoint whose speedFraction is somehow not positive. */
 	private static final float CARRIER_LANDING_CRUISE_SPEED_FRACTION = 0.3f;
 	private static final float CARRIER_LANDING_SPEED_BLEND = 0.05f;
 	/** The final landing leg is built around continuous deceleration (see tudursvehiclemod$updateCarrierReturnToBase()'s own doc for the full reasoning) rather than the old "force onto an exact line" approach: how much cruiseSpeed decreases each tick during that final glide, and the floor it never drops below. The floor is deliberately kept below the "essentially landed" speed AbstractVehicleEntity's own carrier-landing recovery mechanism checks for, so simply coasting down to it (while also within recovery range) is sufficient for that separate, generic mechanism to actually pick this aircraft up - a non-zero floor guarantees this aircraft always keeps enough way on to actually reach that range in finite time, rather than potentially stalling short of it. */
@@ -1489,6 +1489,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 
 	/** Sets/replaces THIS wingman's own current lock - see carrierLockedTargetUuid's own doc. Resets carrierLockedTargetBestDistance/carrierLockedTargetStagnantTicks/carrierLockClimbingToSafeAltitude/carrierLockApproachingWaypoint unconditionally (even if targetUuid happens to equal the previous one already locked - a fresh assignment starts fresh regardless), matching VehicleProjectileEntity's own tudursvehiclemod$setGuidanceTargetEntity()'s own identical reset-on-(re)assignment behavior. carrierLockApproachingWaypoint starts true - a freshly-locked target is always approached via the waypoint first, never dived on immediately. Also stamps carrierLockAssignmentSequence (see that field's own doc) so the NEXT fallback reassignment, if every wingman is busy again by then, correctly treats this as the freshest assignment (least likely to be picked again immediately). */
 	private void tudursvehiclemod$assignCarrierLockTarget(java.util.UUID targetUuid, int weaponIndex) {
+		this.torpedoRunPlanner.reset();
 		this.carrierLockedTargetUuid = targetUuid;
 		this.carrierLockedTargetWeaponIndex = weaponIndex;
 		this.carrierLockedTargetBestDistance = Double.MAX_VALUE;
@@ -1722,8 +1723,10 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 				this.carrierLandingWaypointIndex++;
 			} else {
 				double lwHorizontalDistance = Math.sqrt(lwdx * lwdx + lwdz * lwdz);
-				// Same steady, moderate-speed steering as the final-approach-anchor leg below (CARRIER_LANDING_CRUISE_SPEED_FRACTION/CARRIER_LANDING_SPEED_BLEND) - kept identical so the transition between landing waypoints feels seamless, not like two different flight behaviors stitched together.
-				float landingWaypointCruiseTarget = this.tudursvehiclemod$rampAutopilotThrottle(def, CARRIER_LANDING_CRUISE_SPEED_FRACTION, this.tudursvehiclemod$getEffectiveMaxSpeed());
+				// The speed for this leg is the speed% of the landing waypoint being flown TO (the same convention as every other waypoint list), eased toward with the same CARRIER_LANDING_SPEED_BLEND as before so a change of speed between landing waypoints is gradual. This used a fixed CARRIER_LANDING_CRUISE_SPEED_FRACTION (30%) for every landing waypoint regardless of its own speed% - reported as such.
+				float landingWaypointSpeedFraction = tudursvehiclemod$landingSpeedFraction(currentLandingWaypoint);
+				this.dataTracker.set(CAS_WAYPOINT_SPEED_FRACTION, landingWaypointSpeedFraction);
+				float landingWaypointCruiseTarget = this.tudursvehiclemod$rampAutopilotThrottle(def, landingWaypointSpeedFraction, this.tudursvehiclemod$getEffectiveMaxSpeed());
 				this.cruiseSpeed += (landingWaypointCruiseTarget - this.cruiseSpeed) * CARRIER_LANDING_SPEED_BLEND;
 				// Same fix/reasoning as this class's own earlier identical addition for the grounded branch above.
 				if (Math.abs(landingWaypointCruiseTarget - this.cruiseSpeed) < 1.0e-4f) {
@@ -1754,10 +1757,18 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		finalLandingWaypoint.gearState().ifPresent(this::tudursvehiclemod$setGearDeployed);
 		finalLandingWaypoint.bayState().ifPresent(open -> this.tudursvehiclemod$setWeaponBayForcedOpen(java.util.Optional.of(open)));
 		// Guarantees getThrottle()/casWaypointSpeedFraction are already correctly settled to the landing-approach speed by the time isDroneActive() flips false below (the engine sound manager switches its own input source at that exact instant) - a safety net for routes with only a single landing waypoint, where the intermediate-waypoint loop above (which normally keeps these in sync) never runs at all.
-		setThrottleDirect(CARRIER_LANDING_CRUISE_SPEED_FRACTION);
-		this.dataTracker.set(CAS_WAYPOINT_SPEED_FRACTION, CARRIER_LANDING_CRUISE_SPEED_FRACTION);
+		// The last landing waypoint's own speed% is the throttle the glide starts with (was a fixed CARRIER_LANDING_CRUISE_SPEED_FRACTION, 30%, like the earlier legs).
+		float finalLandingSpeedFraction = tudursvehiclemod$landingSpeedFraction(finalLandingWaypoint);
+		setThrottleDirect(finalLandingSpeedFraction);
+		this.dataTracker.set(CAS_WAYPOINT_SPEED_FRACTION, finalLandingSpeedFraction);
 		this.carrierGlideMinSpeed = CARRIER_LANDING_FINAL_MIN_SPEED;
 		this.tudursvehiclemod$setDroneLink(null);
+	}
+
+	/** A landing waypoint's own speed% as a throttle fraction; CARRIER_LANDING_CRUISE_SPEED_FRACTION (the old fixed 30%) only for a value that is not positive (0 or negative in the speed% column), so a bad entry cannot stall the approach; values above 100% are capped at full throttle. CarrierLaunchWaypoint's own parser does not bound the speed% column itself, which is why both ends are handled here. */
+	private static float tudursvehiclemod$landingSpeedFraction(com.example.tudursvehiclemod.asset.CarrierLaunchWaypoint waypoint) {
+		float fraction = waypoint.speedFraction();
+		return fraction > 0f ? Math.min(1.0f, fraction) : CARRIER_LANDING_CRUISE_SPEED_FRACTION;
 	}
 
 	/** Per casForcedChunks's own doc: releases every chunk in the grid whenever this entity is actually removed from the world, for ANY reason (timeout despawn, route-completion despawn, destroyed by damage, etc.) - otherwise those chunks would stay permanently requested with nothing left to ever release them. Uses ChunkForceTracker.releaseAll() (see that class's own doc) rather than un-forcing directly - a shared chunk another aircraft/block still needs stays correctly force-loaded even after this one releases its own claim on it. */
@@ -2438,6 +2449,14 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 	private static final float CARRIER_LOCK_CLIMB_ANGLE_DEGREES = 45.0f;
 	/** How far (blocks, both +X and +Z) the approach waypoint (see carrierLockApproachingWaypoint's own doc) sits from a ground/water target - a fixed offset direction rather than one dynamically computed from this wingman's own current position, per that same direct request. Deliberately generous - the whole point is giving this wingman enough distance to actually complete its own turn before committing to the dive. */
 	private static final double CARRIER_LOCK_APPROACH_OFFSET = 200.0;
+	/** The torpedo attack's own state across ticks - see TorpedoRunPlanner's own doc and tudursvehiclemod$updateCarrierLockPursuit(). Reset whenever a new lock is assigned. */
+	private final TorpedoRunPlanner torpedoRunPlanner = new TorpedoRunPlanner();
+	/** How close to dead level (degrees) the aircraft's own pitch must be for a torpedo to be released. */
+	private static final float TORPEDO_RELEASE_LEVEL_PITCH_TOLERANCE_DEGREES = 5.0f;
+	/** For a torpedo run, the obstacle-below floor is this fraction of the run altitude (CasTorpedoAltitude) rather than CARRIER_LOCK_OBSTACLE_AVOIDANCE_RANGE - see obstacleBelowThreshold's own doc. */
+	private static final double TORPEDO_OBSTACLE_BELOW_FRACTION = 0.5;
+	/** How far (blocks) below the weapon's own TorpedoMaxAltitude a torpedo run is held, so altitude-hold wobble cannot carry it over the launch limit at the moment of release. */
+	private static final double TORPEDO_RUN_ALTITUDE_MARGIN = 3.0;
 	/** How close (blocks, horizontal) to the approach waypoint counts as "arrived" - once within this radius, carrierLockApproachingWaypoint clears and the actual dive begins. Generous relative to a typical, tight "arrival radius" (e.g. a plain waypoint's own couple of blocks) since this is a fast-moving, wide-turn-radius aircraft approaching at CARRIER_LOCK_APPROACH_OFFSET's own considerable distance, not a slow final landing approach. */
 	private static final double CARRIER_LOCK_WAYPOINT_ARRIVAL_RADIUS = 30.0;
 
@@ -2494,6 +2513,10 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 				? this.carrierLockAttackStartAltitudeOverride : attackWeapon.casAttackStartAltitude();
 		double attackStopAltitude = this.carrierLockAttackStopAltitudeOverride != null
 				? this.carrierLockAttackStopAltitudeOverride : attackWeapon.casAttackStopAltitude();
+		// An aerial torpedo against a ground/water target flies its own attack entirely (see TorpedoRunPlanner's own doc): in from the target's beam and level at CasTorpedoAltitude, with attackStartAltitude/attackStopAltitude read as horizontal DISTANCES - where the run starts and where the torpedo is released - rather than altitudes. Same resolution as above, override first (so a Drone Center dummy pilot's own two settings are those distances too), deliberately reusing the two existing values rather than adding new ones. None of the altitude-band machinery below (climbing back to a safe altitude, the approach waypoint, the dive) applies to it.
+		boolean torpedoRun = groundOrWaterTarget && attackWeapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.TORPEDO;
+		// Held below the weapon's own TorpedoMaxAltitude (by TORPEDO_RUN_ALTITUDE_MARGIN), since tryFireWeapon() refuses a torpedo launched from any higher: a run flown above that limit could never release at all and would just keep making runs - which is what the old fixed 15-block limit did to CasTorpedoAltitude's own 20-block default.
+		double torpedoRunAltitude = Math.max(1.0, Math.min(attackWeapon.casTorpedoAltitude(), attackWeapon.torpedoMaxAltitude() - TORPEDO_RUN_ALTITUDE_MARGIN));
 
 		Vec3d selfPos = this.getEntityPos();
 		// Rather than one relative to the target's own (possibly elevated, or on different terrain entirely) Y - see tudursvehiclemod$altitudeAboveGroundOrWater()'s own doc. Computed once here, reused for the hysteresis update below AND the below-obstacle check further down.
@@ -2503,7 +2526,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		boolean wasClimbing = this.carrierLockClimbingToSafeAltitude;
 
 		// See carrierLockClimbingToSafeAltitude's own doc for the full reasoning. Updated FIRST (before anything else uses it below), from the CURRENT actual ground/water-relative altitude, so the rest of this tick's own steering reacts to the latest state.
-		if (groundOrWaterTarget) {
+		if (groundOrWaterTarget && !torpedoRun) {
 			if (this.carrierLockClimbingToSafeAltitude) {
 				if (heightAboveGround >= attackStartAltitude) {
 					this.carrierLockClimbingToSafeAltitude = false;
@@ -2535,7 +2558,9 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		Vec3d forwardDir = new Vec3d(-Math.sin(currentYawRad), 0.0, Math.cos(currentYawRad));
 		boolean obstacleAhead = tudursvehiclemod$raycastBlocksBetween(selfPos,
 				selfPos.add(forwardDir.multiply(CARRIER_LOCK_FORWARD_OBSTACLE_RANGE)), this) != null;
-		boolean obstacleBelow = heightAboveGround < CARRIER_LOCK_OBSTACLE_AVOIDANCE_RANGE;
+		// CARRIER_LOCK_OBSTACLE_AVOIDANCE_RANGE (20) is a general "never fly this low" floor sized for the ordinary attack altitudes; a torpedo run flies deliberately low (CasTorpedoAltitude defaults to 20 too) and would graze it constantly, triggering spurious climbs. Scaled to the run altitude instead for a torpedo run, unchanged for everything else.
+		double obstacleBelowThreshold = torpedoRun ? torpedoRunAltitude * TORPEDO_OBSTACLE_BELOW_FRACTION : CARRIER_LOCK_OBSTACLE_AVOIDANCE_RANGE;
+		boolean obstacleBelow = heightAboveGround < obstacleBelowThreshold;
 		boolean avoidingObstacle = obstacleAhead || obstacleBelow;
 		// Per this method's own doc: this wingman goes wings-level and climbs straight (no turning) for either reason - a detected obstacle, or not yet having climbed back to a safe altitude above a ground/water target.
 		boolean holdHeadingAndClimb = avoidingObstacle || this.carrierLockClimbingToSafeAltitude;
@@ -2552,12 +2577,27 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 				this.carrierLockApproachingWaypoint = false;
 			}
 		}
-		boolean approachingWaypointNow = this.carrierLockApproachingWaypoint && !holdHeadingAndClimb;
+		boolean approachingWaypointNow = this.carrierLockApproachingWaypoint && !holdHeadingAndClimb && !torpedoRun;
+		// Updated every tick of a torpedo run (even while obstacle avoidance holds the steering), so its phases follow where the aircraft actually is. The turn radius - speed over turn rate - sets how close to the entry point counts as reaching it and how far ahead along the run line it steers (see TorpedoRunPlanner.update()'s own doc).
+		TorpedoRunPlanner.Command torpedoCommand = null;
+		if (torpedoRun) {
+			Vec3d velocityForTurn = this.getVelocity();
+			double turnSpeed = Math.max(Math.sqrt(velocityForTurn.x * velocityForTurn.x + velocityForTurn.z * velocityForTurn.z),
+					def.maxSpeed() * CARRIER_LOCK_PURSUIT_THROTTLE_FRACTION);
+			double turnRadius = turnSpeed / Math.toRadians(Math.max(0.1f, effectiveTurnRate));
+			torpedoCommand = this.torpedoRunPlanner.update(selfPos.x, selfPos.z, currentTrackedYaw, targetPos.x, targetPos.z, target.getYaw(),
+					attackStartAltitude, attackStopAltitude, turnRadius);
+			if (torpedoCommand.enteredRun()) {
+				this.carrierLockedTargetBestDistance = Double.MAX_VALUE;
+				this.carrierLockedTargetStagnantTicks = 0;
+			}
+		}
 		// Per this method's own doc: firing (and the actual dive itself) is additionally suppressed while still approaching the waypoint, on top of the obstacle-avoidance/climb case above.
 		boolean suppressFiring = holdHeadingAndClimb || approachingWaypointNow;
 
 		// Obstacle avoidance itself DOES count toward the shaken-off clock (giving a tracked target the ability to genuinely use terrain to shake off a pursuing wingman by forcing it to react to obstacles instead of closing distance) - climbing to a safe altitude AND approaching the waypoint (both self-directed repositioning phases entirely unrelated to the target's own movement, not something a target could tactically induce) are excluded, and this wingman is always treated as still tracking during either.
-		if (!this.carrierLockClimbingToSafeAltitude && !approachingWaypointNow) {
+		if (!this.carrierLockClimbingToSafeAltitude && !approachingWaypointNow
+				&& (!torpedoRun || torpedoCommand.phase() == TorpedoRunPlanner.Phase.RUN)) {
 			// Per this method's own doc: a ground/water target's own tracked "distance" (for shaken-off purposes) is horizontal-only - the wingman deliberately maintains a roughly constant vertical offset above it rather than closing the full 3D distance, which would otherwise never "improve" and falsely trip the shaken-off timeout for a target this wingman is actually tracking perfectly well.
 			double trackedDistance = groundOrWaterTarget ? horizontalDistance : selfPos.distanceTo(targetPos);
 			if (trackedDistance < this.carrierLockedTargetBestDistance - CARRIER_LOCK_DISTANCE_MARGIN) {
@@ -2596,6 +2636,30 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			horizontalSpeed = this.tudursvehiclemod$blendCruiseSpeedToward(def, (float) currentHorizontalSpeedMagnitude, (float) targetHorizontalSpeed, targetThrottleFraction, def.maxSpeed());
 			float verticalResponseBlend = MathHelper.clamp(def.acceleration(), 0.01f, 1.0f);
 			blendedVerticalSpeed = currentVelocity.y + (targetClimbVerticalSpeed - currentVelocity.y) * verticalResponseBlend;
+		} else if (torpedoRun) {
+			// Steering for the bearing the torpedo planner gives (the entry point, or along the run line); from the release point on it holds the heading instead - wings levelled out, no turning - so the run is flown straight and level, and nothing ever turns back toward the target (see TorpedoRunPlanner's own doc for why that is what keeps it from circling the target).
+			if (torpedoCommand.steerToBearing()) {
+				float[] coordinatedTurn = this.tudursvehiclemod$computeCoordinatedTurn(currentTrackedYaw, this.droneOrbitTrackedRoll, torpedoCommand.bearingDegrees(), effectiveTurnRate, this.getPitchFollowRateDegrees());
+				newYaw = coordinatedTurn[0];
+				newRoll = coordinatedTurn[1];
+			} else {
+				newYaw = currentTrackedYaw;
+				newRoll = this.droneOrbitTrackedRoll + MathHelper.clamp(0f - this.droneOrbitTrackedRoll, -ROLL_RATE_DEGREES_PER_TICK * 2f, ROLL_RATE_DEGREES_PER_TICK * 2f);
+			}
+			this.droneTrackedYaw = newYaw;
+			this.droneOrbitTrackedRoll = newRoll;
+
+			targetThrottleFraction = CARRIER_LOCK_PURSUIT_THROTTLE_FRACTION;
+			float cruiseSpeedTarget = this.tudursvehiclemod$rampAutopilotThrottle(def, targetThrottleFraction, def.maxSpeed());
+			// Level at the run altitude above the target for the whole attack - never diving toward it.
+			double altitudeError = (targetPos.y + torpedoRunAltitude) - selfPos.y;
+			double targetVerticalSpeed = MathHelper.clamp(altitudeError * DRONE_ORBIT_ALTITUDE_CORRECTION_GAIN, -cruiseSpeedTarget * 0.5, cruiseSpeedTarget * 0.5);
+
+			Vec3d currentVelocity = this.getVelocity();
+			double currentSpeedMagnitude = Math.sqrt(currentVelocity.x * currentVelocity.x + currentVelocity.z * currentVelocity.z);
+			horizontalSpeed = this.tudursvehiclemod$blendCruiseSpeedToward(def, (float) currentSpeedMagnitude, cruiseSpeedTarget, targetThrottleFraction, def.maxSpeed());
+			float verticalResponseBlend = MathHelper.clamp(def.acceleration(), 0.01f, 1.0f);
+			blendedVerticalSpeed = currentVelocity.y + (targetVerticalSpeed - currentVelocity.y) * verticalResponseBlend;
 		} else if (approachingWaypointNow) {
 			// Reaching CasAttackStartAltitude and diving on the target immediately meant turning to actually face it and descending happened simultaneously - the turn itself often never finished before this wingman had already descended to CasAttackStopAltitude, aborting without ever having been aligned to fire. This phase flies toward approachWaypointPos instead (a fixed point offset from the target, at attack-start altitude), freely turning (a genuine coordinated turn, same as active pursuit) to get properly aligned BEFORE the dive itself ever begins.
 			double waypointDx = approachWaypointPos.x - selfPos.x;
@@ -2673,6 +2737,16 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		this.tudursvehiclemod$checkEntityCrashDamage(preMoveSpeed);
 
 		// Only fires (tryFireWeapon with shooter=null, matching that class's own exact same entry point/rate-limiting) once the target is genuinely within CARRIER_LOCK_FIRE_TOLERANCE_DEGREES of this wingman's own current actual facing, rather than the instant a lock exists at all - and never while suppressed (obstacle avoidance, climbing to a safe altitude, OR still approaching the waypoint - there's no point wasting ammo firing while not actually diving on the target). EXCEPT a falling weapon (BOMB/DEPTH) attacking a ground/water target - uses a release-point calculation instead of an aim angle at all (see the branch below).
+		// A torpedo is released when the planner asks for it (in the 5-tick level window from the release point, and only when lined up - see TorpedoRunPlanner's own doc), the aircraft is level, and nothing is forcing an avoidance climb. tryFireWeapon() returns true only when a shot actually went out (false on cooldown/no ammo), so the planner stops asking the moment one does - a short reload must not drop several torpedoes in the same window.
+		if (torpedoRun) {
+			if (!holdHeadingAndClimb && torpedoCommand.tryFire()
+					&& Math.abs(newPitch) <= TORPEDO_RELEASE_LEVEL_PITCH_TOLERANCE_DEGREES
+					&& this.carrierLockedTargetWeaponIndex >= 0 && this.carrierLockedTargetWeaponIndex < def.weapons().size()
+					&& this.tryFireWeapon(this.carrierLockedTargetWeaponIndex, null, target)) {
+				this.torpedoRunPlanner.markFired();
+			}
+			return;
+		}
 		boolean fallingWeaponForFiring = groundOrWaterTarget
 				&& (attackWeapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.BOMB
 						|| attackWeapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.DEPTH);
@@ -2686,7 +2760,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			double impactHorizontalDistance = Math.sqrt(impactDx * impactDx + impactDz * impactDz);
 			if (impactHorizontalDistance <= CARRIER_LOCK_FALLING_WEAPON_RELEASE_TOLERANCE
 					&& this.carrierLockedTargetWeaponIndex >= 0 && this.carrierLockedTargetWeaponIndex < def.weapons().size()) {
-				this.tryFireWeapon(this.carrierLockedTargetWeaponIndex, null);
+				this.tryFireWeapon(this.carrierLockedTargetWeaponIndex, null, target);
 			}
 		} else if (!suppressFiring) {
 			Vec3d toTargetForAim = targetPos.add(0.0, target instanceof LivingEntity livingTarget ? livingTarget.getStandingEyeHeight() : 0.0, 0.0)
@@ -2697,7 +2771,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 				double angleDegrees = Math.toDegrees(Math.acos(MathHelper.clamp(cosAngle, -1.0, 1.0)));
 				if (angleDegrees <= CARRIER_LOCK_FIRE_TOLERANCE_DEGREES
 						&& this.carrierLockedTargetWeaponIndex >= 0 && this.carrierLockedTargetWeaponIndex < def.weapons().size()) {
-					this.tryFireWeapon(this.carrierLockedTargetWeaponIndex, null);
+					this.tryFireWeapon(this.carrierLockedTargetWeaponIndex, null, target);
 				}
 			}
 		}

@@ -104,8 +104,10 @@ public record WeaponStats(
 		float bounceStrength,
 		// GravityInWater - per Readme_Weapon.txt's own doc: this projectile's own fall speed while submerged, completely separate from its own plain Gravity (used everywhere else) - defaults to matching gravity itself (see WeaponStatsLoader's own parsing doc) when the key is absent, rather than 0, so an ordinary (non-torpedo) weapon that never actually specifies this keeps falling normally underwater instead of suddenly floating.
 		float gravityInWater,
-		// GuidedTorpedo - per Readme_Weapon.txt's own doc: Type=Torpedo only. true (the default - matches this project's own original, only-ever-guided torpedo behavior before this field existed at all) - homes towards its own target block once submerged. false - travels in a straight line once it enters the water instead, with no homing behavior at all (still gets AccelerationInWater/VelocityInWater's own underwater speed handling, just no course correction on top of it).
+		// GuidedTorpedo - per Readme_Weapon.txt's own doc: Type=Torpedo only. Whether the torpedo is steered horizontally once in the water. false (the default) - it runs straight on the heading it entered the water at. true - with the firing vehicle's lock mode off, it steers for the point under the shooter's crosshair at the moment of firing; with lock mode on, it chases the entity under the crosshair (the one highlighted) - see entity.projectile.VehicleProjectileEntity's own torpedo guidance doc. Either way it keeps to its TargetDepth (depth-keeping is not part of guidance - it used to be, which made an unguided torpedo keep its entry angle and sink straight to the bottom).
 		boolean guidedTorpedo,
+		// TorpedoMaxAltitude - Type=Torpedo only. The highest (blocks above the ground/water surface directly below the firing vehicle) a torpedo can be launched from. 40 by default; this used to be a fixed 15 that no weapon file could change.
+		float torpedoMaxAltitude,
 		// Piercing - per Readme_Weapon.txt's own doc: how many additional blocks in a row this projectile can punch straight through (destroying each - see VehicleProjectileEntity's own tudursvehiclemod$tryPierceBlock() doc) before finally stopping for real, rather than stopping dead at the very first block it touches. 0 (the default) is the original, unpierced behavior.
 		int piercingCount,
 		// Accuracy - per Readme_Weapon.txt's own doc: a small random angular error (degrees) applied once, at the moment this projectile is actually fired - larger values scatter shots further off the intended aim point. 0 (the default) fires with perfect accuracy, the original behavior before this field existed. Only meaningful for unguided weapon types (MachineGun1/MachineGun2/Rocket/MkRocket) - a truly GUIDED weapon (a homing missile) corrects its own course after launch regardless, so this wouldn't be noticeable there anyway.
@@ -132,6 +134,8 @@ public record WeaponStats(
 		float casAttackStartAltitude,
 		// CasAttackStopAltitude - CAS/CARRIER only. How high (blocks) above a surface/submerged locked target a Carrier wingman can drop to before it must stop attacking and climb back to CasAttackStartAltitude - see that field's own doc for the full reasoning (a genuine hysteresis band, not a single threshold). 40.0 is the default whenever this key is absent, matching this project's own current behavior.
 		float casAttackStopAltitude,
+		// CasTorpedoAltitude - CAS/CARRIER only, TORPEDO weapons only. The altitude (blocks above the target) an aircraft holds, level, through a whole torpedo attack - an aerial torpedo can only be dropped in level flight at a fixed height. For a TORPEDO weapon, CasAttackStartAltitude/CasAttackStopAltitude are horizontal DISTANCES instead (where the run starts / where the torpedo is released) - see entity.TorpedoRunPlanner's own doc. Ignored for every other weapon type.
+		float casTorpedoAltitude,
 		// RidableOnly - per Readme_Weapon.txt's own doc: AAMissile/ATMissile only. MC Heli's own documented meaning is "only lockable while riding a vehicle" (as opposed to holding this weapon as a portable, handheld item) - this project's own weapon system is exclusively vehicle-mounted in the first place (there's no portable/handheld weapon item at all), so every weapon here already satisfies this by construction regardless of what this field is actually set to. Parsed and exposed for completeness/inspectability (and in case a portable weapon system gets added later), but doesn't currently change any actual behavior.
 		boolean ridableOnly,
 		// ProximityFuseDist - per Readme_Weapon.txt's own doc: AAMissile/ATMissile only. Once a GUIDED shot (see lockTimeTicks's own doc) comes within this many blocks of its own locked target, it detonates right there even without an actual direct hit - a real proximity-fused missile doesn't need to physically touch its target at all. 0 (the default) disables this entirely - a guided missile only ever detonates on an actual direct hit, this project's own original behavior before this field existed.
@@ -247,8 +251,8 @@ public record WeaponStats(
 			WeaponType.OTHER, 0.0f, false, false, 0.0f, 0.0f, 0, 0, 0, 0, 4.0f, 0.5f, 0.0f, -1f,
 			0, 0, 0.7f, Optional.empty(), Optional.empty(), 2.0f, 10.0f, 15.0f,
 			Optional.empty(), 4.0f, 0xFFE6C814, 2.0f, 500, java.util.Set.of(), 100.0f, 45.0f, 10.0f,
-			0.0f, -1, -1, 0.0f, 0.03f, true, 0, 0.0f, false, 0xFFFFFFFF, 0xFFFFFFFF,
-			SightType.MOVE_SIGHT, 0, 0.0, 0.0, 3.0f, com.example.tudursvehiclemod.asset.CasTargetMode.BALLISTIC, 200.0f, 40.0f, true, 0.0f, 7, Optional.empty(), 1,
+			0.0f, -1, -1, 0.0f, 0.03f, false, 40.0f, 0, 0.0f, false, 0xFFFFFFFF, 0xFFFFFFFF,
+			SightType.MOVE_SIGHT, 0, 0.0, 0.0, 3.0f, com.example.tudursvehiclemod.asset.CasTargetMode.BALLISTIC, 200.0f, 40.0f, 20.0f, true, 0.0f, 7, Optional.empty(), 1,
 			Optional.empty(), 0, false, Optional.empty(), Optional.empty(), Optional.empty(),
 			0.0f, 40, 5, false, 1.0f, false, false, Optional.empty(), Optional.empty(), Optional.empty(), false, 0.0f, Optional.empty());
 

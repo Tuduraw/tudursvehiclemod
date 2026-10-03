@@ -1316,7 +1316,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	/** True once fuel has run out. reports false while isFollowingGroundRoute() is true, regardless of actual fuel level - matching the same established precedent as a drone-linked aircraft's own entirely fuel-independent flight (see AircraftEntity's own getSpinningPartSpeedMultiplier() doc). Fixed HERE, at the source, rather than at each of this method's own many scattered call sites (an earlier attempt patched two of those individually and still missed others - CarEntity's own turnRate gate, isPivotTurnRestricted(), applyPivotTurnThrottleRestriction() - since nothing enumerates all of them in one place) - every consumer, present or future, now automatically gets correct behavior. This vehicle's own actual fuel GAUGE/consumption (getFuel()/tudursvehiclemod$updateFuelConsumption()) still work completely normally throughout - only the various movement-blocking CONSEQUENCES of being empty are bypassed while a route is actively driving. A fuelless vehicle (tudursvehiclemod$isFuelless()) is never out of fuel either, for the same reason - fuel simply isn't part of how it operates. */
 	public boolean tudursvehiclemod$isOutOfFuel() {
 		return !this.tudursvehiclemod$isFuelless()
-				&& this.getFuel() <= 0f && !this.tudursvehiclemod$isFollowingGroundRoute();
+				&& this.getFuel() <= 0f && !this.tudursvehiclemod$isFollowingGroundRoute()
+				&& !this.tudursvehiclemod$isRunningOwnAutopilotRoute();
+	}
+
+	/** True while this vehicle is flying a scripted route of its own that drives its movement directly (a launched midget submarine - see SubmarineEntity's own override). Exempt from running out of fuel, exactly like isFollowingGroundRoute() above and for the same reason: running dry must not silence the engine sound or stop the propeller/spinning parts (both read the synced throttle, which setThrottleDirect() forces to 0 while out of fuel) partway through a route the vehicle keeps flying anyway. The fuel gauge and consumption itself carry on normally. False for every vehicle that has no such route. */
+	protected boolean tudursvehiclemod$isRunningOwnAutopilotRoute() {
+		return false;
 	}
 
 	/** Adds amount (clamped to [0, getMaxFuel()]) to this vehicle's own internal fuel. */
@@ -2068,8 +2074,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	private static final float THROTTLE_RAMP_THRESHOLD_CONSUMPTION_FRACTION = 0.5f;
 	/** How much fuel transfers per tick from a can sitting in the vehicle's own fuel slot into its internal pool. */
 	private static final int VEHICLE_FUEL_TRANSFER_PER_TICK = 20;
-	/** Maximum height (blocks) above the nearest solid ground/water surface below the vehicle for a Torpedo weapon to be usable. */
-	private static final double TORPEDO_MAX_ALTITUDE_ABOVE_SURFACE = 15.0;
 	/** How far (blocks) to search for the ground/water surface below the vehicle when checking Torpedo's own altitude limit. */
 	private static final double TORPEDO_SURFACE_SEARCH_DEPTH = 64.0;
 
@@ -5316,6 +5320,16 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	public boolean tryFireWeapon(int weaponIndex, ServerPlayerEntity shooter) {
+		return this.tryFireWeapon(weaponIndex, shooter, null);
+	}
+
+	/**
+	 * As tryFireWeapon(int, ServerPlayerEntity), for an AI firing at an entity it is attacking: aiGuidanceTarget is that entity
+	 * (a wingman's, Carrier aircraft's or dummy pilot's own current target), or null when there is none. Only a
+	 * GuidedTorpedo=true torpedo fired with no shooter uses it - it chases that entity, the AI's equivalent of a player's
+	 * lock-mode designation. Ignored otherwise, so passing it for any other weapon changes nothing.
+	 */
+	public boolean tryFireWeapon(int weaponIndex, ServerPlayerEntity shooter, Entity aiGuidanceTarget) {
 		VehicleDefinition def = getDefinition();
 		if (weaponIndex < 0 || weaponIndex >= def.weapons().size()) {
 			return false;
@@ -5386,7 +5400,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			}
 		}
 		if (weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.TORPEDO
-				&& !this.tudursvehiclemod$isNearSurfaceForTorpedo()) {
+				&& !this.tudursvehiclemod$isNearSurfaceForTorpedo(weapon.torpedoMaxAltitude())) {
 			return false;
 		}
 		// Previously, firing an AAMissile/ATMissile before lock completed still launched an unguided shot (matching Readme_Weapon.txt's own documented "you can pull the trigger before tone, you just don't get a guided shot" behavior) - now blocks firing entirely instead, so pressing the fire key does nothing at all until this weapon's own lock actually completes. Only applies to player-initiated fire (shooter != null) - CAS auto-fire (shooter == null) can never lock a target at all (see tudursvehiclemod$updateMissileLockOnIndicators()'s own shooter-seat requirement), so leaving this unrestricted there would make the weapon entirely unusable for CAS; that path already fires unguided by design (see tryFireWeapon()'s own AA_MISSILE/AT_MISSILE/MISSILE case doc), unaffected by this change. shares this exact same lock-required restriction.
@@ -5431,7 +5445,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			return false;
 		}
 		// A Carrier launch made with this vehicle's lock mode on is sent after the entity under the shooter's crosshair, so with nothing there the shot is refused HERE - before anything below happens. Everything past this point is the shot actually being fired (recoil, the fire bit, heat, the ammo, the cooldown, the sound), and a key press aimed at empty sky must cost none of it. (tudursvehiclemod$fireCarrierLaunch() looks the target up again for the launch itself.)
-		if (shooter != null && this.tudursvehiclemod$isCarrierLaunchDesignated(weaponIndex)
+		if (shooter != null && this.tudursvehiclemod$isLockDesignatedLaunch(weaponIndex)
 				&& this.tudursvehiclemod$findCarrierLaunchTarget(shooter) == null) {
 			return false;
 		}
@@ -5698,8 +5712,24 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 
 		// Guidance/special-behavior setup.
 		switch (weapon.weaponType()) {
-			case TORPEDO -> projectile.tudursvehiclemod$setUnderwaterCruiseCapable(
-					weapon.accelerationInWater(), weapon.velocityInWater(), weapon.targetDepthOffset());
+			case TORPEDO -> {
+				projectile.tudursvehiclemod$setUnderwaterCruiseCapable(
+						weapon.accelerationInWater(), weapon.velocityInWater(), weapon.targetDepthOffset());
+				// GuidedTorpedo=true: with lock mode on it chases the designated entity (the one highlighted - the shot was already refused above if there was none); with it off it steers for the point under the crosshair at this moment, found the same way AS_MISSILE finds its own. Fired by an AI (no shooter), it chases the AI's own current target (aiGuidanceTarget), or runs straight if it has none.
+				if (weapon.guidedTorpedo() && shooter == null && aiGuidanceTarget != null) {
+					projectile.tudursvehiclemod$setTorpedoGuidance(null, aiGuidanceTarget.getId(), weapon.turnRateDegreesPerTick());
+				} else if (weapon.guidedTorpedo() && shooter != null) {
+					if (this.tudursvehiclemod$isLockDesignatedLaunch(weaponIndex)) {
+						Entity designated = this.tudursvehiclemod$findCarrierLaunchTarget(shooter);
+						if (designated != null) {
+							projectile.tudursvehiclemod$setTorpedoGuidance(null, designated.getId(), weapon.turnRateDegreesPerTick());
+						}
+					} else {
+						projectile.tudursvehiclemod$setTorpedoGuidance(
+								tudursvehiclemod$raycastGroundPoint(shooter), null, weapon.turnRateDegreesPerTick());
+					}
+				}
+			}
 			// MkRocket behaves exactly like AS_MISSILE (homes toward the ground point marked under the shooter's own crosshair at fire time) - MC Heli documents these as separate Type names, but the actual guidance is identical. Per a further direct clarification, guided types don't need to work for CAS auto-fire (shooter=null there) - skips applying guidance (unguided/straight flight) rather than NPEing on a null shooter.
 			case AS_MISSILE, MK_ROCKET -> {
 				if (shooter != null) {
@@ -6229,6 +6259,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			return;
 		}
 		com.example.tudursvehiclemod.asset.CasStrikeConfig config = maybeConfig.get();
+		// With this vehicle's lock mode on, the strike goes after the entity under the shooter's crosshair (the highlighted one; the shot was refused in tryFireWeapon() if there was none) instead of only flying its route: every aircraft is handed it and switches to attacking it straight away (a CAS aircraft has no take-off route to fly first) - the same lock pursuit a Carrier aircraft or a commanded wingman uses. Once it is destroyed or shaken off they carry on with the route. Null otherwise: the ordinary strike.
+		final java.util.UUID casDesignatedTargetUuid;
+		{
+			Entity designated = shooter != null && this.tudursvehiclemod$isLockDesignatedLaunch(weaponIndex) ? this.tudursvehiclemod$findCarrierLaunchTarget(shooter) : null;
+			casDesignatedTargetUuid = designated != null ? designated.getUuid() : null;
+		}
 		// Applies the user-tunable CasYawOffset correction (see CasStrikeConfig's own doc) on top of the shooter's own actual forward direction, before it's used for any waypoint rotation below. Uses new final variables rather than reassigning the method parameters, since those get captured by a lambda further below (which requires effectively-final locals).
 		double effectiveForwardX = shooterForwardX;
 		double effectiveForwardZ = shooterForwardZ;
@@ -6333,6 +6369,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 						attackFlags.add(casWaypoint.attack());
 					}
 					aircraft.tudursvehiclemod$setCasWaypointRoute(route, attackFlags, config.weaponIndex());
+					// Lock mode: every aircraft of the strike goes after the same designated entity - see casDesignatedTargetUuid's own doc.
+					aircraft.tudursvehiclemod$setCarrierLaunchDesignatedTarget(casDesignatedTargetUuid, config.weaponIndex());
 					aircraft.tudursvehiclemod$setCasTimeoutTicks(config.timeoutTicks());
 					aircraft.tudursvehiclemod$setCasStuckTimeoutTicks(config.stuckTimeoutTicks());
 					aircraft.tudursvehiclemod$setDroneLink(targetBlockPos);
@@ -7064,6 +7102,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			return;
 		}
 		com.example.tudursvehiclemod.asset.MidgetConfig config = maybeConfig.get();
+		// Lock mode: the midget goes after the entity under the crosshair once its launch route is flown - see SubmarineEntity#tudursvehiclemod$setMidgetDesignatedTarget(). Null otherwise.
+		final java.util.UUID midgetDesignatedTargetUuid;
+		{
+			Entity designated = shooter != null && this.tudursvehiclemod$isLockDesignatedLaunch(mothershipWeaponIndex) ? this.tudursvehiclemod$findCarrierLaunchTarget(shooter) : null;
+			midgetDesignatedTargetUuid = designated != null ? designated.getUuid() : null;
+		}
 		// Same yaw-offset handling as tudursvehiclemod$fireCarrierLaunch() - see that method's own doc.
 		double effectiveForwardX = shooterForwardX;
 		double effectiveForwardZ = shooterForwardZ;
@@ -7130,6 +7174,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 						targetPos.x, targetPos.z, config.weaponIndex(),
 						config.timeoutTicks(), config.stuckTimeoutTicks(), config.recovery(),
 						config.detectRange(), config.detectIntervalTicks(), config.avoidStep());
+				submarine.tudursvehiclemod$setMidgetDesignatedTarget(midgetDesignatedTargetUuid, config.attackRange());
 			}
 		}, net.minecraft.util.math.BlockPos.ofFloored(spawnX, spawnY, spawnZ), net.minecraft.entity.SpawnReason.TRIGGERED, false, false);
 
@@ -7235,7 +7280,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 		// With this vehicle's lock mode on, the launch is sent after whatever the shooter has under the crosshair (the one highlighted - see tudursvehiclemod$updateCarrierLaunchTargetPreview()) instead of flying its configured route alone, whatever CasTargetMode the weapon uses to place that route. Nothing to designate means nothing is launched, as a lead's wingman command does nothing without a target either: a lock-mode launch that has no target to go after is far more likely a stray key press than a request for a sortie (the refusal itself is in tryFireWeapon(), ahead of the fire side effects).
 		java.util.UUID designatedTargetUuid = null;
-		if (shooter != null && this.tudursvehiclemod$isCarrierLaunchDesignated(mothershipWeaponIndex)) {
+		if (shooter != null && this.tudursvehiclemod$isLockDesignatedLaunch(mothershipWeaponIndex)) {
 			Entity designated = this.tudursvehiclemod$findCarrierLaunchTarget(shooter);
 			if (designated == null) {
 				// Not reached in practice: tryFireWeapon() refuses the shot before any of its side effects when there is no target (and this runs in the same tick, so one cannot vanish in between). Kept so a future caller that skips that check cannot launch a sortie with nothing to attack - at the price, for such a caller, of the ammo already being spent.
@@ -7638,17 +7683,17 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	/** Lazily (re)sizes weaponAmmo/weaponReloadTicksRemaining to match the current definition's weapon count, initializing any newly-added slot's ammo to a full.. */
-	/** Torpedo's own low-altitude requirement. */
-	private boolean tudursvehiclemod$isNearSurfaceForTorpedo() {
+	/** Torpedo's own low-altitude requirement: within maxAltitude (the weapon's own TorpedoMaxAltitude) of the ground/water surface directly below. The search reaches far enough below to find a surface at that height whatever it is set to. */
+	private boolean tudursvehiclemod$isNearSurfaceForTorpedo(double maxAltitude) {
 		Vec3d start = this.getEntityPos();
-		Vec3d end = start.add(0, -TORPEDO_SURFACE_SEARCH_DEPTH, 0);
+		Vec3d end = start.add(0, -Math.max(TORPEDO_SURFACE_SEARCH_DEPTH, maxAltitude + 16.0), 0);
 		net.minecraft.world.RaycastContext context = new net.minecraft.world.RaycastContext(start, end,
 				net.minecraft.world.RaycastContext.ShapeType.COLLIDER, net.minecraft.world.RaycastContext.FluidHandling.SOURCE_ONLY, this);
 		net.minecraft.util.hit.BlockHitResult hit = this.getEntityWorld().raycast(context);
 		if (hit.getType() == net.minecraft.util.hit.HitResult.Type.MISS) {
 			return false;
 		}
-		return start.y - hit.getPos().y <= TORPEDO_MAX_ALTITUDE_ABOVE_SURFACE;
+		return start.y - hit.getPos().y <= maxAltitude;
 	}
 
 	/** CAS/Carrier's own default ballistic stats (see tudursvehiclemod$computeBallisticTargetPoint()'s own doc) land at approximately 1000 blocks when fired at a 45-degree elevation - both chosen as integers, confirmed numerically against THIS project's own drag-aware trajectory physics (0.99x/tick air resistance - see client.hud.MortarMarkerRenderer's own PROJECTILE_AIR_DRAG_PER_TICK doc for why that specific value matters here), not the simpler drag-free "v^2/g" formula alone (velocity=197/gravity=32 gives ~839 blocks drag-free at 45 degrees, but ~1000 with this project's own real, drag-aware physics - the pair actually used here). */
@@ -7893,13 +7938,20 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	 *
 	 * <p>The selection (tudursvehiclemod$getSelectedWeaponIndex()) is one synced value per vehicle, not one per occupant, so the preview and a launch agree on which weapon is meant whoever is seated where.
 	 */
-	private boolean tudursvehiclemod$isCarrierLaunchDesignated(int weaponIndex) {
+	private boolean tudursvehiclemod$isLockDesignatedLaunch(int weaponIndex) {
 		if (!this.tudursvehiclemod$isCarrierLockModeActive()) {
 			return false;
 		}
 		java.util.List<WeaponDefinition> weapons = this.getDefinition().weapons();
-		return weaponIndex >= 0 && weaponIndex < weapons.size()
-				&& weapons.get(weaponIndex).weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CARRIER;
+		if (weaponIndex < 0 || weaponIndex >= weapons.size()) {
+			return false;
+		}
+		WeaponDefinition weapon = weapons.get(weaponIndex);
+		// A CARRIER, CAS or MIDGET launch is sent after the designated entity (the aircraft or midget attacks it); so is a GuidedTorpedo=true torpedo, which chases it once in the water (VehicleProjectileEntity#tudursvehiclemod$setTorpedoGuidance()). Everything that keys off this - the highlight, refusing the shot with nothing designated, the client keeping the fire key on its ordinary fire packet - therefore applies to all of them alike.
+		return weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CARRIER
+				|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CAS
+				|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.MIDGET
+				|| (weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.TORPEDO && weapon.guidedTorpedo());
 	}
 
 	/**
@@ -7911,7 +7963,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 		Entity candidate = null;
 		int selectedIndex = this.tudursvehiclemod$getSelectedWeaponIndex();
-		if (this.tudursvehiclemod$isCarrierLaunchDesignated(selectedIndex)) {
+		if (this.tudursvehiclemod$isLockDesignatedLaunch(selectedIndex)) {
 			WeaponDefinition weapon = this.getDefinition().weapons().get(selectedIndex);
 			Entity shooterEntity = this.tudursvehiclemod$resolveWeaponTrackingOccupant(weapon.seatIndex(), weapon.pilotUsable());
 			if (shooterEntity instanceof net.minecraft.server.network.ServerPlayerEntity shooter) {

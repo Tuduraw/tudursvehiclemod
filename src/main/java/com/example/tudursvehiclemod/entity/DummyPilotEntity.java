@@ -155,7 +155,8 @@ public class DummyPilotEntity extends LivingEntity {
 
 		if (this.tudursvehiclemod$canActuallyHit(vehicle, def, weapon, desiredYaw, desiredPitch, target)) {
 			// Rate limiting is entirely tryFireWeapon()'s own (cooldown/magazine/reload), exactly as for a player holding the fire key - see this method's own doc.
-			vehicle.tryFireWeapon(this.combatWeaponIndex, null);
+			// The target is passed along so a guided torpedo chases it (see AbstractVehicleEntity#tryFireWeapon(int, ServerPlayerEntity, Entity)); every other weapon ignores it.
+			vehicle.tryFireWeapon(this.combatWeaponIndex, null, target);
 		}
 	}
 

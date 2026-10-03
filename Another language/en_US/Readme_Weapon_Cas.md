@@ -83,6 +83,23 @@ ReloadTime = 1200
   rotation reference (the occupant's own line of sight direction).
 - **Example**: `CasYawOffset = 0`
 
+### "Attack the designated entity" in lock mode
+
+With a `CAS` weapon selected, turning lock mode on (the **B key** by default)
+makes the strike **attack the highlighted entity under the crosshair**, as
+with `Carrier` (see the section of the same name under `Carrier` for the
+details).
+
+- What can be highlighted, and that nothing is launched (and no ammo is
+  spent) when nothing is highlighted, are the same as for `Carrier`
+- When a formation is launched, every aircraft attacks the same target
+- `CAS` has no take-off route, so the aircraft head for the target as soon
+  as they appear
+- Once the target is destroyed (or lost) they fly their ordinary route
+  (`CasWaypoint`)
+- With lock mode off, it flies the route `CasTargetMode` determines, as
+  before
+
 ### `CasTargetMode`
 - **Format**: string (default: `Ballistic`, case-insensitive)
 - **Description**: Selects how the target point (the center point that
@@ -128,7 +145,46 @@ ReloadTime = 1200
   - Both of these values come from the settings of the weapon slot the
     wingman is using at the moment of locking (whichever weapon the
     flight leader had selected at the time of the lock)
+- **For an aerial torpedo (`Torpedo`)**: when a ground/surface target is
+  attacked with `Torpedo`, these two are not altitudes but **horizontal
+  distances from the target** (with the same defaults, 200 and 40).
+  - `CasAttackStartAltitude`: where the run starts. The aircraft first
+    swings round to a point this far from the target, square off the
+    target's side (perpendicular to its heading), on whichever side the
+    aircraft is already, and runs in toward the target from there.
+  - `CasAttackStopAltitude`: where the torpedo is released. It releases
+    once the distance to the target drops to this value or below.
+  - During the run it flies along the line through the target square off
+    its side (following the target's current heading if it turns). It
+    flies level at `CasTorpedoAltitude` throughout the attack and never
+    dives.
+  - From the release point it keeps flying level without changing course
+    for 5 ticks. If the release is delayed (still reloading, say), it is
+    still released if possible within that time (one torpedo per run).
+  - If, at the release point, the nose is not pointed at the target (off
+    by more than 15 degrees) or the run is coming in more than 30 degrees
+    off square to the target's side, it does not release, carries on
+    through, and releases on the next run.
+  - After releasing (or not), it carries straight on until it is
+    `CasAttackStartAltitude` away from the target, then sets up the next
+    run. It never turns back toward the target and circles it.
+  - For a Drone Center dummy pilot, the attack start/stop altitudes set at
+    the Drone Center are used in the same way, as the run-start and
+    release distances.
 - **Example**: `CasAttackStartAltitude = 200` / `CasAttackStopAltitude = 40`
+
+### `CasTorpedoAltitude`
+- **Format**: number, in blocks (default: `20`)
+- **Description**: Only used when the weapon used for the attack is
+  `Torpedo`. An aerial torpedo can only be released in level flight at a
+  fixed altitude, so throughout the attack (positioning, the run, the
+  release and breaking away) the aircraft holds this altitude (height
+  above the target), level. Where the run starts and where the torpedo is
+  released are set by `CasAttackStartAltitude`/`CasAttackStopAltitude` as
+  described above. A torpedo cannot be released from above its
+  `TorpedoMaxAltitude`, so the altitude actually flown is capped 3 blocks
+  below `TorpedoMaxAltitude`.
+- **Example**: `CasTorpedoAltitude = 20`
 
 ### `CasWaypoint`
 - **Format**: `relative X, relative Y, relative Z, speed%, whether to attack`
@@ -348,7 +404,11 @@ releases every wingman's lock) works as it always has.
   tick (since landing takes time, and the mothership may keep moving
   during that time). The last waypoint becomes the reference point for
   the final approach (a straight-line approach directly toward the
-  weapon's own AddWeapon position itself).
+  weapon's own AddWeapon position itself). The speed (%) is the speed
+  of the leg leading to that waypoint (the same as any other waypoint);
+  when the leg changes, the speed eases toward the new value. The last
+  waypoint's speed is the throttle the final approach starts with. A
+  value of 0 or less is treated as 30%, and anything above 100 as 100%.
 - **Example** (deploys gear/opens bay on approach, no change on final
   approach):
   ```
@@ -422,6 +482,10 @@ position** to fly a fixed route by itself. The main differences from `Carrier`:
   avoid whatever it finds (details below)
 - There is no runway to land on. Recovery retraces the launch route
   (`MidgetLaunchWaypoint`) in reverse, back to the launch position on the mothership.
+- While under way, the engine sound and the propeller (including `spinning_parts`)
+  follow its actual speed. Fuel is consumed as usual, but while flying its route it
+  does not stop when the fuel runs out - it flies the route to the end (the same as a
+  Drone Center ground route).
 
 ### Collision avoidance
 
@@ -438,6 +502,32 @@ position** to fly a fixed route by itself. The main differences from `Carrier`:
   waits there.
 - Since it is slow, the detection range and interval are both set looser than an aircraft's
   own ground-attack terrain detection.
+
+### "Attack the designated entity" in lock mode
+
+With a `Midget` weapon selected, turning lock mode on (the **B key** by
+default) makes the launch go **after the highlighted entity under the
+crosshair**, as with `Carrier` (what can be highlighted, and that nothing is
+launched when nothing is highlighted, are the same as for `Carrier`).
+
+- After launch it first follows its launch waypoints
+  (`MidgetLaunchWaypoint`), then heads for the target
+- While closing on the target it runs at the depth and speed of the first
+  `MidgetWaypoint`. Collision avoidance works as usual
+- Once within `MidgetAttackRange` of the target and pointed at it, it
+  attacks with its attack weapon (`MidgetWeaponIndex`). If that weapon is a
+  guided torpedo (`GuidedTorpedo = true`), the torpedo chases that target
+- The attack is over once one shot has gone out; it then follows its
+  ordinary route from the first `MidgetWaypoint` and is recovered
+- If the target is destroyed (or lost), or it runs past the target at close
+  range, the attack also ends and it returns to its ordinary route (so it
+  never ends up circling the target)
+
+### `MidgetAttackRange`
+- **Format**: number, in blocks (default: `60`)
+- **Description**: How close to the target a midget launched in lock mode
+  gets before attacking it.
+- **Example**: `MidgetAttackRange = 60`
 
 ### `MidgetVehicle`
 - **Format**: string (this weapon type does nothing if left unset)
