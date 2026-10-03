@@ -257,6 +257,8 @@ public final class HudVariables {
 		vars.put("speed", speed);
 		vars.put("speed_kbh", speed * 72.0);
 
+		// Last, so addon variables see every built-in one already in place (and may adjust one) - see HudVariableProvider's own doc.
+		HudVariableProvider.EVENT.invoker().provideNumeric(client, player, vehicle, vars);
 		return vars;
 	}
 
@@ -272,6 +274,8 @@ public final class HudVariables {
 		double mortarDistance = ownsSelectedWeapon
 				? tudursvehiclemod$computeMortarDistance(client, player, vehicle, weapons.get(selectedWeaponIndex)) : -1.0;
 		vars.put("mortar_distance_str", mortarDistance >= 0.0 ? String.format(java.util.Locale.ROOT, "%.0fb", mortarDistance) : "---b");
+		// Last, for the same reason as in build() - see HudVariableProvider's own doc.
+		HudVariableProvider.EVENT.invoker().provideString(client, player, vehicle, vars);
 		return vars;
 	}
 

@@ -22,7 +22,8 @@
 6. ティア別スポーンアイテムを利用する
 7. 武器ファイルを同梱する
 8. 車両以外から武器を発射する
-9. 制限事項
+9. HUDに変数を追加する
+10. 制限事項
 
 ---
 
@@ -40,6 +41,7 @@
 | スポーンアイテムと車両選択画面を使う | `TieredVehicleSpawnerItem`に自分の`VehicleConverterTarget`を渡す |
 | 独自の武器を追加 | `assets/<namespace>/weapons/<weapon_name>.txt`をjarに同梱 |
 | 車両以外(携帯装備など)から武器を発射 | `WeaponProjectileFactory`で弾体を生成し、`WeaponTargeting`で照準・ロックオンを行う |
+| HUDスクリプトに独自の変数を追加 | `HudVariableProvider.EVENT`にリスナーを登録する |
 
 モデル表示・メッシュ命中判定・耐久値/破壊処理・座席・武装・HUD・半透明
 描画といった共通部分は、いずれの場合も`AbstractVehicleEntity`から
@@ -498,7 +500,57 @@ VehicleEntityRenderer.renderTriangles(queue, matrices, layer, model.getTriangles
 
 ---
 
-## 9. 制限事項
+## 9. HUDに変数を追加する
+
+アドオンMODは、`client.hud.HudVariableProvider.EVENT`(Fabric APIのイベント)に
+リスナーを登録すると、HUDスクリプトで使える変数を追加できます。数値の変数は
+式の中で、文字列の変数は`DrawString`の`%s`で、組み込みの変数と同じように使えます。
+
+```java
+// クライアント側のエントリポイント(ClientModInitializer)で登録する
+HudVariableProvider.EVENT.register(new HudVariableProvider() {
+    @Override
+    public void provideNumeric(MinecraftClient client, PlayerEntity player,
+            AbstractVehicleEntity vehicle, Map<String, Double> vars) {
+        if (vehicle instanceof MyRobotEntity robot) {
+            vars.put("myaddon_arm_angle", (double) robot.getArmAngle());
+        }
+    }
+
+    @Override
+    public void provideString(MinecraftClient client, PlayerEntity player,
+            AbstractVehicleEntity vehicle, Map<String, String> vars) {
+        vars.put("myaddon_mode", "ATTACK");
+    }
+});
+```
+
+HUDスクリプト側では、組み込みの変数と同じように書けます。
+
+```
+DrawString = -100, 80, "ARM %3.0f", myaddon_arm_angle
+DrawString = -100, 92, "%s", myaddon_mode
+```
+
+- `provideNumeric`・`provideString`は、どちらも既定で何もしないメソッドです。
+  必要な方だけを実装してください
+- 組み込みの変数をすべて入れ終えた後に呼ばれます。渡されたmapには組み込みの
+  変数が入っているため、読み取って計算に使うこともできます
+- HUDが描画されるたび(毎フレーム)、クライアント側で呼ばれます。重い処理は
+  避けてください
+- **変数名**: 組み込みの変数(`speed`・`hp`など)と同じ名前を書くと、組み込みの値を
+  上書きします。調整のために意図的に上書きすることもできますが、誤って上書きすると、
+  その変数を使うすべてのHUDの表示が変わります。独自の変数には、`myaddon_`のような
+  接頭辞を付けてください。また、HUDスクリプトの変数名は小文字で照合されるため、
+  小文字の名前で入れてください
+- 複数のアドオンが登録した場合は、登録順に呼ばれます。同じ名前を入れた場合は、
+  後から登録したものが優先されます
+- リスナーが例外を投げた場合、その例外はログに記録され(同じリスナーにつき1回)、
+  HUDの描画は続行されます。後続のリスナーも実行されます
+
+---
+
+## 10. 制限事項
 
 ### バージョンの一致
 

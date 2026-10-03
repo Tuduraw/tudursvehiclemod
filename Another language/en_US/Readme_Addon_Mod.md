@@ -22,7 +22,8 @@ mixins into it are needed.
 6. Using the tiered spawner items
 7. Bundling weapon files
 8. Firing weapons from outside a vehicle
-9. Limitations
+9. Adding variables to the HUD
+10. Limitations
 
 ---
 
@@ -40,6 +41,7 @@ All of the following are genuinely extensible.
 | Use the spawner items and vehicle selection screen | Pass your own `VehicleConverterTarget` to `TieredVehicleSpawnerItem` |
 | Add your own weapons | Bundle `assets/<namespace>/weapons/<weapon_name>.txt` in your jar |
 | Fire weapons from outside a vehicle (handheld equipment, etc.) | Create projectiles with `WeaponProjectileFactory` and aim or lock on with `WeaponTargeting` |
+| Add your own variables to HUD scripts | Register a listener with `HudVariableProvider.EVENT` |
 
 The shared parts - model display, mesh hit detection, durability/destruction
 handling, seats, weapons, the HUD, and translucent rendering - are inherited
@@ -500,7 +502,59 @@ A layer from `DitherCutoutLayers` always matches both the Config settings
 
 ---
 
-## 9. Limitations
+## 9. Adding variables to the HUD
+
+An addon mod can add variables that HUD scripts can use, by registering a listener
+with `client.hud.HudVariableProvider.EVENT` (a Fabric API event). Numeric variables
+are used in expressions and string variables through `%s` in `DrawString`, exactly
+like the built-in ones.
+
+```java
+// Register from your client entrypoint (ClientModInitializer)
+HudVariableProvider.EVENT.register(new HudVariableProvider() {
+    @Override
+    public void provideNumeric(MinecraftClient client, PlayerEntity player,
+            AbstractVehicleEntity vehicle, Map<String, Double> vars) {
+        if (vehicle instanceof MyRobotEntity robot) {
+            vars.put("myaddon_arm_angle", (double) robot.getArmAngle());
+        }
+    }
+
+    @Override
+    public void provideString(MinecraftClient client, PlayerEntity player,
+            AbstractVehicleEntity vehicle, Map<String, String> vars) {
+        vars.put("myaddon_mode", "ATTACK");
+    }
+});
+```
+
+In a HUD script they are written just like the built-in variables:
+
+```
+DrawString = -100, 80, "ARM %3.0f", myaddon_arm_angle
+DrawString = -100, 92, "%s", myaddon_mode
+```
+
+- `provideNumeric` and `provideString` both default to doing nothing. Implement only
+  the one you need.
+- They are called after every built-in variable has been put in. The map you are
+  handed already holds the built-in variables, so you can also read them for your
+  own calculations.
+- They are called on the client every time the HUD is drawn (every frame). Avoid
+  heavy work.
+- **Variable names**: putting in the same name as a built-in variable (`speed`, `hp`,
+  ...) overwrites the built-in value. You may do that on purpose to adjust one, but
+  doing it by mistake changes every HUD that reads that variable. Prefix your own
+  variables, e.g. `myaddon_`. HUD script variable names are matched in lower case, so
+  use lower-case names.
+- When several addons register, they are called in registration order. If two put
+  in the same name, the one registered later wins.
+- If a listener throws, the exception is logged (once per listener) and the HUD
+  still draws. The listeners after it still run.
+
+---
+
+## 10. Limitations
 
 ### Version matching
 
