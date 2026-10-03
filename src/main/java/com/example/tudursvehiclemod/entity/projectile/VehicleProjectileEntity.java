@@ -388,9 +388,6 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 	/** How far below the water surface this torpedo's own target cruise depth sits - from the firing weapon's own TargetDepth stat (see WeaponStats's own doc), 2.0 default. Synced via DataTracker - see ACCELERATION_IN_WATER_TARGET's own doc. now that tudursvehiclemod$updateUnderwaterCruise() runs on the CLIENT too (see tick()'s own doc), the client needs these ACTUAL configured values (not just the hard-coded field defaults below, which tudursvehiclemod$setUnderwaterCruiseCapable's own caller - tryFireWeapon() - only ever overwrites on the SERVER) to compute the exact same cruising trajectory as the server, rather than merely approximating it with generic defaults. */
 	protected static final net.minecraft.entity.data.TrackedData<Float> TARGET_DEPTH_OFFSET =
 			net.minecraft.entity.data.DataTracker.registerData(VehicleProjectileEntity.class, net.minecraft.entity.data.TrackedDataHandlerRegistry.FLOAT);
-	/** Synced via DataTracker, same reasoning as TARGET_DEPTH_OFFSET's own doc - the CLIENT's own copy of tudursvehiclemod$updateUnderwaterCruise() needs this exact configured value too, not just the plain field default (true) tudursvehiclemod$setGuidedTorpedo()'s own caller only ever overwrites on the SERVER, to compute the exact same trajectory as the server for an unguided torpedo specifically. */
-	protected static final net.minecraft.entity.data.TrackedData<Boolean> GUIDED_TORPEDO =
-			net.minecraft.entity.data.DataTracker.registerData(VehicleProjectileEntity.class, net.minecraft.entity.data.TrackedDataHandlerRegistry.BOOLEAN);
 	/** Fallback yaw (degrees) for the unlikely edge case of a torpedo fired with essentially zero horizontal velocity (e.g. dropped straight down) - there's no real heading to lock onto in that case. */
 	protected static final float UNDERWATER_CRUISE_FALLBACK_YAW_DEGREES = 0f;
 
@@ -692,10 +689,6 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		return new float[]{MathHelper.wrapDegrees(currentYaw + step)};
 	}
 
-	/** Called once, right after firing, by tryFireWeapon for WeaponType.TORPEDO - see WeaponStats's own guidedTorpedo doc. Written through GUIDED_TORPEDO's own synced DataTracker field (see that field's own doc for why this needs to reach the CLIENT too, not just stay server-side). */
-	public void tudursvehiclemod$setGuidedTorpedo(boolean guidedTorpedo) {
-		this.dataTracker.set(GUIDED_TORPEDO, guidedTorpedo);
-	}
 
 	/** Called once, right after firing, by tryFireWeapon - see WeaponStats's own piercingCount doc. */
 	public void tudursvehiclemod$setPiercingCount(int piercingCount) {
@@ -769,7 +762,6 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		builder.add(ACCELERATION_IN_WATER_TARGET, 4.0f);
 		builder.add(VELOCITY_IN_WATER_RATE, 0.5f);
 		builder.add(TARGET_DEPTH_OFFSET, 2.0f);
-		builder.add(GUIDED_TORPEDO, false);
 	}
 
 	@Override
@@ -1709,7 +1701,7 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		}
 		Vec3d steeringDirection;
 		double steeringPointDistance;
-		// Per WeaponType.AS_WEAPON's own doc and antiSubmarineDiveDistance's own doc: while still cruising above water (not yet close enough to dive), steers toward a level point above the LOCAL water surface near the target's own XZ, rather than the real target point itself (which may be underwater, at depth). The instant distanceToTarget crosses within DiveDistance, activates the deferred underwater-cruise-capable setup (see tudursvehiclemod$setAntiSubmarineDive()'s own doc) - from that point on this branch is skipped (tudursvehiclemod$isUnderwaterCruiseCapable() is now true), so steering falls through to the normal toTarget.normalize() case below, diving straight at the real (possibly underwater) target for the remainder of the approach; the moment it actually touches water, the existing torpedo-style CRUISING transition (tudursvehiclemod$updateUnderwaterCruise(), already fully independent of this method - see that method's own GUIDED_TORPEDO doc for its own separate, self-contained depth/pitch steering) takes over completely.
+		// Per WeaponType.AS_WEAPON's own doc and antiSubmarineDiveDistance's own doc: while still cruising above water (not yet close enough to dive), steers toward a level point above the LOCAL water surface near the target's own XZ, rather than the real target point itself (which may be underwater, at depth). The instant distanceToTarget crosses within DiveDistance, activates the deferred underwater-cruise-capable setup (see tudursvehiclemod$setAntiSubmarineDive()'s own doc) - from that point on this branch is skipped (tudursvehiclemod$isUnderwaterCruiseCapable() is now true), so steering falls through to the normal toTarget.normalize() case below, diving straight at the real (possibly underwater) target for the remainder of the approach; the moment it actually touches water, the existing torpedo-style CRUISING transition (tudursvehiclemod$updateUnderwaterCruise(), already fully independent of this method - see that method's own depth-keeping doc for its own separate, self-contained depth/pitch steering) takes over completely.
 		if (this.antiSubmarineDiveDistance != null && !this.tudursvehiclemod$isUnderwaterCruiseCapable() && distanceToTarget <= this.antiSubmarineDiveDistance) {
 			this.tudursvehiclemod$setUnderwaterCruiseCapable(this.antiSubmarineAccelerationInWater, this.antiSubmarineVelocityInWater, this.antiSubmarineTargetDepthOffset);
 		}

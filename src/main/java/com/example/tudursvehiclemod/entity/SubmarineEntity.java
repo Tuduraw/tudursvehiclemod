@@ -150,7 +150,8 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 	/** See AbstractVehicleEntity's own doc: a midget flying its route is exempt from running out of fuel. Server-side state only (the route is not synced), which is where every fuel consequence is decided. */
 	@Override
 	protected boolean tudursvehiclemod$isRunningOwnAutopilotRoute() {
-		return this.tudursvehiclemod$isMidgetAutopilotActive();
+		// Not while a player who switched in is piloting it - they get ordinary fuel handling, not the autopilot's exemption.
+		return this.tudursvehiclemod$isMidgetAutopilotActive() && !(this.getControllingPassenger() instanceof net.minecraft.entity.player.PlayerEntity);
 	}
 
 	/**
@@ -807,7 +808,7 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 
 	@Override
 	protected void updateVehicleMovement(VehicleDefinition def) {
-		// A Midget's own autonomous route takes over movement ENTIRELY, bypassing every bit of the ordinary surfaced/diving physics below (hatch-state switching, the ascend/descend keys, roll lean, wake, broaching correction and all) - a deliberate simplification given this feature's own scope: it drives yaw/pitch/velocity directly from entity.MidgetNavigator's own already-verified pure logic, rather than threading autonomous control through the player-input plumbing those branches are built around. Untested in an actual game at the time this was written - see Readme_Weapon_Cas.md's own Midget section for the caveat.
+		// A Midget's own autonomous route takes over movement ENTIRELY, bypassing every bit of the ordinary surfaced/diving physics below (hatch-state switching, the ascend/descend keys, roll lean, wake, broaching correction and all): it drives yaw/pitch/velocity directly from entity.MidgetNavigator's own decisions rather than threading autonomous control through the player-input plumbing those branches are built around.
 		// Not while a player is piloting it (switched in from the mothership): ordinary piloting below, and the autopilot picks up from where it was once they leave.
 		if (this.tudursvehiclemod$isMidgetAutopilotActive() && !(this.getControllingPassenger() instanceof net.minecraft.entity.player.PlayerEntity)) {
 			this.tudursvehiclemod$updateMidgetAutopilot(def);

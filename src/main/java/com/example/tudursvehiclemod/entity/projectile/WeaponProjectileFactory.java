@@ -60,7 +60,6 @@ public final class WeaponProjectileFactory {
 		projectile.tudursvehiclemod$setFuseTicks(stats.delayFuseTicks(), stats.timeFuseTicks());
 		projectile.tudursvehiclemod$setBounceStrength(stats.bounceStrength());
 		projectile.tudursvehiclemod$setGravityInWater(stats.gravityInWater());
-		projectile.tudursvehiclemod$setGuidedTorpedo(stats.guidedTorpedo());
 		projectile.tudursvehiclemod$setPiercingCount(stats.piercingCount());
 		projectile.tudursvehiclemod$setFuelAirExplosive(stats.fuelAirExplosive());
 		projectile.tudursvehiclemod$setTrajectoryParticle(stats.trajectoryParticle(), stats.trajectoryParticleStartTick(), stats.disableSmoke());

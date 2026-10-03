@@ -60,13 +60,6 @@ public final class MidgetNavigator {
 		boolean blocked(double rangeBlocks, double targetDepth);
 	}
 
-	/** Default look-ahead (blocks) - see MidgetConfig. */
-	public static final double DEFAULT_DETECT_RANGE = 50.0;
-	/** Default probing interval (ticks) - see MidgetConfig. */
-	public static final int DEFAULT_DETECT_INTERVAL = 10;
-	/** Default surfacing step (blocks) - see MidgetConfig. */
-	public static final double DEFAULT_AVOID_STEP = 1.0;
-
 	/** How close (blocks) to a depth counts as having reached it. */
 	static final double DEPTH_TOLERANCE = 0.15;
 	/** Depth (blocks) at or above which the submarine counts as being at the surface: there is nothing higher to rise to. */
@@ -91,21 +84,9 @@ public final class MidgetNavigator {
 		this.ticksSinceProbe = this.detectIntervalTicks;
 	}
 
-	public static MidgetNavigator withDefaults() {
-		return new MidgetNavigator(DEFAULT_DETECT_RANGE, DEFAULT_DETECT_INTERVAL, DEFAULT_AVOID_STEP);
-	}
-
-	public boolean isAvoiding() {
-		return this.avoiding;
-	}
-
 	/** True when the way ahead is blocked and the submarine is already as high as it can get: it should hold still rather than advance. */
 	public boolean mustHold() {
 		return this.mustHold;
-	}
-
-	public double depthCap() {
-		return this.depthCap;
 	}
 
 	/**
@@ -276,24 +257,6 @@ public final class MidgetNavigator {
 		float error = Math.abs(wrapDegrees(yawErrorDegrees));
 		float scale = error >= SLOW_TURN_ERROR_DEGREES ? 0.3f : 1.0f - 0.7f * (error / SLOW_TURN_ERROR_DEGREES);
 		return Math.max(0f, Math.min(1.0f, speedFraction)) * scale;
-	}
-
-	/** How close (as a fraction of full throttle) the throttle must already be to its target before the input is released to neutral, so it settles instead of flickering between up and down. */
-	static final float THROTTLE_DEADBAND = 0.03f;
-
-	/**
-	 * The throttle INPUT (-1, 0 or +1) that takes the current throttle toward a target. SubmarineEntity's own
-	 * throttle ramp only looks at the SIGN of its input (it steps the throttle up or down by a fixed amount per
-	 * tick, like a player holding W or S), so a target speed has to be expressed as "keep pushing up", "keep
-	 * pushing down" or "let go" - and let go once within a small deadband of the target, or it would flicker
-	 * around it.
-	 */
-	public static float throttleInput(float currentThrottle, float targetThrottle) {
-		float error = targetThrottle - currentThrottle;
-		if (Math.abs(error) <= THROTTLE_DEADBAND) {
-			return 0f;
-		}
-		return error > 0f ? 1.0f : -1.0f;
 	}
 
 	/** What a midget chasing a designated target should do this tick - see {@link #pursuitDecision}. */

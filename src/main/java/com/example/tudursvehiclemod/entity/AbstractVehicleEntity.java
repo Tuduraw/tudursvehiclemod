@@ -6263,11 +6263,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 		com.example.tudursvehiclemod.asset.CasStrikeConfig config = maybeConfig.get();
 		// With this vehicle's lock mode on, the strike goes after the entity under the shooter's crosshair (the highlighted one; the shot was refused in tryFireWeapon() if there was none) instead of only flying its route: every aircraft is handed it and switches to attacking it straight away (a CAS aircraft has no take-off route to fly first) - the same lock pursuit a Carrier aircraft or a commanded wingman uses. Once it is destroyed or shaken off they carry on with the route. Null otherwise: the ordinary strike.
-		final java.util.UUID casDesignatedTargetUuid;
-		{
-			Entity designated = shooter != null && this.tudursvehiclemod$isLockDesignatedLaunch(weaponIndex) ? this.tudursvehiclemod$findCarrierLaunchTarget(shooter) : null;
-			casDesignatedTargetUuid = designated != null ? designated.getUuid() : null;
-		}
+		final java.util.UUID casDesignatedTargetUuid = this.tudursvehiclemod$lockDesignatedTargetUuid(shooter, weaponIndex);
 		// Applies the user-tunable CasYawOffset correction (see CasStrikeConfig's own doc) on top of the shooter's own actual forward direction, before it's used for any waypoint rotation below. Uses new final variables rather than reassigning the method parameters, since those get captured by a lambda further below (which requires effectively-final locals).
 		double effectiveForwardX = shooterForwardX;
 		double effectiveForwardZ = shooterForwardZ;
@@ -7093,12 +7089,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 
 	/**
 	 * Launches a midget submarine from a WeaponType.MIDGET weapon's own mount position - the same "launch a
-	 * vehicle from here" idea as tudursvehiclemod$fireCarrierLaunch(), but far simpler: no formation (a midget
-	 * sortie is always one boat), no landing/runway (it is recovered by retracing its own liftoff route - see
-	 * SubmarineEntity's own tudursvehiclemod$midgetCurrentTarget() doc), and the route is depth-based
-	 * (MidgetConfig.MidgetWaypoint), not CasWaypoint. See WeaponType's own MIDGET doc for why this exists.
-	 *
-	 * <p>Untested in an actual game at the time this was written - see Readme_Weapon_Cas.md's own Midget section.
+	 * vehicle from here" idea as tudursvehiclemod$fireCarrierLaunch(), but simpler: no formation (a midget
+	 * sortie is always one boat), recovery through MidgetLandingWaypoint (or, without it, by retracing the launch
+	 * route - see SubmarineEntity's own tudursvehiclemod$midgetCurrentTarget() doc), and the route is depth-based
+	 * (MidgetConfig.MidgetWaypoint), not CasWaypoint. The midget is registered in this vehicle's per-seat launch
+	 * roster too, so the seat switch can take the shooter into it. See WeaponType's own MIDGET doc for why this exists.
 	 */
 	private void tudursvehiclemod$fireMidgetLaunch(WeaponDefinition weapon, ServerWorld serverWorld, Vec3d spawnPos,
 			Vec3d targetPos, double shooterForwardX, double shooterForwardZ, ServerPlayerEntity shooter, int mothershipWeaponIndex) {
@@ -7110,10 +7105,21 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 		com.example.tudursvehiclemod.asset.MidgetConfig config = maybeConfig.get();
 		// Lock mode: the midget goes after the entity under the crosshair once its launch route is flown - see SubmarineEntity#tudursvehiclemod$setMidgetDesignatedTarget(). Null otherwise.
-		final java.util.UUID midgetDesignatedTargetUuid;
-		{
-			Entity designated = shooter != null && this.tudursvehiclemod$isLockDesignatedLaunch(mothershipWeaponIndex) ? this.tudursvehiclemod$findCarrierLaunchTarget(shooter) : null;
-			midgetDesignatedTargetUuid = designated != null ? designated.getUuid() : null;
+		final java.util.UUID midgetDesignatedTargetUuid = this.tudursvehiclemod$lockDesignatedTargetUuid(shooter, mothershipWeaponIndex);
+		// MidgetAccuracy: each route waypoint is offset by up to this many blocks on every axis, the same way a Carrier route's waypoints are (the depth kept at 0 or below the surface). Parsed and documented before, but never actually applied to a midget.
+		final java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> midgetRoute;
+		if (config.accuracy() > 0f) {
+			java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> perturbed = new java.util.ArrayList<>();
+			for (com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint wp : config.waypoints()) {
+				perturbed.add(new com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint(
+						wp.relX() + Math.round((this.random.nextFloat() * 2f - 1f) * config.accuracy()),
+						Math.max(0, wp.depth() + Math.round((this.random.nextFloat() * 2f - 1f) * config.accuracy())),
+						wp.relZ() + Math.round((this.random.nextFloat() * 2f - 1f) * config.accuracy()),
+						wp.speedFraction(), wp.attack()));
+			}
+			midgetRoute = perturbed;
+		} else {
+			midgetRoute = config.waypoints();
 		}
 		// Same yaw-offset handling as tudursvehiclemod$fireCarrierLaunch() - see that method's own doc.
 		double effectiveForwardX = shooterForwardX;
@@ -7176,7 +7182,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				vehicle.tudursvehiclemod$syncWeaponAmmo();
 			}
 			if (entity instanceof SubmarineEntity submarine) {
-				submarine.tudursvehiclemod$initializeMidgetLaunch(config.launchWaypoints(), config.waypoints(),
+				submarine.tudursvehiclemod$initializeMidgetLaunch(config.launchWaypoints(), midgetRoute,
 						spawnX, spawnZ, mountForwardX, mountForwardZ,
 						targetPos.x, targetPos.z, config.weaponIndex(),
 						config.timeoutTicks(), config.stuckTimeoutTicks(), config.recovery(),
@@ -7967,6 +7973,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	 *
 	 * <p>The selection (tudursvehiclemod$getSelectedWeaponIndex()) is one synced value per vehicle, not one per occupant, so the preview and a launch agree on which weapon is meant whoever is seated where.
 	 */
+	/** The entity a launch fired in lock mode is sent after (the one highlighted under the shooter's crosshair), or null when the weapon is not fired in lock mode, there is no shooter, or nothing is designated. Shared by the CAS and Midget launches. */
+	private java.util.UUID tudursvehiclemod$lockDesignatedTargetUuid(ServerPlayerEntity shooter, int weaponIndex) {
+		Entity designated = shooter != null && this.tudursvehiclemod$isLockDesignatedLaunch(weaponIndex) ? this.tudursvehiclemod$findCarrierLaunchTarget(shooter) : null;
+		return designated != null ? designated.getUuid() : null;
+	}
+
 	private boolean tudursvehiclemod$isLockDesignatedLaunch(int weaponIndex) {
 		if (!this.tudursvehiclemod$isCarrierLockModeActive()) {
 			return false;

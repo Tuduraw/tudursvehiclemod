@@ -505,13 +505,10 @@ releases every wingman's lock) works as it always has.
 
 ## `Midget`(launching a midget submarine)
 
-> **On verification**: the feature described in this section has only been verified at the
-> design stage (a standalone simulation of the collision-avoidance logic) - **it has not been
-> tested in an actual game.** Its autopilot bypasses the submarine's own ordinary piloting
-> systems (the ascend/descend keys, hatch animation, etc.) entirely, writing yaw, pitch and
-> velocity directly instead. For that reason it does not support what `Carrier` does: flying
-> in formation, landing (surfacing), seat linkage with the mothership, or counting ammo as
-> "in flight". Please test thoroughly before relying on it.
+> **On the autopilot**: a midget's autopilot bypasses the submarine's own ordinary piloting
+> systems (the ascend/descend keys, hatch animation, etc.), writing yaw, pitch and velocity
+> directly instead. It does not support some of what `Carrier` does, such as launching in
+> formation or counting ammo as "in flight".
 
 Same idea as `Carrier` (launching an aircraft): launches one submersible craft (typically a
 vehicle whose `entity_type` is `submarine`) from **this weapon's own `AddWeapon` mount
