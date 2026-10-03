@@ -177,7 +177,8 @@ details).
     the Drone Center are used in the same way, as the run-start and
     release distances.
   - Once it has no torpedo left to fire, it stops attacking and returns to
-    its ordinary route. A CAS or Carrier aircraft does not reload in
+    its ordinary route (a `Carrier` aircraft launched in lock mode heads
+    back to land instead). A CAS or Carrier aircraft does not reload in
     flight, so it returns as soon as its magazine is empty; a dummy
     pilot's aircraft keeps attacking for as long as it can reload from its
     reserve.
@@ -351,8 +352,17 @@ attack that entity. The designation method such as `CasTargetMode` is not used.
 - Altitude during the attack is handled the same way as when the lead of a
   formation sends a wingman after a target, following `CasAttackStartAltitude`
   and `CasAttackStopAltitude`
-- Once the target is destroyed (or lost) the aircraft returns to its ordinary
-  route, and returns and lands
+- **The ordinary route (`CarrierWaypoint`) is not used.** Once the target is
+  destroyed (or lost) the aircraft heads straight back and lands through its
+  landing route (`CarrierLandingWaypoint`)
+- It also stops attacking and heads back once the weapon it attacks with has
+  run out (whatever the weapon). A launched aircraft does not reload in flight,
+  so it heads back as soon as its magazine is empty
+- When launched as a formation, the aircraft do not follow the leader either:
+  each heads back as soon as its own attack is over. The landing queue is the
+  same as after finishing the ordinary route
+- When the lead of a formation sends a wingman after a target (below), the
+  wingman goes back to its ordinary route once the lock ends
 - **If nothing is highlighted, nothing is launched** (and no ammo is spent)
 - With lock mode off, or with a weapon other than `Carrier` selected, it behaves
   as before (flying the route that `CasTargetMode` determines)
@@ -512,8 +522,17 @@ position** to fly a fixed route by itself. The main differences from `Carrier`:
   torpedo's own `TargetDepth` - positive is deeper, 0 is the surface)
 - To avoid underwater terrain and land, it probes ahead at a fixed interval and surfaces to
   avoid whatever it finds (details below)
-- There is no runway to land on. Recovery retraces the launch route
-  (`MidgetLaunchWaypoint`) in reverse, back to the launch position on the mothership.
+- Recovery follows the recovery waypoints (`MidgetLandingWaypoint`, the counterpart of
+  `CarrierLandingWaypoint`). Reaching the last of them recovers the midget, and this
+  weapon's ammo on the mothership goes back up by one. Without `MidgetLandingWaypoint`,
+  it retraces the launch route (`MidgetLaunchWaypoint`) in reverse back to the launch
+  point instead.
+- As with `Carrier`, the player who launched it can switch seats between the mothership
+  and the midget with Alt+Y (default). While a player pilots it the autopilot stops, and
+  it picks up from where it was once they go back to the mothership. A player aboard
+  when it is recovered is put back in a mothership seat.
+- Its autonomous state (the waypoint it is on, its target, its mothership and so on) is
+  saved, so after a world reload it carries on from where it was.
 - While under way, the engine sound and the propeller (including `spinning_parts`)
   follow its actual speed. Fuel is consumed as usual, but while flying its route it
   does not stop when the fuel runs out - it flies the route to the end (the same as a
@@ -549,11 +568,16 @@ launched when nothing is highlighted, are the same as for `Carrier`).
 - Once within `MidgetAttackRange` of the target and pointed at it, it
   attacks with its attack weapon (`MidgetWeaponIndex`). If that weapon is a
   guided torpedo (`GuidedTorpedo = true`), the torpedo chases that target
-- The attack is over once one shot has gone out; it then follows its
-  ordinary route from the first `MidgetWaypoint` and is recovered
-- If the target is destroyed (or lost), or it runs past the target at close
-  range, the attack also ends and it returns to its ordinary route (so it
-  never ends up circling the target)
+- It keeps attacking for as long as it has something to fire. If it runs
+  past the target at close range, it does not turn back on it at once: it
+  carries on outward (to `MidgetAttackRange` plus two turn radii), then comes
+  back in for another attack (so it never ends up circling the target)
+- The attack ends when there is nothing left to fire, or the target is
+  destroyed (or lost). "Something to fire" follows the weapon's own reload
+  rules: while it can still reload from its reserve, it counts as able to fire
+- **The ordinary route (`MidgetWaypoint`) is not used.** Once the attack is
+  over it heads for its recovery waypoints (`MidgetLandingWaypoint`) and is
+  recovered
 
 ### `MidgetAttackRange`
 - **Format**: number, in blocks (default: `60`)
@@ -595,8 +619,8 @@ launched when nothing is highlighted, are the same as for `Carrier`).
 
 ### `MidgetRecovery`
 - **Format**: boolean (default `true`)
-- **Description**: with `false`, it stops at the end of the route instead of returning to
-  the mothership.
+- **Description**: with `false`, it is removed once the route (in lock mode, the attack)
+  is over, without returning to the mothership (and the ammo is not given back).
 - **Example**: `MidgetRecovery = false`
 
 ### `MidgetLaunchWaypoint` / `MidgetWaypoint`
@@ -612,6 +636,24 @@ launched when nothing is highlighted, are the same as for `Carrier`).
   MidgetLaunchWaypoint = 0,5,30,60,false
   MidgetWaypoint = 0,15,200,80,false
   MidgetWaypoint = -20,15,250,60,true
+  ```
+
+### `MidgetLandingWaypoint`
+- **Format**: repeated lines in the same format as `MidgetLaunchWaypoint` (the attack
+  column is not used)
+- **Description**: The recovery route. Like `CarrierLandingWaypoint`, it is relative to
+  **the mothership's current position and heading** (this weapon's own `AddWeapon`
+  position), recalculated every tick (so it follows a moving mothership). Y is a depth
+  below the surface, as for the other waypoints. Once the route (in lock mode, the
+  attack) is over it follows these from the first, and reaching the last recovers the
+  midget, putting this weapon's ammo on the mothership back up by one. If the mothership
+  cannot be found, the launch-time position and heading are used. If omitted, it
+  retraces the launch route in reverse instead.
+- **Example**:
+  ```
+  MidgetLandingWaypoint = 0,5,-60,60,false
+  MidgetLandingWaypoint = 0,0,-15,40,false
+  MidgetLandingWaypoint = 0,0,0,30,false
   ```
 
 ### Example

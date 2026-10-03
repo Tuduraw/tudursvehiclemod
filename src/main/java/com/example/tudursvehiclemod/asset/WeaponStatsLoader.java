@@ -180,6 +180,7 @@ public final class WeaponStatsLoader {
 		java.util.List<String> carrierWaypointLines = new java.util.ArrayList<>();
 		java.util.List<String> midgetWaypointLines = new java.util.ArrayList<>();
 		java.util.List<String> midgetLaunchWaypointLines = new java.util.ArrayList<>();
+		java.util.List<String> midgetLandingWaypointLines = new java.util.ArrayList<>();
 		// "CarrierLaunchWaypoint = relX,relY,relZ,speedPercent,gear,bay,speedBoostKmh" - a separate dedicated liftoff route flown FIRST (see CarrierAircraftConfig's own launchWaypoints doc). this line format has no "attack" column at all (unlike CasWaypoint/CarrierWaypoint) - launch waypoints never attack, see CarrierAircraftConfig's own doc.
 		java.util.List<String> carrierLaunchWaypointLines = new java.util.ArrayList<>();
 		// "CarrierLandingWaypoint = relX,relY,relZ,speedPercent,gear,bay,speedBoostKmh" - same format as CarrierLaunchWaypoint's own, a separate dedicated final-approach route flown before the existing single-point approach (see CarrierAircraftConfig's own landingWaypoints doc).
@@ -210,6 +211,8 @@ public final class WeaponStatsLoader {
 				midgetWaypointLines.add(value);
 			} else if (key.equals("midgetlaunchwaypoint")) {
 				midgetLaunchWaypointLines.add(value);
+			} else if (key.equals("midgetlandingwaypoint")) {
+				midgetLandingWaypointLines.add(value);
 			} else if (key.equals("carrierlaunchwaypoint")) {
 				carrierLaunchWaypointLines.add(value);
 			} else if (key.equals("carrierlandingwaypoint")) {
@@ -672,6 +675,16 @@ public final class WeaponStatsLoader {
 					LOGGER.warn("[tudursvehiclemod] Weapon '{}' has a malformed MidgetLaunchWaypoint line (expected relX,depth,relZ,speedPercent,attack with a depth of 0 or more): '{}'", weaponName, waypointLine);
 				}
 			}
+			// MidgetLandingWaypoint - the recovery approach, relative to the mothership's CURRENT mount position and heading (see MidgetConfig's own doc). Same line format as MidgetLaunchWaypoint.
+			java.util.List<MidgetConfig.MidgetWaypoint> midgetLandingWaypoints = new java.util.ArrayList<>();
+			for (String waypointLine : midgetLandingWaypointLines) {
+				MidgetConfig.MidgetWaypoint parsed = MidgetConfig.MidgetWaypoint.parse(waypointLine);
+				if (parsed != null) {
+					midgetLandingWaypoints.add(parsed);
+				} else {
+					LOGGER.warn("[tudursvehiclemod] Weapon '{}' has a malformed MidgetLandingWaypoint line (expected relX,depth,relZ,speedPercent,attack with a depth of 0 or more): '{}'", weaponName, waypointLine);
+				}
+			}
 			if (midgetWaypoints.isEmpty()) {
 				LOGGER.warn("[tudursvehiclemod] Weapon '{}' sets MidgetVehicle but has no valid MidgetWaypoint lines - Midget launch left unconfigured", weaponName);
 			} else {
@@ -690,7 +703,7 @@ public final class WeaponStatsLoader {
 				double midgetAttackRange = Math.max(1.0, toFloat(entries.get("midgetattackrange"), 60.0f));
 				midget = Optional.of(new MidgetConfig(midgetVehicleValue.strip(), midgetWeaponIndex, midgetAccuracy, midgetTimeoutTicks, midgetStuckTimeoutTicks,
 						midgetYawOffset, midgetTargetYawOffset, midgetLaunchWaypoints, midgetWaypoints,
-						midgetDetectRange, midgetDetectInterval, midgetAvoidStep, midgetRecovery, midgetAttackRange));
+						midgetDetectRange, midgetDetectInterval, midgetAvoidStep, midgetRecovery, midgetAttackRange, midgetLandingWaypoints));
 			}
 		}
 

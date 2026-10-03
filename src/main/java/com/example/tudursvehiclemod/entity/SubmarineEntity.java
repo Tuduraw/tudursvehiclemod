@@ -76,6 +76,51 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 	public void tudursvehiclemod$setMidgetDesignatedTarget(java.util.UUID targetUuid, double attackRange) {
 		this.midgetDesignatedTargetUuid = targetUuid;
 		this.midgetAttackRange = attackRange;
+		if (targetUuid != null) {
+			this.midgetLockedLaunch = true;
+		}
+	}
+
+	/** Launched in lock mode: the route (MidgetWaypoint) is never flown - launch route, the attack, then straight to the recovery. */
+	private boolean midgetLockedLaunch;
+	/** While chasing: true after running past the target at close range, until far enough away to turn back in for another attack - see tudursvehiclemod$updateMidgetAutopilot()'s attack section. */
+	private boolean midgetExtending;
+	/** The mothership this midget was launched from, the weapon slot it came from, and the seat of the player who launched it - see tudursvehiclemod$setMidgetMothership(). */
+	private java.util.UUID midgetMothershipUuid;
+	private int midgetMothershipWeaponIndex = -1;
+	private int midgetMothershipSeatIndex = -1;
+	/** The recovery approach (MidgetLandingWaypoint), relative to the mothership's CURRENT mount position and heading. Empty: the older recovery by retracing the launch route in reverse. */
+	private java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> midgetLandingWaypoints = java.util.List.of();
+	/** True while the player who switched in from the mothership (AbstractVehicleEntity#tudursvehiclemod$toggleCarrierSeat()) is piloting this midget. */
+	private boolean midgetPlayerControlled;
+
+	/** Called once at launch by AbstractVehicleEntity#tudursvehiclemod$fireMidgetLaunch(). */
+	public void tudursvehiclemod$setMidgetMothership(java.util.UUID mothershipUuid, int weaponIndex, int seatIndex,
+			java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> landingWaypoints) {
+		this.midgetMothershipUuid = mothershipUuid;
+		this.midgetMothershipWeaponIndex = weaponIndex;
+		this.midgetMothershipSeatIndex = seatIndex;
+		this.midgetLandingWaypoints = landingWaypoints == null ? java.util.List.of() : landingWaypoints;
+	}
+
+	@Override
+	public boolean tudursvehiclemod$isLaunchedCraftPlayerControlled() {
+		return this.midgetPlayerControlled;
+	}
+
+	@Override
+	public void tudursvehiclemod$setLaunchedCraftPlayerControlled(boolean playerControlled) {
+		this.midgetPlayerControlled = playerControlled;
+	}
+
+	@Override
+	public java.util.UUID tudursvehiclemod$getLaunchMothershipUuid() {
+		return this.midgetMothershipUuid;
+	}
+
+	@Override
+	public int tudursvehiclemod$getLaunchMothershipSeatIndex() {
+		return this.midgetMothershipSeatIndex;
 	}
 
 	/** The designated target, once this midget has flown its launch route and while the target is still there; null otherwise. A target that is gone ends the attack (the designation is dropped). */
@@ -85,10 +130,13 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 			return null;
 		}
 		net.minecraft.entity.Entity target = serverWorld.getEntity(this.midgetDesignatedTargetUuid);
+		// The attack also ends with nothing left to fire (by the same reload rules the weapon itself follows - see AbstractVehicleEntity#tudursvehiclemod$hasShotsLeft()).
 		if (target == null || target.isRemoved()
 				|| (target instanceof AbstractVehicleEntity targetVehicle && targetVehicle.tudursvehiclemod$isDestroyed())
-				|| (target instanceof net.minecraft.entity.LivingEntity living && !living.isAlive())) {
+				|| (target instanceof net.minecraft.entity.LivingEntity living && !living.isAlive())
+				|| !this.tudursvehiclemod$hasShotsLeft(this.midgetAttackWeaponIndex)) {
 			this.midgetDesignatedTargetUuid = null;
+			this.midgetExtending = false;
 			return null;
 		}
 		return target;
@@ -131,7 +179,130 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		this.midgetTimeoutTicks = timeoutTicks;
 		this.midgetStuckTimeoutTicks = stuckTimeoutTicks;
 		this.midgetRecoveryEnabled = recoveryEnabled;
+		this.midgetDetectRange = detectRange;
+		this.midgetDetectIntervalTicks = detectIntervalTicks;
+		this.midgetAvoidStep = avoidStep;
 		this.midgetNavigator = new MidgetNavigator(detectRange, detectIntervalTicks, avoidStep);
+	}
+
+	/** The navigator's own settings, kept so the save can rebuild it - see writeCustomData(). */
+	private double midgetDetectRange;
+	private int midgetDetectIntervalTicks;
+	private double midgetAvoidStep;
+
+	// ---- Saving the midget's autonomous state, so a launched midget carries on after a world reload instead of turning into an ordinary, unpiloted submarine. Only written while the autopilot is active. The navigator's moment-to-moment avoidance state (its current depth ceiling) is not kept: it starts afresh, which only means one more probe ahead. ----
+
+	/** Waypoints in the same text format the weapon file uses (relX,depth,relZ,speedPercent,attack per entry, ';' between entries), so the existing parser reads them back. */
+	private static String tudursvehiclemod$encodeMidgetWaypoints(java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> waypoints) {
+		StringBuilder sb = new StringBuilder();
+		for (com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint wp : waypoints) {
+			if (sb.length() > 0) {
+				sb.append(';');
+			}
+			sb.append(wp.relX()).append(',').append(wp.depth()).append(',').append(wp.relZ()).append(',')
+					.append(wp.speedFraction() * 100f).append(',').append(wp.attack());
+		}
+		return sb.toString();
+	}
+
+	private static java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> tudursvehiclemod$decodeMidgetWaypoints(String encoded) {
+		java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> waypoints = new java.util.ArrayList<>();
+		if (encoded == null || encoded.isEmpty()) {
+			return waypoints;
+		}
+		for (String entry : encoded.split(";")) {
+			com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint wp = com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint.parse(entry);
+			if (wp != null) {
+				waypoints.add(wp);
+			}
+		}
+		return waypoints;
+	}
+
+	private static double tudursvehiclemod$readDouble(net.minecraft.storage.ReadView view, String key) {
+		try {
+			return Double.parseDouble(view.getString(key, "0"));
+		} catch (NumberFormatException e) {
+			return 0.0;
+		}
+	}
+
+	@Override
+	protected void writeCustomData(net.minecraft.storage.WriteView view) {
+		super.writeCustomData(view);
+		if (!this.tudursvehiclemod$isMidgetAutopilotActive()) {
+			return;
+		}
+		view.putBoolean("MidgetActive", true);
+		view.putString("MidgetLaunchWaypoints", tudursvehiclemod$encodeMidgetWaypoints(this.midgetLaunchWaypoints));
+		view.putString("MidgetRouteWaypoints", tudursvehiclemod$encodeMidgetWaypoints(this.midgetRouteWaypoints));
+		view.putString("MidgetLandingWaypoints", tudursvehiclemod$encodeMidgetWaypoints(this.midgetLandingWaypoints));
+		view.putInt("MidgetWaypointIndex", this.midgetWaypointIndex);
+		// Coordinates as text: there is no double precedent in this project's own save code, and float would lose precision far from the origin.
+		view.putString("MidgetMountX", Double.toString(this.midgetMountX));
+		view.putString("MidgetMountZ", Double.toString(this.midgetMountZ));
+		view.putString("MidgetForwardX", Double.toString(this.midgetForwardX));
+		view.putString("MidgetForwardZ", Double.toString(this.midgetForwardZ));
+		view.putString("MidgetRouteOriginX", Double.toString(this.midgetRouteOriginX));
+		view.putString("MidgetRouteOriginZ", Double.toString(this.midgetRouteOriginZ));
+		view.putInt("MidgetAttackWeaponIndex", this.midgetAttackWeaponIndex);
+		view.putInt("MidgetAgeTicks", this.midgetAgeTicks);
+		view.putInt("MidgetTimeoutTicks", this.midgetTimeoutTicks);
+		view.putInt("MidgetStuckTicks", this.midgetStuckTicks);
+		view.putInt("MidgetStuckTimeoutTicks", this.midgetStuckTimeoutTicks);
+		view.putBoolean("MidgetRecoveryEnabled", this.midgetRecoveryEnabled);
+		view.putString("MidgetDetectRange", Double.toString(this.midgetDetectRange));
+		view.putInt("MidgetDetectIntervalTicks", this.midgetDetectIntervalTicks);
+		view.putString("MidgetAvoidStep", Double.toString(this.midgetAvoidStep));
+		view.putString("MidgetAttackRange", Double.toString(this.midgetAttackRange));
+		if (this.midgetDesignatedTargetUuid != null) {
+			view.putString("MidgetDesignatedTargetUuid", this.midgetDesignatedTargetUuid.toString());
+		}
+		view.putBoolean("MidgetLockedLaunch", this.midgetLockedLaunch);
+		view.putBoolean("MidgetExtending", this.midgetExtending);
+		if (this.midgetMothershipUuid != null) {
+			view.putString("MidgetMothershipUuid", this.midgetMothershipUuid.toString());
+		}
+		view.putInt("MidgetMothershipWeaponIndex", this.midgetMothershipWeaponIndex);
+		view.putInt("MidgetMothershipSeatIndex", this.midgetMothershipSeatIndex);
+		view.putBoolean("MidgetHatchClosedOnce", this.midgetHatchClosedOnce);
+		view.putBoolean("MidgetPlayerControlled", this.midgetPlayerControlled);
+	}
+
+	@Override
+	protected void readCustomData(net.minecraft.storage.ReadView view) {
+		super.readCustomData(view);
+		if (!view.getBoolean("MidgetActive", false)) {
+			return;
+		}
+		java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> route = tudursvehiclemod$decodeMidgetWaypoints(view.getString("MidgetRouteWaypoints", ""));
+		if (route.isEmpty()) {
+			// Nothing usable to resume (a route is required at launch) - leave it an ordinary submarine rather than an autopilot that would fail on its first tick.
+			return;
+		}
+		this.tudursvehiclemod$initializeMidgetLaunch(
+				tudursvehiclemod$decodeMidgetWaypoints(view.getString("MidgetLaunchWaypoints", "")), route,
+				tudursvehiclemod$readDouble(view, "MidgetMountX"), tudursvehiclemod$readDouble(view, "MidgetMountZ"),
+				tudursvehiclemod$readDouble(view, "MidgetForwardX"), tudursvehiclemod$readDouble(view, "MidgetForwardZ"),
+				tudursvehiclemod$readDouble(view, "MidgetRouteOriginX"), tudursvehiclemod$readDouble(view, "MidgetRouteOriginZ"),
+				view.getInt("MidgetAttackWeaponIndex", 0),
+				view.getInt("MidgetTimeoutTicks", 12000), view.getInt("MidgetStuckTimeoutTicks", 1200), view.getBoolean("MidgetRecoveryEnabled", true),
+				tudursvehiclemod$readDouble(view, "MidgetDetectRange"), view.getInt("MidgetDetectIntervalTicks", 10), tudursvehiclemod$readDouble(view, "MidgetAvoidStep"));
+		this.midgetWaypointIndex = view.getInt("MidgetWaypointIndex", 0);
+		this.midgetAgeTicks = view.getInt("MidgetAgeTicks", 0);
+		this.midgetStuckTicks = view.getInt("MidgetStuckTicks", 0);
+		String designated = view.getString("MidgetDesignatedTargetUuid", "");
+		// setMidgetDesignatedTarget() would also mark a locked launch; that flag is restored on its own just below.
+		this.midgetDesignatedTargetUuid = designated.isEmpty() ? null : java.util.UUID.fromString(designated);
+		this.midgetAttackRange = tudursvehiclemod$readDouble(view, "MidgetAttackRange");
+		this.midgetLockedLaunch = view.getBoolean("MidgetLockedLaunch", false);
+		this.midgetExtending = view.getBoolean("MidgetExtending", false);
+		String mothership = view.getString("MidgetMothershipUuid", "");
+		this.tudursvehiclemod$setMidgetMothership(mothership.isEmpty() ? null : java.util.UUID.fromString(mothership),
+				view.getInt("MidgetMothershipWeaponIndex", -1), view.getInt("MidgetMothershipSeatIndex", -1),
+				tudursvehiclemod$decodeMidgetWaypoints(view.getString("MidgetLandingWaypoints", "")));
+		this.midgetHatchClosedOnce = view.getBoolean("MidgetHatchClosedOnce", false);
+		this.midgetPlayerControlled = view.getBoolean("MidgetPlayerControlled", false);
 	}
 	protected static final float SUBMERGED_DAMAGE_PER_TICK = 2.0f;
 	/** Same grace period as AircraftEntity's own level-flight assist (100 ticks = 5 seconds). */
@@ -403,16 +574,30 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		}
 		// Chasing a designated target (lock mode) takes the place of the route until the attack is over - see tudursvehiclemod$setMidgetDesignatedTarget()'s own doc. The route waypoint index is left where it is (on the route's first waypoint) meanwhile.
 		net.minecraft.entity.Entity pursuitTarget = this.tudursvehiclemod$midgetPursuitTarget();
+		// Lock mode, attack over: straight on to the recovery, never flying the route (see midgetLockedLaunch's own doc).
+		int launchCount = this.midgetLaunchWaypoints.size();
+		int routeCount = this.midgetRouteWaypoints.size();
+		if (pursuitTarget == null && this.midgetLockedLaunch && this.midgetDesignatedTargetUuid == null
+				&& this.midgetWaypointIndex >= launchCount && this.midgetWaypointIndex < launchCount + routeCount) {
+			this.midgetWaypointIndex = launchCount + routeCount;
+		}
 		double[] target;
 		if (pursuitTarget != null) {
 			com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint firstRouteWaypoint = this.midgetRouteWaypoints.get(0);
-			target = new double[]{pursuitTarget.getX(), pursuitTarget.getZ(), firstRouteWaypoint.depth(), 0.0, firstRouteWaypoint.speedFraction()};
+			if (this.midgetExtending) {
+				// Running on past the target to get far enough out to turn back in: a point well ahead on the current heading.
+				double yawRad = Math.toRadians(this.getYaw());
+				target = new double[]{this.getX() - Math.sin(yawRad) * 50.0, this.getZ() + Math.cos(yawRad) * 50.0,
+						firstRouteWaypoint.depth(), 0.0, firstRouteWaypoint.speedFraction()};
+			} else {
+				target = new double[]{pursuitTarget.getX(), pursuitTarget.getZ(), firstRouteWaypoint.depth(), 0.0, firstRouteWaypoint.speedFraction()};
+			}
 		} else {
 			target = this.tudursvehiclemod$midgetCurrentTarget();
 		}
 		if (target == null) {
-			// Recovered: every leg (launch, route, and - if recoveryEnabled - the return trip) is done.
-			this.discard();
+			// Every leg (launch, route or attack, and the recovery approach) is done.
+			this.tudursvehiclemod$recoverMidget();
 			return;
 		}
 		double targetX = target[0];
@@ -478,13 +663,19 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 			double turnRadius = Math.max(speed, 0.05) / Math.toRadians(Math.max(0.1f, def.turnSpeed()));
 			MidgetNavigator.Pursuit decision = MidgetNavigator.pursuitDecision(this.getX(), this.getZ(), this.getYaw(),
 					pursuitTarget.getX(), pursuitTarget.getZ(), this.midgetAttackRange, turnRadius);
-			if (decision == MidgetNavigator.Pursuit.ATTACK && this.midgetAttackWeaponIndex >= 0) {
-				// tryFireWeapon() returns true only when a shot actually went out; then the attack is over. The target is passed along, so a guided torpedo chases it.
-				if (this.tryFireWeapon(this.midgetAttackWeaponIndex, null, pursuitTarget)) {
-					this.midgetDesignatedTargetUuid = null;
+			double distanceToTarget = Math.sqrt((pursuitTarget.getX() - this.getX()) * (pursuitTarget.getX() - this.getX())
+					+ (pursuitTarget.getZ() - this.getZ()) * (pursuitTarget.getZ() - this.getZ()));
+			if (this.midgetExtending) {
+				// Far enough out to come back round without circling the target: turn back in.
+				if (MidgetNavigator.extendedFarEnough(distanceToTarget, this.midgetAttackRange, turnRadius)) {
+					this.midgetExtending = false;
 				}
+			} else if (decision == MidgetNavigator.Pursuit.ATTACK && this.midgetAttackWeaponIndex >= 0) {
+				// The attack keeps going for as long as there is something to fire - it ends (in midgetPursuitTarget()) once there is not, or the target is gone. The target is passed along, so a guided torpedo chases it.
+				this.tryFireWeapon(this.midgetAttackWeaponIndex, null, pursuitTarget);
 			} else if (decision == MidgetNavigator.Pursuit.GIVE_UP) {
-				this.midgetDesignatedTargetUuid = null;
+				// Ran past the target at close range: carry on outward and come back for another attack, rather than turning back on it at once (which is how an endless orbit starts) or giving up while rounds remain.
+				this.midgetExtending = true;
 			}
 		} else if (attackLeg && this.midgetAttackWeaponIndex >= 0) {
 			this.tryFireWeapon(this.midgetAttackWeaponIndex, null);
@@ -536,12 +727,67 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 			return null;
 		}
 		index -= routeCount;
+		if (!this.midgetLandingWaypoints.isEmpty()) {
+			// The recovery approach (MidgetLandingWaypoint), like CarrierLandingWaypoint: relative to the mothership's CURRENT mount position and heading, worked out afresh every tick since it may have moved; the launch point and heading if it cannot be found.
+			if (index >= this.midgetLandingWaypoints.size()) {
+				return null;
+			}
+			double[] basis = this.tudursvehiclemod$midgetMothershipMountBasis();
+			return this.tudursvehiclemod$midgetWaypointToTarget(this.midgetLandingWaypoints.get(index), basis[0], basis[1], basis[2], basis[3], false);
+		}
+		// No MidgetLandingWaypoint: the older recovery - the launch route again, in reverse, back to the launch point.
 		int returnIndex = launchCount - 1 - index;
 		if (returnIndex < 0) {
 			return null;
 		}
 		return this.tudursvehiclemod$midgetWaypointToTarget(this.midgetLaunchWaypoints.get(returnIndex),
 				this.midgetMountX, this.midgetMountZ, this.midgetForwardX, this.midgetForwardZ, false);
+	}
+
+	/** {mountX, mountZ, forwardX, forwardZ} of the launching weapon's mount on the mothership as it is NOW, or the launch-time values if the mothership (or that weapon) cannot be found. */
+	private double[] tudursvehiclemod$midgetMothershipMountBasis() {
+		AbstractVehicleEntity mothership = this.tudursvehiclemod$findMidgetMothership();
+		if (mothership != null) {
+			VehicleDefinition mothershipDef = mothership.getDefinition();
+			com.example.tudursvehiclemod.asset.WeaponDefinition weapon = mothershipDef.weapons().get(this.midgetMothershipWeaponIndex);
+			Vec3d mount = mothership.tudursvehiclemod$computeWeaponSpawnPos(mothershipDef, weapon, this.midgetMothershipWeaponIndex).pos();
+			double mountYaw = weapon.offsets().isEmpty() ? 0.0 : weapon.offsets().get(0).mountYaw();
+			double yawRad = Math.toRadians(mothership.getYaw() + mountYaw);
+			return new double[]{mount.x, mount.z, -Math.sin(yawRad), Math.cos(yawRad)};
+		}
+		return new double[]{this.midgetMountX, this.midgetMountZ, this.midgetForwardX, this.midgetForwardZ};
+	}
+
+	/** The mothership, if it is still there and still has the weapon slot this midget was launched from. */
+	private AbstractVehicleEntity tudursvehiclemod$findMidgetMothership() {
+		if (this.midgetMothershipUuid == null || !(this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld)) {
+			return null;
+		}
+		net.minecraft.entity.Entity entity = serverWorld.getEntity(this.midgetMothershipUuid);
+		if (entity instanceof AbstractVehicleEntity mothership && !entity.isRemoved()
+				&& this.midgetMothershipWeaponIndex >= 0 && this.midgetMothershipWeaponIndex < mothership.getDefinition().weapons().size()) {
+			return mothership;
+		}
+		return null;
+	}
+
+	/** The end of the sortie: with recovery enabled and the mothership there, its round goes back to the launching weapon (as a landed Carrier aircraft's does) and a player aboard is put back in a mothership seat; then this midget is removed. */
+	private void tudursvehiclemod$recoverMidget() {
+		AbstractVehicleEntity mothership = this.midgetRecoveryEnabled ? this.tudursvehiclemod$findMidgetMothership() : null;
+		net.minecraft.entity.Entity rider = this.getPassengerList().isEmpty() ? null : this.getPassengerList().get(0);
+		this.discard();
+		if (mothership != null) {
+			mothership.tudursvehiclemod$replenishWeaponAmmo(this.midgetMothershipWeaponIndex, 1, this.getUuid());
+			if (rider != null) {
+				if (this.midgetMothershipSeatIndex < 0 || !mothership.tudursvehiclemod$mountToSeat(rider, this.midgetMothershipSeatIndex)) {
+					for (int seatIndex = 0; seatIndex < mothership.getDefinition().seats().size(); seatIndex++) {
+						if (mothership.tudursvehiclemod$mountToSeat(rider, seatIndex)) {
+							break;
+						}
+					}
+				}
+			}
+		}
 	}
 
 	/** Rotates/translates one MidgetWaypoint's own relX/relZ into world coordinates by originX/Z and forwardX/Z - the same "relative to the marked point, rotated to face the shooter's own direction" convention CasWaypoint/CarrierAircraftConfig already use, applied here to a MidgetWaypoint instead. */
@@ -562,7 +808,8 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 	@Override
 	protected void updateVehicleMovement(VehicleDefinition def) {
 		// A Midget's own autonomous route takes over movement ENTIRELY, bypassing every bit of the ordinary surfaced/diving physics below (hatch-state switching, the ascend/descend keys, roll lean, wake, broaching correction and all) - a deliberate simplification given this feature's own scope: it drives yaw/pitch/velocity directly from entity.MidgetNavigator's own already-verified pure logic, rather than threading autonomous control through the player-input plumbing those branches are built around. Untested in an actual game at the time this was written - see Readme_Weapon_Cas.md's own Midget section for the caveat.
-		if (this.tudursvehiclemod$isMidgetAutopilotActive()) {
+		// Not while a player is piloting it (switched in from the mothership): ordinary piloting below, and the autopilot picks up from where it was once they leave.
+		if (this.tudursvehiclemod$isMidgetAutopilotActive() && !(this.getControllingPassenger() instanceof net.minecraft.entity.player.PlayerEntity)) {
 			this.tudursvehiclemod$updateMidgetAutopilot(def);
 			return;
 		}

@@ -330,6 +330,11 @@ public final class MidgetNavigator {
 		return Pursuit.CHASE;
 	}
 
+	/** After running past the target (Pursuit.GIVE_UP), how far out is far enough to turn back in for another attack: beyond the attack range by two turn radii, so the turn back cannot bring it in close enough to start circling the target. */
+	public static boolean extendedFarEnough(double distanceToTarget, double attackRange, double turnRadius) {
+		return distanceToTarget >= attackRange + 2.0 * turnRadius + WAYPOINT_REACHED_BLOCKS;
+	}
+
 	/** Back to a fresh start (used when a new route leg begins that should not inherit an old ceiling). */
 	public void reset() {
 		this.avoiding = false;

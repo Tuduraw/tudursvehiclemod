@@ -538,8 +538,10 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		// A Drone Center-linked vehicle (see AbstractVehicleEntity's own tudursvehiclemod$isDroneActive() doc) flies its own autonomous routine entirely instead of the normal piloted/unpiloted logic below - checked first and self-contained (returns immediately) rather than interleaving with that existing, deeply-intertwined physics code, which would risk a subtle, hard-to-verify partial interaction between the two.
 		// Also requires getDroneCenterPos() != null explicitly, not just isDroneActive() alone - isDroneActive() now reads a synced flag (so blade-spin rendering works correctly for observers - see getSpinningPartSpeedMultiplier()'s own doc), but droneCenterPos itself is only ever meaningfully populated SERVER-side (that field is never networked, since only the server needs it for the actual orbit math) - without this, an observing CLIENT would see isDroneActive()==true (correctly synced) while its own droneCenterPos stayed null, dispatching into the full autopilot anyway and immediately NullPointerException-ing trying to use it.
 		// DroneFormationLeaderUuid != null is ALSO routed into this SAME dispatch now (rather than a separate, earlier branch that used to bypass updateDroneAutopilot() entirely - see this whole condition's own history in docs/IMPLEMENTATION_NOTES.md "編隊追随のディスパッチ不具合を修正") - that method itself now has its own dedicated handling for every formation-follow case (a Drone Center wingman with no route of its own at all, and a CAS/Carrier wingman past its own launch waypoints), so every wingman needs to actually reach it rather than being diverted away before ever getting there.
+		// The formation-follower half of this condition is for a Drone Center formation wingman (no route of its own: casWaypointOverride == null) only. A CAS/Carrier aircraft also caches its formation leader in droneFormationLeaderUuid while it flies as a wingman (see the CAS/Carrier formation block in updateDroneAutopilot()), and nothing clears it - so once such an aircraft dropped its drone link for the final landing glide, it still came in here, updateDroneAutopilot() returned at once for want of a drone center, and the server never moved it again: frozen at the release point, while every client kept extrapolating it forward and was snapped back to that point every few dozen ticks (diagnostic logs: a server position and velocity unchanged for 100 ticks after the release, the client rewinding to it again and again). It only hit aircraft that had flown as a wingman at some point, hence intermittent.
 		if (player == null && !this.tudursvehiclemod$isDestroyed()
-				&& ((this.tudursvehiclemod$isDroneActive() && this.tudursvehiclemod$getDroneCenterPos() != null) || this.droneFormationLeaderUuid != null)) {
+				&& ((this.tudursvehiclemod$isDroneActive() && this.tudursvehiclemod$getDroneCenterPos() != null)
+						|| (this.droneFormationLeaderUuid != null && this.casWaypointOverride == null))) {
 			this.wasPiloted = false;
 			this.tudursvehiclemod$updateDroneAutopilot(def);
 			return;
@@ -1016,6 +1018,16 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			this.tudursvehiclemod$updateCarrierLockPursuit(def);
 			return;
 		}
+		// A Carrier aircraft launched in lock mode whose attack is over (the designation has been used, and no lock is active any more): straight into the return, exactly as finishing the route would start it (the formation landing queue included), instead of flying CarrierWaypoint - see carrierLaunchedAgainstTarget's own doc. The return itself is handled further down, this same tick.
+		if (this.tudursvehiclemod$isLockedCarrierLaunch() && !this.carrierReturning && !this.carrierWaitingToLand
+				&& this.carrierLaunchDesignatedTargetUuid == null && this.droneWaypointIndex >= this.carrierLaunchWaypointCount) {
+			if (this.carrierFormationIndex > 0) {
+				this.carrierWaitingToLand = true;
+				this.carrierLandingQueueTicksRemaining = this.carrierFormationIndex * CARRIER_LANDING_QUEUE_DELAY_TICKS;
+			} else {
+				this.carrierReturning = true;
+			}
+		}
 		// Closes canopy parts, mirroring onPilotMounted()'s own current behavior for a real pilot boarding - a drone never actually triggers that method (isDroneActive() bypasses normal boarding entirely), so canopy was staying at whatever state it was in before activation instead of closing like it would for a real pilot. Hatch is no longer force-closed here either, matching onPilotMounted()'s own current behavior (see that method's own doc) - a drone's own hatch simply stays at whatever state it was already in.
 		this.setCanopyOpen(false);
 		// SetThrottleDirect() below clamps to 0 whenever isWingLockedFolded() is true (a second, independent gate alongside isOutOfFuel() - see that method's own doc) - a drone spawned/parked with wings folded had no pilot able to manually unfold them either. uses tudursvehiclemod$forceWingFoldOpen() rather than tryToggleWingFold() - see that method's own doc for why tryToggleWingFold()'s own speed gate (correct for its INTENDED player-initiated use case) isn't appropriate for this automatic, no-pilot-available case.
@@ -1046,6 +1058,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			// Per casForcedChunks's own doc: chunk-forcing maintenance itself now runs unconditionally from updateVehicleMovement() (tudursvehiclemod$updateCasForcedChunks()), already called once this same tick before this method was even reached - no longer duplicated here.
 			// A CAS/Carrier formation member (carrierFormationRootLeaderUuid != null - now set for the LEAD too, not just wingmen, so every member shares the same formation key) that is NOT currently the formation's own leader-slot occupant follows whoever IS, resolved fresh every tick via the registry - droneWaypointIndex >= carrierLaunchWaypointCount excludes Carrier's own launch waypoints specifically (always true immediately for CAS, which has no launch phase of its own at all). The current slot occupant itself simply falls through this whole block untouched, flying its own independent route exactly like the original pre-formation lead's own behavior.
 			if (this.carrierFormationRootLeaderUuid != null
+					&& !this.tudursvehiclemod$isLockedCarrierLaunch()
 					&& !this.getUuid().equals(FORMATION_LEADER_SLOT.get(this.carrierFormationRootLeaderUuid))
 					&& this.droneWaypointIndex >= this.carrierLaunchWaypointCount) {
 				if (!(this.getEntityWorld() instanceof ServerWorld formationServerWorld)) {
@@ -1474,6 +1487,23 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 	public void tudursvehiclemod$setCarrierLaunchDesignatedTarget(java.util.UUID targetUuid, int weaponIndex) {
 		this.carrierLaunchDesignatedTargetUuid = targetUuid;
 		this.carrierLaunchDesignatedWeaponIndex = weaponIndex;
+		if (targetUuid != null) {
+			this.carrierLaunchedAgainstTarget = true;
+		}
+	}
+
+	/**
+	 * Set once a launch hands this aircraft a designated target (lock mode). For a CARRIER aircraft (one with a mothership -
+	 * see tudursvehiclemod$isLockedCarrierLaunch()) it replaces the ordinary route entirely: take-off route, then straight for the
+	 * target, then - once the lock ends for any reason (target destroyed or lost, shaken off, nothing left to fire) - straight into
+	 * the return and landing, never flying CarrierWaypoint at all, and not following a formation leader in between. A CAS strike
+	 * (no mothership) still goes back to its route after the lock, as before. Saved, so a reload keeps the same behavior.
+	 */
+	private boolean carrierLaunchedAgainstTarget;
+
+	/** See carrierLaunchedAgainstTarget's own doc. */
+	private boolean tudursvehiclemod$isLockedCarrierLaunch() {
+		return this.carrierLaunchedAgainstTarget && this.carrierMothershipUuid != null;
 	}
 
 	/** Promotes the designated-at-launch target to an ordinary Carrier lock once this aircraft has flown every one of its own launch waypoints (droneWaypointIndex >= carrierLaunchWaypointCount - the same test the formation-follow logic uses to tell the scripted take-off from the main route). Runs every tick from the drone autopilot; a cheap null check when nothing was designated. Once promoted the designation is spent: if the lock later ends (target destroyed, or shaken off - see CARRIER_LOCK_SHAKEN_OFF_TICKS) the aircraft simply carries on with its ordinary route and landing, exactly as a wingman released from a player-assigned lock does. */
@@ -1763,6 +1793,8 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		this.dataTracker.set(CAS_WAYPOINT_SPEED_FRACTION, finalLandingSpeedFraction);
 		this.carrierGlideMinSpeed = CARRIER_LANDING_FINAL_MIN_SPEED;
 		this.tudursvehiclemod$setDroneLink(null);
+		// A landing aircraft has no formation to follow any more - clear the leader it cached as a wingman, so nothing can route it back into the autopilot during the glide (see updateVehicleMovement()'s own autopilot dispatch).
+		this.droneFormationLeaderUuid = null;
 	}
 
 	/** A landing waypoint's own speed% as a throttle fraction; CARRIER_LANDING_CRUISE_SPEED_FRACTION (the old fixed 30%) only for a value that is not positive (0 or negative in the speed% column), so a bad entry cannot stall the approach; values above 100% are capped at full throttle. CarrierLaunchWaypoint's own parser does not bound the speed% column itself, which is why both ends are handled here. */
@@ -1857,6 +1889,12 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			this.carrierLandingWaypointIndex = view.getInt("CarrierLandingWaypointIndex", 0);
 			this.carrierGlideMinSpeed = view.getFloat("CarrierGlideMinSpeed", 0.0f);
 			this.dataTracker.set(CARRIER_PLAYER_CONTROLLED, view.getBoolean("CarrierPlayerControlled", false));
+			this.carrierLaunchedAgainstTarget = view.getBoolean("CarrierLaunchedAgainstTarget", false);
+			String designatedTargetUuidString = view.getString("CarrierLaunchDesignatedTargetUuid", "");
+			if (!designatedTargetUuidString.isEmpty()) {
+				this.carrierLaunchDesignatedTargetUuid = java.util.UUID.fromString(designatedTargetUuidString);
+				this.carrierLaunchDesignatedWeaponIndex = view.getInt("CarrierLaunchDesignatedWeaponIndex", 0);
+			}
 			String formationRootLeaderUuidString = view.getString("CarrierFormationRootLeaderUuid", "");
 			if (!formationRootLeaderUuidString.isEmpty()) {
 				this.carrierFormationRootLeaderUuid = java.util.UUID.fromString(formationRootLeaderUuidString);
@@ -1932,6 +1970,11 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			view.putInt("CarrierLandingWaypointIndex", this.carrierLandingWaypointIndex);
 			view.putFloat("CarrierGlideMinSpeed", this.carrierGlideMinSpeed);
 			view.putBoolean("CarrierPlayerControlled", this.dataTracker.get(CARRIER_PLAYER_CONTROLLED));
+			view.putBoolean("CarrierLaunchedAgainstTarget", this.carrierLaunchedAgainstTarget);
+			if (this.carrierLaunchDesignatedTargetUuid != null) {
+				view.putString("CarrierLaunchDesignatedTargetUuid", this.carrierLaunchDesignatedTargetUuid.toString());
+				view.putInt("CarrierLaunchDesignatedWeaponIndex", this.carrierLaunchDesignatedWeaponIndex);
+			}
 			if (this.carrierFormationRootLeaderUuid != null) {
 				view.putString("CarrierFormationRootLeaderUuid", this.carrierFormationRootLeaderUuid.toString());
 			}
@@ -2470,22 +2513,6 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 	private boolean torpedoPointReleased;
 
 	/**
-	 * Whether weaponIndex can still fire at all: a magazine with rounds in it, an unlimited magazine, or - for an aircraft that
-	 * reloads in flight - reserve rounds to reload from. A CAS/Carrier-launched aircraft never reloads mid-flight (see
-	 * isCasOrCarrierAutonomous()), so for it an empty magazine is the end. Used to end an attack that has nothing left to fire.
-	 */
-	public boolean tudursvehiclemod$hasShotsLeft(int weaponIndex) {
-		java.util.List<com.example.tudursvehiclemod.asset.WeaponDefinition> weapons = this.getDefinition().weapons();
-		if (weaponIndex < 0 || weaponIndex >= weapons.size()) {
-			return false;
-		}
-		if (weapons.get(weaponIndex).magazineSize() <= 0 || this.tudursvehiclemod$getWeaponMagazineAmmo(weaponIndex) > 0) {
-			return true;
-		}
-		return !this.tudursvehiclemod$isCasOrCarrierAutonomous() && this.tudursvehiclemod$getWeaponReserveAmmo(weaponIndex) > 0;
-	}
-
-	/**
 	 * The route's own attack: on an attack leg, every weapon is fired as the route flies (updateCasAutoFire) - except a torpedo,
 	 * which can only be dropped level, at the right height and some way off, so instead the attack leg starts a beam run against
 	 * the strike's marked point (see torpedoPointTarget's own doc). Once per attack leg, and only with a shot left to fire.
@@ -2534,6 +2561,27 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		}
 		int index = MathHelper.clamp(this.droneWaypointIndex, 0, this.casWaypointOverride.size() - 1);
 		return (double) (center.getY() + this.casWaypointOverride.get(index).relY());
+	}
+
+	/** Launched-vehicle hooks for the seat switch (AbstractVehicleEntity#tudursvehiclemod$toggleCarrierSeat()) - a Carrier aircraft's own fields. */
+	@Override
+	public boolean tudursvehiclemod$isLaunchedCraftPlayerControlled() {
+		return this.tudursvehiclemod$isCarrierPlayerControlled();
+	}
+
+	@Override
+	public void tudursvehiclemod$setLaunchedCraftPlayerControlled(boolean playerControlled) {
+		this.tudursvehiclemod$setCarrierPlayerControlled(playerControlled);
+	}
+
+	@Override
+	public java.util.UUID tudursvehiclemod$getLaunchMothershipUuid() {
+		return this.tudursvehiclemod$getCarrierMothershipUuid();
+	}
+
+	@Override
+	public int tudursvehiclemod$getLaunchMothershipSeatIndex() {
+		return this.tudursvehiclemod$getCarrierMothershipSeatIndex();
 	}
 
 	/** Drops the current combat lock, so the aircraft goes back to its route - used by a dummy pilot whose aircraft has nothing left to fire (see DummyPilotEntity's own aircraft hand-off). */
@@ -2614,9 +2662,11 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		// Held below the weapon's own TorpedoMaxAltitude (by TORPEDO_RUN_ALTITUDE_MARGIN), since tryFireWeapon() refuses a torpedo launched from any higher: a run flown above that limit could never release at all and would just keep making runs - which is what the old fixed 15-block limit did to CasTorpedoAltitude's own 20-block default.
 		double torpedoRunAltitude = Math.max(1.0, Math.min(attackWeapon.casTorpedoAltitude(), attackWeapon.torpedoMaxAltitude() - TORPEDO_RUN_ALTITUDE_MARGIN));
 		// A torpedo run with nothing left to fire is over: back to the route. Other attacks end through the shaken-off clock once they can no longer close on the target, but a torpedo run keeps reaching its release point and breaking away again, run after run, so it would never end that way. A point run is only ever a torpedo run.
-		// Not during HOLD, though: a one-round torpedo empties its magazine the instant it is released, and ending there cut short the 5 ticks of level flight the release point is meant to be followed by - the run ends at the BREAK that follows instead.
-		boolean holdingAfterRelease = this.torpedoRunPlanner.phase() == TorpedoRunPlanner.Phase.HOLD;
-		if ((torpedoRun && !holdingAfterRelease && !this.tudursvehiclemod$hasShotsLeft(this.carrierLockedTargetWeaponIndex)) || (pointMode && !torpedoRun)) {
+		// Not during a torpedo's HOLD, though: a one-round torpedo empties its magazine the instant it is released, and ending there cut short the 5 ticks of level flight the release point is meant to be followed by - the run ends at the BREAK that follows instead.
+		// For EVERY weapon, not only a torpedo: an attack with nothing left to fire ends here. This used to cover torpedoes alone, on the assumption that other attacks already ended through the shaken-off clock - they never did: a dive or strafing attack keeps closing on its target between pull-ups, so the distance keeps improving and the clock never runs out, and the lock held for as long as the target lived. Checked against the same (clamped) weapon slot the attack itself uses.
+		boolean holdingAfterRelease = torpedoRun && this.torpedoRunPlanner.phase() == TorpedoRunPlanner.Phase.HOLD;
+		int attackWeaponSlot = Math.max(0, Math.min(this.carrierLockedTargetWeaponIndex, def.weapons().size() - 1));
+		if ((!holdingAfterRelease && !this.tudursvehiclemod$hasShotsLeft(attackWeaponSlot)) || (pointMode && !torpedoRun)) {
 			if (pointMode) {
 				this.torpedoPointTarget = null;
 			} else {

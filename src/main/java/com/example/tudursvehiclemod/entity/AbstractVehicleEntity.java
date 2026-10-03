@@ -7028,9 +7028,10 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (currentVehicle == null || !(player.getEntityWorld() instanceof ServerWorld serverWorld)) {
 			return;
 		}
-		if (currentVehicle instanceof AircraftEntity aircraft && aircraft.tudursvehiclemod$isCarrierPlayerControlled()) {
-			// Currently piloting a Carrier-launched aircraft - switch back to the mothership seat it was launched from.
-			java.util.UUID mothershipUuid = aircraft.tudursvehiclemod$getCarrierMothershipUuid();
+		if (currentVehicle.tudursvehiclemod$isLaunchedCraftPlayerControlled()) {
+			// Currently piloting a launched vehicle (a Carrier aircraft or a midget submarine) - switch back to the mothership seat it was launched from.
+			AbstractVehicleEntity aircraft = currentVehicle;
+			java.util.UUID mothershipUuid = aircraft.tudursvehiclemod$getLaunchMothershipUuid();
 			if (mothershipUuid == null) {
 				return;
 			}
@@ -7038,20 +7039,20 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			if (!(mothershipEntity instanceof AbstractVehicleEntity mothership) || mothershipEntity.isRemoved()) {
 				return;
 			}
-			int seatIndex = aircraft.tudursvehiclemod$getCarrierMothershipSeatIndex();
+			int seatIndex = aircraft.tudursvehiclemod$getLaunchMothershipSeatIndex();
 			if (mothership.tudursvehiclemod$getSeatOccupant(seatIndex) != null) {
 				return;
 			}
 			player.stopRiding();
 			if (mothership.tudursvehiclemod$mountToSeat(player, seatIndex)) {
-				aircraft.tudursvehiclemod$setCarrierPlayerControlled(false);
+				aircraft.tudursvehiclemod$setLaunchedCraftPlayerControlled(false);
 			}
 			// If the mount above failed for any reason, carrierPlayerControlled is deliberately left AS-IS (still true) rather than being cleared - the player is now unmounted from the aircraft (stopRiding() already ran), but the aircraft itself still correctly reports itself as "was under player control", so a follow-up switch attempt isn't left looking at an inconsistent, already-corrupted state.
 			return;
 		}
 		// Currently in the mothership (or some other vehicle entirely) - check whether their CURRENT seat has a linked aircraft to switch INTO.
 		int seatIndex = currentVehicle.tudursvehiclemod$getAssignedSeatIndex(player);
-		AircraftEntity aircraft = currentVehicle.tudursvehiclemod$findCurrentCarrierLeader(serverWorld, seatIndex);
+		AbstractVehicleEntity aircraft = currentVehicle.tudursvehiclemod$findCurrentCarrierLeader(serverWorld, seatIndex);
 		if (aircraft == null) {
 			return;
 		}
@@ -7064,20 +7065,23 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			VehicleMod_LoggerHolder.LOGGER.warn("[Carrier] Seat switch to aircraft id={} FAILED (mountToSeat returned false) - player left unmounted, no state changed on the aircraft itself.", aircraft.getId());
 			return;
 		}
-		aircraft.tudursvehiclemod$setCarrierPlayerControlled(true);
-		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player,
-				new com.example.tudursvehiclemod.network.SyncCruiseSpeedPayload(aircraft.getId(), aircraft.getCruiseSpeed(), aircraft.getThrottle()));
+		aircraft.tudursvehiclemod$setLaunchedCraftPlayerControlled(true);
+		if (aircraft instanceof AircraftEntity launchedAircraft) {
+			net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player,
+					new com.example.tudursvehiclemod.network.SyncCruiseSpeedPayload(launchedAircraft.getId(), launchedAircraft.getCruiseSpeed(), launchedAircraft.getThrottle()));
+		}
 	}
 
 	/** Walks carrierLinkedAircraftBySeat's own roster for seatIndex in launch order (index 0 = the formation's own original lead), returning the first entry that's still alive (not removed, not destroyed) - a destroyed or otherwise-gone leader is transparently skipped over, automatically falling through to the next aircraft in line. Returns null if the seat has no roster at all, or every aircraft in it is gone. */
-	private AircraftEntity tudursvehiclemod$findCurrentCarrierLeader(ServerWorld serverWorld, int seatIndex) {
+	private AbstractVehicleEntity tudursvehiclemod$findCurrentCarrierLeader(ServerWorld serverWorld, int seatIndex) {
 		java.util.List<java.util.UUID> roster = this.carrierLinkedAircraftBySeat.get(seatIndex);
 		if (roster == null) {
 			return null;
 		}
 		for (java.util.UUID aircraftUuid : roster) {
 			Entity aircraftEntity = serverWorld.getEntity(aircraftUuid);
-			if (aircraftEntity instanceof AircraftEntity aircraft && !aircraftEntity.isRemoved() && !aircraft.tudursvehiclemod$isDestroyed()) {
+			// Any launched vehicle - a Carrier aircraft, or a midget submarine (fireMidgetLaunch() registers those here too).
+			if (aircraftEntity instanceof AbstractVehicleEntity aircraft && !aircraftEntity.isRemoved() && !aircraft.tudursvehiclemod$isDestroyed()) {
 				return aircraft;
 			}
 		}
@@ -7175,6 +7179,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 						config.timeoutTicks(), config.stuckTimeoutTicks(), config.recovery(),
 						config.detectRange(), config.detectIntervalTicks(), config.avoidStep());
 				submarine.tudursvehiclemod$setMidgetDesignatedTarget(midgetDesignatedTargetUuid, config.attackRange());
+				submarine.tudursvehiclemod$setMidgetMothership(this.getUuid(), mothershipWeaponIndex,
+						shooter != null ? this.tudursvehiclemod$getAssignedSeatIndex(shooter) : -1, config.landingWaypoints());
 			}
 		}, net.minecraft.util.math.BlockPos.ofFloored(spawnX, spawnY, spawnZ), net.minecraft.entity.SpawnReason.TRIGGERED, false, false);
 
@@ -7191,6 +7197,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 		spawned.refreshPositionAndAngles(spawnX, spawnY, spawnZ, spawnYaw, 0f);
 		serverWorld.spawnEntity(spawned);
+		// The same per-seat roster a Carrier launch keeps, so the seat switch (toggleCarrierSeat) can take the shooter into this midget and back.
+		if (shooter != null) {
+			int shooterSeatIndex = this.tudursvehiclemod$getAssignedSeatIndex(shooter);
+			this.carrierLinkedAircraftBySeat.put(shooterSeatIndex, new java.util.ArrayList<>(java.util.List.of(spawned.getUuid())));
+		}
 	}
 
 	private void tudursvehiclemod$fireCarrierLaunch(WeaponDefinition weapon, ServerWorld serverWorld, Vec3d spawnPos, Vec3d targetPos, double shooterForwardX, double shooterForwardZ, ServerPlayerEntity shooter, int mothershipWeaponIndex, int actualFormationSize) {
@@ -8528,6 +8539,42 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	/** WeaponReserveAmmo itself (unlike weaponAmmo, the live magazine count already exposed via getWeaponAmmoState()) had no public accessor at all before this - 0 for an out-of-range weaponIndex, matching that same method's own "nothing to report" convention. */
+	/**
+	 * Whether weaponIndex can still fire at all, by the same rules the reload code actually follows: rounds in the magazine, an unlimited
+	 * magazine (magazineSize 0 or less), unlimited reserve (negative), or reserve rounds the next reload will draw on. Used to end an
+	 * autonomous attack that has nothing left to fire. (This used to treat a CAS/Carrier aircraft as never reloading in flight, from a doc
+	 * that says so - but the reload code reloads every vehicle alike from its reserve, so a launched aircraft with reserve rounds was let
+	 * go while it still had a reload coming.)
+	 */
+	public boolean tudursvehiclemod$hasShotsLeft(int weaponIndex) {
+		java.util.List<WeaponDefinition> weapons = this.getDefinition().weapons();
+		if (weaponIndex < 0 || weaponIndex >= weapons.size()) {
+			return false;
+		}
+		return weapons.get(weaponIndex).magazineSize() <= 0
+				|| this.tudursvehiclemod$getWeaponMagazineAmmo(weaponIndex) > 0
+				|| this.tudursvehiclemod$getWeaponReserveAmmo(weaponIndex) != 0;
+	}
+
+	// ---- A vehicle launched from a mothership (a Carrier aircraft, a midget submarine) - what the seat switch needs. Defaults: not launched. ----
+	/** True while a player who switched in from the mothership is piloting this launched vehicle. */
+	public boolean tudursvehiclemod$isLaunchedCraftPlayerControlled() {
+		return false;
+	}
+
+	public void tudursvehiclemod$setLaunchedCraftPlayerControlled(boolean playerControlled) {
+	}
+
+	/** The mothership this vehicle was launched from, or null. */
+	public java.util.UUID tudursvehiclemod$getLaunchMothershipUuid() {
+		return null;
+	}
+
+	/** The mothership seat the player switched in from (and goes back to). */
+	public int tudursvehiclemod$getLaunchMothershipSeatIndex() {
+		return -1;
+	}
+
 	/** Rounds left in weaponIndex's own magazine right now (server-side truth; the synced getWeaponAmmoState() is for display). 0 for an index out of range. */
 	public int tudursvehiclemod$getWeaponMagazineAmmo(int weaponIndex) {
 		if (weaponIndex < 0 || weaponIndex >= this.weaponAmmo.length) {

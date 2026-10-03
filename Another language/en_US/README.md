@@ -224,7 +224,7 @@ handing an item back, to prevent duplication.
 | X | Switch the selected weapon's own mode (`ModeNum`) |
 | Y | Switch seat (next) |
 | T | Switch seat (previous) |
-| Alt+Y | Switch between a carrier-launched aircraft and the launching carrier (the physical key is shared with Y; holding Alt - the free-look key - with it is interpreted as switching toward the launched aircraft) |
+| Alt+Y | Switch between a carrier-launched aircraft or midget submarine and the launching carrier (the physical key is shared with Y; holding Alt - the free-look key - with it is interpreted as switching toward the launched aircraft) |
 | Left Alt | Free look (view stops following the vehicle while held) |
 | Left Ctrl | Descend (helicopter/VTOL). Not Left Shift, since sneak - vanilla's own Left Shift - is what dismounts |
 | V | Switch a VTOL between helicopter and aircraft mode |
@@ -751,7 +751,7 @@ Main fields:
   `CarrierWaypoint` route
 - **Switching seats**: the player who launched it can switch, with
   Alt+Y (default), between riding the launching carrier and the launched
-  carrier aircraft
+  carrier aircraft (the same goes for a `Midget` midget submarine)
 - **Return/landing**: on reaching the last point of the `CarrierWaypoint`
   route, instead of despawning it moves into an automatic landing
   sequence via the `CarrierLandingWaypoint` route

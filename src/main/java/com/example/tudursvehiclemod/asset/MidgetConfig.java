@@ -27,12 +27,18 @@ import java.util.List;
  * blocked, surfaces avoidStep blocks at a time, looking again at every step. See
  * entity.MidgetNavigator.
  *
+ * <p>landingWaypoints (MidgetLandingWaypoint) is the recovery approach, like CarrierLandingWaypoint: relative to the mothership's
+ * CURRENT mount position and heading (it may have moved since the launch), flown once the route - or, in lock mode, the attack - is
+ * over; reaching the last one recovers the midget (its round goes back to the launching weapon). Empty: the older recovery by
+ * retracing launchWaypoints in reverse to the launch point.
+ *
  * <p>attackRange (MidgetAttackRange) is how close a midget launched in lock mode gets to its designated target before
  * attacking it - see entity.SubmarineEntity's own tudursvehiclemod$setMidgetDesignatedTarget().
  */
 public record MidgetConfig(String vehicleFileName, int weaponIndex, float accuracy, int timeoutTicks, int stuckTimeoutTicks,
 		float yawOffsetDegrees, float targetYawOffsetDegrees, List<MidgetWaypoint> launchWaypoints, List<MidgetWaypoint> waypoints,
-		double detectRange, int detectIntervalTicks, double avoidStep, boolean recovery, double attackRange) {
+		double detectRange, int detectIntervalTicks, double avoidStep, boolean recovery, double attackRange,
+		List<MidgetWaypoint> landingWaypoints) {
 
 	/**
 	 * One stop of a midget's route: x/z in blocks (relative to the marked point for a route waypoint,
