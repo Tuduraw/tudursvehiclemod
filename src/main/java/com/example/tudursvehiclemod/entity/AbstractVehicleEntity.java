@@ -756,6 +756,17 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	/** Whether hatch-type TogglePart parts (trigger="key", "$hatch" name prefix - and everything else not "$canopy") are currently open - see CANOPY_OPEN's own doc for why canopy-type parts no longer share this flag. Also doubles as SubmarineEntity's own "surfaced" signal there (unrelated to this split - that class's own constructor explicitly sets this true regardless of HATCH_OPEN's own default, so this change doesn't affect it). */
+	/**
+	 * HATCH_OPEN's own registered default for this vehicle type. A subclass that needs a different starting state must return it HERE rather
+	 * than set it in its constructor: a newly spawned entity only sends clients the synced values that differ from their registered defaults,
+	 * so a value set away from the default in the constructor (which runs on the client too) and then loaded back to the default from a save
+	 * was never sent - the client kept the constructor's value while the server had the saved one. Called while the data tracker is being
+	 * built, before any subclass field is initialized, so it must only return a constant.
+	 */
+	protected boolean tudursvehiclemod$defaultHatchOpen() {
+		return false;
+	}
+
 	public boolean isHatchOpen() {
 		return this.dataTracker.get(HATCH_OPEN);
 	}
@@ -951,7 +962,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		builder.add(FREE_LOOK, false);
 		builder.add(DESCEND, false);
 		// A freshly-spawned vehicle's own hatch now starts closed. SubmarineEntity's own constructor explicitly overrides this back to true immediately after construction (see that constructor's own doc) - unaffected by this change.
-		builder.add(HATCH_OPEN, false);
+		builder.add(HATCH_OPEN, this.tudursvehiclemod$defaultHatchOpen());
 		// Per CANOPY_OPEN's own doc: unaffected by the above - canopy's own spawn-state behavior is unchanged.
 		builder.add(CANOPY_OPEN, true);
 		builder.add(WING_FOLD_OPEN, false);

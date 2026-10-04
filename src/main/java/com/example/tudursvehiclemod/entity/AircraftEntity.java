@@ -1736,6 +1736,14 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			com.example.tudursvehiclemod.asset.CarrierLaunchWaypoint currentLandingWaypoint = this.carrierLandingWaypoints.get(this.carrierLandingWaypointIndex);
 			double[] landingWaypointRotated = tudursvehiclemod$rotateCasOffset(currentLandingWaypoint.relX(), currentLandingWaypoint.relZ(), mothershipForwardX, mothershipForwardZ);
 			Vec3d landingWaypointTarget = addWeaponPos.add(landingWaypointRotated[0], currentLandingWaypoint.relY(), landingWaypointRotated[1]);
+			// The FIRST landing waypoint is flown to like any route waypoint - turning, climbing and changing speed within the aircraft's own limits - so the moment it breaks off (a lock ending, say) and heads home does not snap it straight round onto the approach. Only from the second one on is it the firm, kinematic guidance below, which is what gets it down quickly and surely.
+			if (this.carrierLandingWaypointIndex == 0) {
+				if (this.tudursvehiclemod$flySmoothlyToLandingWaypoint(def, landingWaypointTarget, currentLandingWaypoint)) {
+					this.carrierLandingWaypointIndex++;
+					this.carrierLandingLegStartX = Double.NaN;
+				}
+				return;
+			}
 			double lwdx = landingWaypointTarget.x - this.getX();
 			double lwdy = landingWaypointTarget.y - this.getY();
 			double lwdz = landingWaypointTarget.z - this.getZ();
@@ -2542,10 +2550,10 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 	}
 
 	/**
-	 * Whether this waiting aircraft may go in to land now: no other aircraft of its formation still flying is landing (carrierReturning,
-	 * which lasts until it has been recovered on deck), and none ahead of it in the formation order (a lower carrierFormationIndex) is
-	 * still waiting. So a formation lands strictly one aircraft at a time, in order - landing several at once is what made densely packed
-	 * formations collide on the way in. Null when this is not a formation member or its roster is not available (it is held in memory, so
+	 * Whether this waiting aircraft may go in to land now: no other aircraft of its formation is still on its way to its first landing
+	 * waypoint (the next goes in as soon as the one ahead has reached it), and none ahead of it in the formation order (a lower
+	 * carrierFormationIndex) is still waiting. So a formation goes in one aircraft at a time, in order, spaced out along the approach -
+	 * landing several at once is what made densely packed formations collide on the way in. Null when this is not a formation member or its roster is not available (it is held in memory, so
 	 * it is gone after a game restart): the caller then falls back on the old queue timer.
 	 */
 	private Boolean tudursvehiclemod$isMyTurnToLand() {
@@ -2564,7 +2572,8 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			if (!(member instanceof AircraftEntity other) || member.isRemoved() || other.tudursvehiclemod$isDestroyed()) {
 				continue;
 			}
-			if (other.carrierReturning) {
+			// Only while it is still on its way to its FIRST landing waypoint: once it has reached it (or, with a single landing waypoint, is already gliding in), the next aircraft may start - landings overlap, which shortens recovering a whole formation and keeps the queue moving even if an aircraft fails to land, while the aircraft are still spread out along the approach rather than bunched together.
+			if (other.carrierReturning && other.carrierLandingWaypointIndex == 0 && other.carrierGlideMinSpeed <= 0f) {
 				return false;
 			}
 			if (other.carrierWaitingToLand && other.carrierFormationIndex < this.carrierFormationIndex) {
@@ -2572,6 +2581,80 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			}
 		}
 		return true;
+	}
+
+	/** Where the leg to the first landing waypoint began - see tudursvehiclemod$flySmoothlyToLandingWaypoint(). NaN until that leg starts. */
+	private double carrierLandingLegStartX = Double.NaN, carrierLandingLegStartY, carrierLandingLegStartZ;
+
+	/**
+	 * One tick of flying to the first landing waypoint the way the route autopilot flies to a waypoint (tudursvehiclemod$updateDroneWaypointAutopilot()):
+	 * a turn limited to the aircraft's own turn rate, banked naturally (tudursvehiclemod$computeCoordinatedTurn()), vertical speed and
+	 * speed eased toward their targets, and real movement (move(), with crash checks) rather than setting the position. Returns true once
+	 * the waypoint counts as reached: close to it, or past it - beyond the plane through the waypoint square to the leg from where this leg
+	 * began - the same "passed it" rule the route autopilot uses, so a turn too wide to hit the point exactly cannot leave it circling the
+	 * point. The point moves with the mothership, so the test uses where it is now.
+	 */
+	private boolean tudursvehiclemod$flySmoothlyToLandingWaypoint(VehicleDefinition def, Vec3d target,
+			com.example.tudursvehiclemod.asset.CarrierLaunchWaypoint landingWaypoint) {
+		if (Double.isNaN(this.carrierLandingLegStartX)) {
+			this.carrierLandingLegStartX = this.getX();
+			this.carrierLandingLegStartY = this.getY();
+			this.carrierLandingLegStartZ = this.getZ();
+		}
+		double dx = target.x - this.getX();
+		double dy = target.y - this.getY();
+		double dz = target.z - this.getZ();
+		double distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
+		double legX = target.x - this.carrierLandingLegStartX;
+		double legY = target.y - this.carrierLandingLegStartY;
+		double legZ = target.z - this.carrierLandingLegStartZ;
+		boolean legIsDegenerate = (legX * legX + legY * legY + legZ * legZ) <= 1.0;
+		double alongTrack = (this.getX() - target.x) * legX + (this.getY() - target.y) * legY + (this.getZ() - target.z) * legZ;
+		if (distance3D < Math.max(3.0, this.cruiseSpeed * 1.5 + 1.0) || (!legIsDegenerate && alongTrack >= 0.0)) {
+			return true;
+		}
+
+		float speedFraction = tudursvehiclemod$landingSpeedFraction(landingWaypoint);
+		this.dataTracker.set(CAS_WAYPOINT_SPEED_FRACTION, speedFraction);
+		float cruiseSpeedTarget = this.tudursvehiclemod$rampAutopilotThrottle(def, speedFraction, this.tudursvehiclemod$getEffectiveMaxSpeed());
+
+		float currentTrackedYaw = this.tudursvehiclemod$droneYawForNavigation();
+		float desiredYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+		float[] coordinatedTurn = this.tudursvehiclemod$computeCoordinatedTurn(currentTrackedYaw, this.droneOrbitTrackedRoll, desiredYaw,
+				this.getYawFollowRateDegrees(), this.getPitchFollowRateDegrees());
+		float newYaw = coordinatedTurn[0];
+		float newRoll = coordinatedTurn[1];
+		this.droneTrackedYaw = newYaw;
+		this.droneOrbitTrackedRoll = newRoll;
+
+		double targetVerticalSpeed = MathHelper.clamp(dy * DRONE_ORBIT_ALTITUDE_CORRECTION_GAIN, -cruiseSpeedTarget * 0.5, cruiseSpeedTarget * 0.5);
+		Vec3d currentVelocity = this.getVelocity();
+		double currentSpeedMagnitude = Math.sqrt(currentVelocity.x * currentVelocity.x + currentVelocity.z * currentVelocity.z);
+		double horizontalSpeed = this.tudursvehiclemod$blendCruiseSpeedToward(def, (float) currentSpeedMagnitude, cruiseSpeedTarget, speedFraction,
+				this.tudursvehiclemod$getEffectiveMaxSpeed());
+		float speedResponseBlend = MathHelper.clamp(def.acceleration(), 0.01f, 1.0f);
+		double verticalSpeed = currentVelocity.y + (targetVerticalSpeed - currentVelocity.y) * speedResponseBlend;
+
+		double newYawRad = Math.toRadians(newYaw);
+		Vec3d finalVelocity = new Vec3d(-Math.sin(newYawRad) * horizontalSpeed, verticalSpeed, Math.cos(newYawRad) * horizontalSpeed);
+		float newPitch = horizontalSpeed < 1.0e-4 ? this.getPitch() : (float) -Math.toDegrees(Math.atan2(finalVelocity.y, horizontalSpeed));
+
+		this.setOrientationFromEuler(newYaw, newPitch, newRoll);
+		this.orientation.normalize();
+		super.setYaw(newYaw);
+		super.setPitch(newPitch);
+		this.dataTracker.set(SYNCED_YAW, newYaw);
+		this.dataTracker.set(SYNCED_PITCH, newPitch);
+		this.dataTracker.set(SYNCED_ROLL, newRoll);
+		this.cruiseSpeed = (float) finalVelocity.length();
+		setThrottleDirect(speedFraction);
+
+		double preMoveSpeed = finalVelocity.length();
+		this.setVelocity(finalVelocity);
+		this.move(MovementType.SELF, this.getVelocity());
+		this.tudursvehiclemod$checkBlockCrashDamage(preMoveSpeed, newPitch);
+		this.tudursvehiclemod$checkEntityCrashDamage(preMoveSpeed);
+		return false;
 	}
 
 	/** True while this aircraft is off its route attacking: chasing a locked target, or making a torpedo run against a fixed point. */

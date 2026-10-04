@@ -340,13 +340,18 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 
 	public SubmarineEntity(EntityType<?> type, World world) {
 		super(type, world);
-		// HATCH_OPEN's own generic default is now true (open/deployed,
-		// key-toggleable parts start deployed
-		// on spawn) - which happens to already mean "surfaced" for a
-		// submarine too (see this class's own doc), so this call is
-		// technically redundant now, but kept explicit so this reads
-		// correctly regardless of what the generic default happens to be.
-		this.setHatchOpen(true);
+	}
+
+	/**
+	 * A submarine starts surfaced (hatch open - see this class's own doc). This used to be set in the constructor with setHatchOpen(true),
+	 * away from HATCH_OPEN's registered default (false): leaving the world submerged saved false, which on reload matched the registered
+	 * default and so was never sent to clients - every client kept the constructor's surfaced state while the server was submerged (it could
+	 * not be switched, and getting out pulled it back under water, the rider too). Making surfaced the registered default instead means a
+	 * saved submerged state always differs from it and is always sent. See AbstractVehicleEntity#tudursvehiclemod$defaultHatchOpen().
+	 */
+	@Override
+	protected boolean tudursvehiclemod$defaultHatchOpen() {
+		return true;
 	}
 
 	/** Extends vanilla's collision box downward only (never the top - for why moving the top breaks isTouchingWater()). Overrides calculateDefaultBoundingBox(Vec3d), since getBoundingBox()/calculateBoundingBox() are final in Entity. */

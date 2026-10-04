@@ -451,6 +451,11 @@ releases every wingman's lock) works as it always has.
   when the leg changes, the speed eases toward the new value. The last
   waypoint's speed is the throttle the final approach starts with. A
   value of 0 or less is treated as 30%, and anything above 100 as 100%.
+  The first waypoint is flown to like any ordinary waypoint, smoothly and
+  within the aircraft's own turning performance (so it does not swing round
+  abruptly when it heads home from its route or from an attack). From the
+  second waypoint on it is guided firmly, regardless of the aircraft's own
+  physics, so that it lands quickly and surely.
 - **Example** (deploys gear/opens bay on approach, no change on final
   approach):
   ```
@@ -498,11 +503,14 @@ releases every wingman's lock) works as it always has.
   The formation's own offset itself is not applied during the dedicated
   launch route - it only applies on the ordinary route. Seat switching
   (Alt+Y) targets whichever aircraft in the formation launched last.
-- **Carrier-specific note (landing sequence)**: a formation lands one aircraft
-  at a time (landing together makes aircraft collide when the formation is
-  tightly spaced). While one is landing, the others orbit the mothership and
-  wait; once it has been recovered, the waiting aircraft furthest forward in the
-  formation order goes in to land. Normally they land in order from the leader.
+- **Carrier-specific note (landing sequence)**: a formation goes in to land one
+  aircraft at a time (going in together makes aircraft collide when the
+  formation is tightly spaced). Waiting aircraft orbit the mothership; as soon
+  as the aircraft that went in reaches its first landing waypoint
+  (`CarrierLandingWaypoint`), the waiting aircraft furthest forward in the
+  formation order goes in (it does not wait for the one ahead to finish
+  landing, so the whole formation is recovered sooner and an aircraft that
+  fails to land does not hold up the rest). Normally they land in order from the leader.
   When launched in lock mode, aircraft start waiting as they finish their
   attacks. If the formation's information has been lost (after a game restart,
   say), each goes in after a delay based on its place in the formation order.
