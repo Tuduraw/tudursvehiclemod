@@ -1021,12 +1021,9 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		// A Carrier aircraft launched in lock mode whose attack is over (the designation has been used, and no lock is active any more): straight into the return, exactly as finishing the route would start it (the formation landing queue included), instead of flying CarrierWaypoint - see carrierLaunchedAgainstTarget's own doc. The return itself is handled further down, this same tick.
 		if (this.tudursvehiclemod$isLockedCarrierLaunch() && !this.carrierReturning && !this.carrierWaitingToLand
 				&& this.carrierLaunchDesignatedTargetUuid == null && this.droneWaypointIndex >= this.carrierLaunchWaypointCount) {
-			if (this.carrierFormationIndex > 0) {
-				this.carrierWaitingToLand = true;
-				this.carrierLandingQueueTicksRemaining = this.carrierFormationIndex * CARRIER_LANDING_QUEUE_DELAY_TICKS;
-			} else {
-				this.carrierReturning = true;
-			}
+			// Every aircraft - the lead included - goes through the landing queue: in lock mode they finish their attacks in no particular order, so the lead could otherwise start landing while a wingman already is (see tudursvehiclemod$isMyTurnToLand()).
+			this.carrierWaitingToLand = true;
+			this.carrierLandingQueueTicksRemaining = this.carrierFormationIndex * CARRIER_LANDING_QUEUE_DELAY_TICKS;
 		}
 		// Closes canopy parts, mirroring onPilotMounted()'s own current behavior for a real pilot boarding - a drone never actually triggers that method (isDroneActive() bypasses normal boarding entirely), so canopy was staying at whatever state it was in before activation instead of closing like it would for a real pilot. Hatch is no longer force-closed here either, matching onPilotMounted()'s own current behavior (see that method's own doc) - a drone's own hatch simply stays at whatever state it was already in.
 		this.setCanopyOpen(false);
@@ -1059,6 +1056,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			// A CAS/Carrier formation member (carrierFormationRootLeaderUuid != null - now set for the LEAD too, not just wingmen, so every member shares the same formation key) that is NOT currently the formation's own leader-slot occupant follows whoever IS, resolved fresh every tick via the registry - droneWaypointIndex >= carrierLaunchWaypointCount excludes Carrier's own launch waypoints specifically (always true immediately for CAS, which has no launch phase of its own at all). The current slot occupant itself simply falls through this whole block untouched, flying its own independent route exactly like the original pre-formation lead's own behavior.
 			if (this.carrierFormationRootLeaderUuid != null
 					&& !this.tudursvehiclemod$isLockedCarrierLaunch()
+					&& !this.carrierReturning && !this.carrierWaitingToLand
 					&& !this.getUuid().equals(FORMATION_LEADER_SLOT.get(this.carrierFormationRootLeaderUuid))
 					&& this.droneWaypointIndex >= this.carrierLaunchWaypointCount) {
 				if (!(this.getEntityWorld() instanceof ServerWorld formationServerWorld)) {
@@ -1084,26 +1082,25 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 						this.discard();
 						return;
 					}
-					if (this.carrierFormationIndex > 0) {
-						this.carrierWaitingToLand = true;
-						this.carrierLandingQueueTicksRemaining = this.carrierFormationIndex * CARRIER_LANDING_QUEUE_DELAY_TICKS;
-					} else {
-						this.carrierReturning = true;
-					}
+					// The leader is landing: wait, orbiting the mothership, for this aircraft's own turn - decided in the carrierWaitingToLand branch just below, which this same tick now goes on to run. This used to set the waiting state and return without moving, every tick (resetting the queue timer each time, too, so it never ran down): on the server the wingman never moved, while every client kept extrapolating it forward and snapping it back - shuttling between two points - until the leader had landed and a new leader took over the formation.
+					this.carrierWaitingToLand = true;
+					this.carrierLandingQueueTicksRemaining = this.carrierFormationIndex * CARRIER_LANDING_QUEUE_DELAY_TICKS;
+				} else {
+					// updateDroneFormationFollow() still reads its own target leader via droneFormationLeaderUuid internally - kept in sync with whatever the registry just resolved, every tick, rather than refactoring that method's own internals.
+					this.droneFormationLeaderUuid = leaderAircraft.getUuid();
+					this.tudursvehiclemod$updateDroneFormationFollow(def);
 					return;
 				}
-				// updateDroneFormationFollow() still reads its own target leader via droneFormationLeaderUuid internally - kept in sync with whatever the registry just resolved, every tick, rather than refactoring that method's own internals.
-				this.droneFormationLeaderUuid = leaderAircraft.getUuid();
-				this.tudursvehiclemod$updateDroneFormationFollow(def);
-				return;
 			}
 			if (this.carrierReturning) {
 				this.tudursvehiclemod$updateCarrierReturnToBase(def);
 				return;
 			}
 			if (this.carrierWaitingToLand) {
-				this.carrierLandingQueueTicksRemaining--;
-				if (this.carrierLandingQueueTicksRemaining <= 0) {
+				// One at a time: it goes in to land only once nothing else in its formation is landing and nothing ahead of it in the formation order is still waiting (see tudursvehiclemod$isMyTurnToLand()); until then it keeps orbiting the mothership. The queue timer is only the fallback for when the formation's roster is not available (after a game restart - it is held in memory).
+				Boolean myTurnToLand = this.tudursvehiclemod$isMyTurnToLand();
+				boolean goInToLand = myTurnToLand != null ? myTurnToLand : --this.carrierLandingQueueTicksRemaining <= 0;
+				if (goInToLand) {
 					this.carrierWaitingToLand = false;
 					this.carrierReturning = true;
 					this.tudursvehiclemod$updateCarrierReturnToBase(def);
@@ -2542,6 +2539,39 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		this.carrierLockedTargetStagnantTicks = 0;
 		this.carrierLockClimbingToSafeAltitude = false;
 		this.carrierLockApproachingWaypoint = true;
+	}
+
+	/**
+	 * Whether this waiting aircraft may go in to land now: no other aircraft of its formation still flying is landing (carrierReturning,
+	 * which lasts until it has been recovered on deck), and none ahead of it in the formation order (a lower carrierFormationIndex) is
+	 * still waiting. So a formation lands strictly one aircraft at a time, in order - landing several at once is what made densely packed
+	 * formations collide on the way in. Null when this is not a formation member or its roster is not available (it is held in memory, so
+	 * it is gone after a game restart): the caller then falls back on the old queue timer.
+	 */
+	private Boolean tudursvehiclemod$isMyTurnToLand() {
+		if (this.carrierFormationRootLeaderUuid == null || !(this.getEntityWorld() instanceof ServerWorld serverWorld)) {
+			return null;
+		}
+		java.util.List<java.util.UUID> roster = FORMATION_ROSTER.get(this.carrierFormationRootLeaderUuid);
+		if (roster == null || roster.isEmpty()) {
+			return null;
+		}
+		for (java.util.UUID memberUuid : roster) {
+			if (memberUuid.equals(this.getUuid())) {
+				continue;
+			}
+			Entity member = serverWorld.getEntity(memberUuid);
+			if (!(member instanceof AircraftEntity other) || member.isRemoved() || other.tudursvehiclemod$isDestroyed()) {
+				continue;
+			}
+			if (other.carrierReturning) {
+				return false;
+			}
+			if (other.carrierWaitingToLand && other.carrierFormationIndex < this.carrierFormationIndex) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/** True while this aircraft is off its route attacking: chasing a locked target, or making a torpedo run against a fixed point. */

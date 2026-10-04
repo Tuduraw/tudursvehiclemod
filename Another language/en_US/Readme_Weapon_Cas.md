@@ -498,6 +498,14 @@ releases every wingman's lock) works as it always has.
   The formation's own offset itself is not applied during the dedicated
   launch route - it only applies on the ordinary route. Seat switching
   (Alt+Y) targets whichever aircraft in the formation launched last.
+- **Carrier-specific note (landing sequence)**: a formation lands one aircraft
+  at a time (landing together makes aircraft collide when the formation is
+  tightly spaced). While one is landing, the others orbit the mothership and
+  wait; once it has been recovered, the waiting aircraft furthest forward in the
+  formation order goes in to land. Normally they land in order from the leader.
+  When launched in lock mode, aircraft start waiting as they finish their
+  attacks. If the formation's information has been lost (after a game restart,
+  say), each goes in after a delay based on its place in the formation order.
 - **Example**: `CarrierFormationSize = 3` / `CarrierFormationType = Delta`
 
 
