@@ -2355,7 +2355,6 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		// object itself (see that record's own doc) - constructed here and
 		// passed AS the particle argument, instead of the plain
 		// ModParticleTypes.EXPLOSION_FLASH type object used previously.
-		LOGGER.info("Spawning custom explosion flash at ({}, {}, {}), power={}, peakScale={}", x, y, z, power, peakScale);
 		com.example.tudursvehiclemod.particle.ExplosionFlashEffect effect =
 				new com.example.tudursvehiclemod.particle.ExplosionFlashEffect(peakScale);
 		world.spawnParticles(effect, true, true, x, y, z, 0, 0.0, 0.0, 0.0, 0.0);

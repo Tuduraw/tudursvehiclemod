@@ -3339,8 +3339,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	private static final class RunwayTileState {
 		final java.util.List<java.util.UUID> interior = new java.util.ArrayList<>();
 		final java.util.Map<Integer, Integer> interiorMissingTicks = new java.util.HashMap<>();
-		boolean loggedFound;
-		boolean loggedPlatformTiles;
 	}
 
 	/** Per RunwayTileState's own doc: one entry per this vehicle's own def.runways() index, created lazily (see tudursvehiclemod$getOrCreateRunwayTileState()) the first time each runway is actually processed, rather than all at once - a vehicle whose runway list is still being populated during loading, or briefly inconsistent for any other reason, never needs every index to already exist up front. */
@@ -5716,10 +5714,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			bodyOrientation.transform(worldDir);
 			Vec3d aim = new Vec3d(worldDir.x, worldDir.y, worldDir.z);
 			finalVelocity = aim.multiply(weapon.velocity()).add(this.getVelocity());
-			// Car-mounted weapons exploded almost
-			// directly below the vehicle regardless of aim, with yaw only
-			// seeming to shift the muzzle's own spawn position and pitch
-			// having no visible effect at all - logged once per (vehicle
 		} else {
 			// No aim range at all.
 			Vec3d localDir = Vec3d.fromPolar((float) currentOffset.mountPitch(), (float) currentOffset.mountYaw());
@@ -6541,13 +6535,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			}
 			// Per RunwayDefinition's own hatchOffsetX/Y/Z doc (slide-type hatch, e.g. a carrier's own elevator deck): bakes this tick's own hatch progress into a NEW, offset-adjusted RunwayDefinition - a no-op whenever this runway has no hatch offset configured at all (see that method's own doc). Kept as a SEPARATE final variable (rather than reassigning baseRunway) since positionFunc below is a lambda, and lambdas can only capture effectively-final locals - every computation below reads centerX()/heightY()/startZ()/endZ() from THIS variable, so nothing further needs to change to pick up the offset.
 			final com.example.tudursvehiclemod.asset.RunwayDefinition runway = baseRunway.tudursvehiclemod$withHatchProgress(this.tudursvehiclemod$getRunwayHatchProgress(runwayIndex));
-			if (!state.loggedFound) {
-				state.loggedFound = true;
-				org.slf4j.LoggerFactory.getLogger("VehicleMod/Carrier").info(
-						"[Carrier] Runway #{} found on entity id={}: width={}, centerX={}, heightY={}, startZ={}, endZ={}, vehicle pos=({},{},{})",
-						runwayIndex, this.getId(), runway.width(), runway.centerX(), runway.heightY(), runway.startZ(), runway.endZ(),
-						this.getX(), this.getY(), this.getZ());
-			}
 
 			double minZ = Math.min(runway.startZ(), runway.endZ());
 			double maxZ = Math.max(runway.startZ(), runway.endZ());
@@ -6570,11 +6557,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			double rightZ = -forwardX;
 			double surfaceWorldY = this.getY() + runway.heightY();
 
-			if (!state.loggedPlatformTiles) {
-				state.loggedPlatformTiles = true;
-				org.slf4j.LoggerFactory.getLogger("VehicleMod/Carrier").info(
-						"[Carrier] Runway #{} platform tiles: entity id={}, columns={}, rows={}, tileCount={}", runwayIndex, this.getId(), columns, rows, tileCount);
-			}
 
 			this.tudursvehiclemod$updateCarrierRunwayTileSet(
 					serverWorld, tileType, tileSize, tileCount, runwayIndex,
@@ -6622,10 +6604,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				// This tile's own identity (which mothership, which runway, which grid index) needs to be known client-side too, since the position FORMULA itself is already client-computable (VehicleDefinition/RunwayDefinition are ordinary client-visible data) but WHICH runway/index this specific tile instance represents is not, without this.
 				platform.tudursvehiclemod$setTileIdentity(this.getId(), runwayIndex, i);
 				boolean spawned = serverWorld.spawnEntity(platform);
-				org.slf4j.LoggerFactory.getLogger("VehicleMod/Carrier").info(
-						"[Carrier] Runway platform tile spawn attempt: entity id={}, entityType={}, tileIndex={}, spawned={}, platformUuid={}, platformId={}, platformPos=({},{},{}), platformRemoved={}",
-						this.getId(), entityType, i, spawned, platform.getUuid(), platform.getId(),
-						platform.getX(), platform.getY(), platform.getZ(), platform.isRemoved());
 				if (!spawned) {
 					break;
 				}
@@ -6669,9 +6647,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 					healedPlatform.tudursvehiclemod$setMothership(this.getUuid());
 					healedPlatform.tudursvehiclemod$setTileIdentity(this.getId(), runwayIndex, i);
 					if (serverWorld.spawnEntity(healedPlatform)) {
-						org.slf4j.LoggerFactory.getLogger("VehicleMod/Carrier").info(
-								"[Carrier] Runway platform tile self-healed (confirmed missing for {} consecutive ticks, own chunk loaded throughout): entity id={}, entityType={}, tileIndex={}, newPlatformUuid={}",
-								missingTicks, this.getId(), entityType, i, healedPlatform.getUuid());
 						trackingList.set(i, healedPlatform.getUuid());
 					}
 				} catch (Exception e) {
@@ -9144,6 +9119,25 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	/** Checks bodyLocal against every independently-animated part, undoing each part's own current transform first (inverse of VehicleEntityRenderer's render()). Returns true if any part's check succeeds. */
+	/** Weapon part rotations (own, parent - null when the part has no parent) for HitDetectionCoordinator's parallel pass; null outside it. See tudursvehiclemod$prepareParallelHitCheck(). */
+	private java.util.Map<com.example.tudursvehiclemod.asset.WeaponPart, Quaternionf[]> tudursvehiclemod$hitCheckPartRotations;
+
+	/** Called on the server thread by HitDetectionCoordinator right before its parallel pass. A weapon part's rotation depends on whether the vehicle can fire (canFireWeapons() - an aircraft checks for water under itself with world.getFluidState()) and on who sits in the seat (getSeatOccupant() - world.getPlayerByUuid()); a world read on a worker thread waits for the server thread whenever the chunk isn't ready, and the server thread was waiting for the workers to finish - the game froze for good (seen as saving that never finishes, since singleplayer has no watchdog). Computing the rotations here, once per vehicle, leaves the parallel pass with plain math only. */
+	void tudursvehiclemod$prepareParallelHitCheck() {
+		java.util.Map<com.example.tudursvehiclemod.asset.WeaponPart, Quaternionf[]> rotations = new java.util.IdentityHashMap<>();
+		for (com.example.tudursvehiclemod.asset.WeaponPart part : this.getDefinition().weaponParts()) {
+			rotations.put(part, new Quaternionf[]{
+					this.tudursvehiclemod$getWeaponPartOwnRotation(part, 1.0f),
+					part.childInfo().isPresent() ? this.tudursvehiclemod$getWeaponPartParentRotation(part, 1.0f) : null});
+		}
+		this.tudursvehiclemod$hitCheckPartRotations = rotations;
+	}
+
+	/** Ends tudursvehiclemod$prepareParallelHitCheck()'s snapshot (server thread, after the parallel pass). */
+	void tudursvehiclemod$finishParallelHitCheck() {
+		this.tudursvehiclemod$hitCheckPartRotations = null;
+	}
+
 	private boolean tudursvehiclemod$isNearAnimatedParts(org.joml.Vector3f bodyLocal, VehicleDefinition def) {
 		for (com.example.tudursvehiclemod.asset.PartAnimation part : def.spinningParts()) {
 			var partMeshOpt = com.example.tudursvehiclemod.asset.ServerObjModelHitboxes.getPartMesh(def.model(), part.part());
@@ -9216,13 +9210,20 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			}
 			org.joml.Vector3f partLocal = new org.joml.Vector3f(bodyLocal);
 			// Forward (renderer): parent-rotation stage around parent's own pivot FIRST (if a child), then own-rotation stage around this part's own pivot. Inverse: undo own-rotation stage first, then undo parent-rotation stage.
-			org.joml.Quaternionf ownRotation = this.tudursvehiclemod$getWeaponPartOwnRotation(part, 1.0f);
+			// During HitDetectionCoordinator's parallel pass (a worker thread), the rotations come from the snapshot taken on the server thread just before it - computing them reads the world (see tudursvehiclemod$prepareParallelHitCheck()'s own doc).
+			java.util.Map<com.example.tudursvehiclemod.asset.WeaponPart, Quaternionf[]> snapshot = this.tudursvehiclemod$hitCheckPartRotations;
+			Quaternionf[] snapshotRotations = snapshot != null ? snapshot.get(part) : null;
+			org.joml.Quaternionf ownRotation = snapshotRotations != null
+					? new Quaternionf(snapshotRotations[0])
+					: this.tudursvehiclemod$getWeaponPartOwnRotation(part, 1.0f);
 			partLocal.sub((float) part.pivotX(), (float) part.pivotY(), (float) part.pivotZ());
 			ownRotation.conjugate().transform(partLocal);
 			partLocal.add((float) part.pivotX(), (float) part.pivotY(), (float) part.pivotZ());
 			if (part.childInfo().isPresent()) {
 				com.example.tudursvehiclemod.asset.WeaponPart.ChildInfo childInfo = part.childInfo().get();
-				org.joml.Quaternionf parentRotation = this.tudursvehiclemod$getWeaponPartParentRotation(part, 1.0f);
+				org.joml.Quaternionf parentRotation = snapshotRotations != null && snapshotRotations[1] != null
+						? new Quaternionf(snapshotRotations[1])
+						: this.tudursvehiclemod$getWeaponPartParentRotation(part, 1.0f);
 				partLocal.sub((float) childInfo.parentPivotX(), (float) childInfo.parentPivotY(), (float) childInfo.parentPivotZ());
 				parentRotation.conjugate().transform(partLocal);
 				partLocal.add((float) childInfo.parentPivotX(), (float) childInfo.parentPivotY(), (float) childInfo.parentPivotZ());

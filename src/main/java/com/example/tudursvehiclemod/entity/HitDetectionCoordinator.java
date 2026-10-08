@@ -31,7 +31,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * geometry math (each vehicle's own
  * tudursvehiclemod$checkProjectileHitForCoordinator() - see that method's
  * own doc), touching nothing but immutable, already-computed mesh data
- * and each entity's own current position/rotation/animation state. Every
+ * and each entity's own current position/rotation/animation state - and
+ * never the world: what the check would otherwise read from it (weapon
+ * part rotations - see AbstractVehicleEntity.tudursvehiclemod$prepareParallelHitCheck())
+ * is taken on the server thread right before the pass. A world read on a
+ * worker waits for the server thread, which is itself waiting for the
+ * workers: the server froze for good. Every
  * actual side effect (damage, discard) happens strictly sequentially
  * afterwards, on the server thread, only once the parallel phase has
  * fully joined. Running at END of tick also means every vehicle's own
@@ -71,11 +76,20 @@ public final class HitDetectionCoordinator {
 		PENDING.clear();
 
 		int minimumVehicles = com.example.tudursvehiclemod.VehicleModServerConfig.get().parallelHitDetectionMinimumVehicles;
-		java.util.stream.Stream<PendingCheck> stream = batch.size() >= minimumVehicles
+		boolean parallel = batch.size() >= minimumVehicles;
+		java.util.stream.Stream<PendingCheck> stream = parallel
 				? batch.parallelStream()
 				: batch.stream();
+		if (parallel) {
+			// Everything the check reads from the world is taken now, on the server thread - see AbstractVehicleEntity.tudursvehiclemod$prepareParallelHitCheck()'s own doc for the freeze this prevents.
+			for (PendingCheck check : batch) {
+				check.vehicle().tudursvehiclemod$prepareParallelHitCheck();
+			}
+		}
 
-		List<ResolvedHits> resolved = stream
+		List<ResolvedHits> resolved;
+		try {
+			resolved = stream
 				.map(check -> {
 					List<ProjectileEntity> hits = new ArrayList<>();
 					for (ProjectileEntity projectile : check.candidates()) {
@@ -90,6 +104,13 @@ public final class HitDetectionCoordinator {
 				})
 				.filter(result -> !result.hits().isEmpty())
 				.collect(java.util.stream.Collectors.toList());
+		} finally {
+			if (parallel) {
+				for (PendingCheck check : batch) {
+					check.vehicle().tudursvehiclemod$finishParallelHitCheck();
+				}
+			}
+		}
 
 		for (ResolvedHits result : resolved) {
 			result.check().vehicle().tudursvehiclemod$applyProjectileHits(result.check().world(), result.hits());

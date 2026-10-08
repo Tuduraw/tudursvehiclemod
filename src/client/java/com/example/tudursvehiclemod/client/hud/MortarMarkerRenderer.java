@@ -42,13 +42,6 @@ public final class MortarMarkerRenderer {
 	/** Computes the same-height-return range for a MACHINE_GUN weapon (HudVariables' own "mortar_distance" number), moved here unchanged from that class's own former inline MACHINE_GUN case - see this whole class's own doc for why an in-world marker isn't used for this weapon type (a plain HUD number instead, since a machine-gun-style flat/direct shot has no single meaningful "impact point" the way a lobbed Bomb/Rocket does). */
 	public static double tudursvehiclemod$computeMachineGunDistance(MinecraftClient client, PlayerEntity player,
 			AbstractVehicleEntity vehicle, WeaponDefinition selectedWeapon) {
-		// Throttled (roughly once per second) so this doesn't spam the log despite running every frame.
-		if (client.player != null && client.player.age % 20 == 0) {
-			org.slf4j.LoggerFactory.getLogger("VehicleMod/WeaponRangeDiagnostics").info(
-					"[MORTAR_CALC] weapon={} displayMortarDistance={} weaponType={} velocity={} gravity={}",
-					selectedWeapon.weaponName(), selectedWeapon.displayMortarDistance(), selectedWeapon.weaponType(),
-					selectedWeapon.velocity(), selectedWeapon.gravity());
-		}
 		if (!selectedWeapon.displayMortarDistance()) {
 			return -1.0;
 		}
@@ -113,11 +106,6 @@ public final class MortarMarkerRenderer {
 			smoothedMachineGunMortarDistance = rawDistance;
 		} else {
 			smoothedMachineGunMortarDistance += (rawDistance - smoothedMachineGunMortarDistance) * MORTAR_DISTANCE_SMOOTHING;
-		}
-		if (client.player != null && client.player.age % 20 == 0) {
-			org.slf4j.LoggerFactory.getLogger("VehicleMod/WeaponRangeDiagnostics").info(
-					"[MORTAR_CALC] weapon={} aimPitch={} horizontalVelocity={} verticalVelocity={} rawDistance={} smoothed={}",
-					selectedWeapon.weaponName(), aimPitch, horizontalVelocity, verticalVelocity, rawDistance, smoothedMachineGunMortarDistance);
 		}
 		return smoothedMachineGunMortarDistance;
 	}
