@@ -65,25 +65,7 @@ public class DroneCenterBlock extends BlockWithEntity {
 		}
 	}
 
-	@Override
-	public void onStateReplaced(BlockState state, ServerWorld world, BlockPos pos, boolean moved) {
-		if (world.getBlockEntity(pos) instanceof DroneCenterBlockEntity blockEntity) {
-			blockEntity.tudursvehiclemod$updateChunkForceLoading(false);
-			blockEntity.tudursvehiclemod$releaseForcedChunk(world);
-			if (DroneCenterBlockEntity.tudursvehiclemod$findBoundVehicle(world, blockEntity.tudursvehiclemod$getBoundVehicleId())
-					instanceof com.example.tudursvehiclemod.entity.AbstractVehicleEntity vehicle) {
-				vehicle.tudursvehiclemod$setDroneLink(null);
-			}
-			// Scatters both slots (stick, route book) rather than just the one that used to exist.
-			for (int slot = 0; slot < blockEntity.size(); slot++) {
-				ItemStack stack = blockEntity.getStack(slot);
-				if (!stack.isEmpty()) {
-					net.minecraft.util.ItemScatterer.spawn(world, pos.getX(), pos.getY() + 1, pos.getZ(), stack);
-				}
-			}
-		}
-		super.onStateReplaced(state, world, pos, moved);
-	}
+	// Breaking the block: see DroneCenterBlockEntity.onBlockReplaced() - in 1.21.11 the block entity is already gone by the time onStateReplaced() runs, so the cleanup lives there.
 
 	/** Right-click (sneaking or not, identically) always opens this block's own config screen (client.screen.DroneCenterConfigScreen - altitude/speed/turn-radius adjustment, an activate/deactivate toggle, and an "Item Slots" button that opens the slot UI instead - see that screen's own doc). */
 	@Override

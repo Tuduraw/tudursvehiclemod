@@ -23,7 +23,8 @@
 7. 武器ファイルを同梱する
 8. 車両以外から武器を発射する
 9. HUDに変数を追加する
-10. 制限事項
+10. 削除時の後始末とチャンクの強制ロード
+11. 制限事項
 
 ---
 
@@ -550,7 +551,144 @@ DrawString = -100, 92, "%s", myaddon_mode
 
 ---
 
-## 10. 制限事項
+## 10. 削除時の後始末とチャンクの強制ロード
+
+### ドローンセンターの強制ロードを止める
+
+`DroneCenterBlockEntity`は、既定で次のチャンクを強制ロードします。
+
+- 自身のあるチャンク
+- 紐付けた機体の周囲3×3チャンク
+- 機体が読み込まれていないときに、機体を探すためのチャンク
+
+継承したブロックエンティティでこれらの強制ロードを行わせたくない場合
+(プレイヤーが近くにいるときだけ動く敵拠点など)は、
+`tudursvehiclemod$forceLoadsChunks()`をオーバーライドして`false`を返します。
+強制ロード以外の動作(機体の管理・ウェイポイント・編隊など)は変わりません。
+
+```java
+public class EnemyBaseBlockEntity extends DroneCenterBlockEntity {
+    // コンストラクタなどは省略
+
+    @Override
+    protected boolean tudursvehiclemod$forceLoadsChunks() {
+        return false;
+    }
+}
+```
+
+- 戻り値は、そのブロックエンティティが存在する間ずっと同じにしてください。
+  途中で`false`に切り替えても、それまでに要求した強制ロードはすぐには解除されません
+- アドオン独自のチケット(`ChunkTicketType`)で読み込みを維持するのは自由です。
+  `/tvm unloadchunks`が解除するのは強制ロード(`/forceload`と同じ種類)だけです
+
+### 内部の呼び出しにMixinを当てない
+
+前提MODのメソッドの中にある個々の呼び出し(`ServerWorld.setChunkForced()`など)を
+`@WrapOperation`・`@Redirect`などで書き換えると、前提MOD側の実装が変わったときに
+注入先が見つからず、**起動時にクラッシュ**します(Mixin設定で`"defaultRequire": 1`と
+している場合。Fabricのテンプレートの既定です)。これはコンパイル時には検出できません。
+
+実際に、ドローンセンターの強制ロードは`ChunkForceTracker`経由に変更されたため、
+`DroneCenterBlockEntity`の中から`setChunkForced()`の呼び出しはなくなっています。
+`protected`・`public`のフックで足りない場合は、Mixinで対処する前に、前提MOD側に
+フックを追加することを検討してください。
+
+### 独自に強制ロードする場合
+
+アドオンの機能でチャンクを強制ロードする場合は、`ServerWorld.setChunkForced()`を
+直接呼ばずに`ChunkForceTracker`を使ってください。
+
+```java
+// 強制ロードを要求する(チャンクを読み込んでから強制ロードする)
+ChunkForceTracker.request(serverWorld, chunkPos, this);
+// 要求を取り下げる
+ChunkForceTracker.release(serverWorld, chunkPos, this);
+// thisが要求したものを、Purposeを含めてすべて取り下げる
+ChunkForceTracker.releaseAllOwnedBy(serverWorld, this);
+```
+
+- 要求は要求者(第3引数)ごとに数えられ、すべての要求者が取り下げたときに
+  強制ロードが解除されます。`setChunkForced(…, false)`を直接呼ぶと、ほかの機能
+  (近くを飛ぶ機体やドローンセンターなど)が使っているチャンクまで解除してしまいます
+- `/tvm unloadchunks`は、`ChunkForceTracker`経由で要求されている強制ロードだけを
+  残します。`setChunkForced()`を直接呼んで強制ロードしたチャンクは、このコマンドで
+  解除されます
+- 1つのオブジェクトが用途の異なる強制ロードを別々に管理する場合は、
+  `new ChunkForceTracker.Purpose(this, "用途名")`を要求者にします。用途ごとに
+  取り下げられ、重なったチャンクで一方の取り下げがもう一方を解除することは
+  ありません
+- 要求の記録はメモリ上にだけあり、ワールドには保存されません(強制ロードの状態は
+  ワールドに保存されます)。ワールドを読み込み直したときは、要求し直してください。
+  前提MODのドローンセンター・Stationは、ブロックエンティティの読み込み時に
+  要求し直しています
+- 要求者がエンティティかブロックエンティティ(または、それらを所有者とする
+  `Purpose`)であれば、`/tvm unloadchunks`の実行時に、削除済みの要求者の要求は
+  破棄されます。それ以外のオブジェクトを要求者にした場合は、必ず自分で
+  取り下げてください
+- ブロックエンティティの読み込み中に、そのブロックエンティティ自身のチャンクを
+  要求する場合は、`requestWithoutLoading()`を使ってください。`request()`は
+  チャンクを同期的に読み込むため、読み込み中のチャンクに対して呼ぶとサーバーが
+  停止します(デッドロック)
+
+### エンティティの後始末
+
+継承した乗り物などで削除時の後始末を追加する場合は、`onRemove(Entity.RemovalReason)`を
+オーバーライドし、必ず`super.onRemove(reason)`を呼んでください。
+
+```java
+@Override
+public void onRemove(Entity.RemovalReason reason) {
+    super.onRemove(reason);
+    if (this.getEntityWorld() instanceof ServerWorld serverWorld) {
+        if (reason == Entity.RemovalReason.UNLOADED_TO_CHUNK) {
+            // チャンクと一緒に保存されるだけ(後で読み込み直される)
+            ChunkForceTracker.forgetAllOwnedBy(serverWorld, this);
+        } else {
+            ChunkForceTracker.releaseAllOwnedBy(serverWorld, this);
+        }
+    }
+}
+```
+
+- `onRemove`は、すべての削除経路(`discard()`・`kill()`・チャンクのアンロード・
+  ディメンション移動など)で、サーバーとクライアントの両方で呼ばれます
+- `onRemoved()`はクライアント側でしか呼ばれません。`remove(RemovalReason)`は
+  `discard()`・`kill()`を経由したときにしか呼ばれず、チャンクのアンロードや
+  ディメンション移動では呼ばれません。サーバー側の後始末をこれらに書くと、
+  実行されない場合があります
+- `UNLOADED_TO_CHUNK`(サーバー停止時を含む)では、エンティティはワールドに保存され、
+  後で読み込み直されます。このときは強制ロードを解除せず、記録だけを破棄します
+  (強制ロードの状態はワールドに保存されるため、読み込み直したときにそのまま
+  使えます)
+
+### ブロックエンティティの後始末
+
+ブロックが壊されたときの後始末は、ブロックの`onStateReplaced()`ではなく、
+ブロックエンティティの`onBlockReplaced(BlockPos, BlockState)`に書いてください。
+`onStateReplaced()`が呼ばれる時点では、ブロックエンティティはすでにワールドから
+取り除かれており、`world.getBlockEntity(pos)`は`null`を返します。
+
+```java
+@Override
+public void onBlockReplaced(BlockPos pos, BlockState oldState) {
+    if (this.getWorld() instanceof ServerWorld serverWorld) {
+        ChunkForceTracker.releaseAllOwnedBy(serverWorld, this);
+    }
+    super.onBlockReplaced(pos, oldState); // インベントリの中身を落とす
+}
+```
+
+- `DroneCenterBlockEntity`を継承する場合は、`super.onBlockReplaced()`で前提MOD側の
+  後始末(ダミーパイロットの削除・機体の紐付け解除・編隊の解除・強制ロードの解除など)が
+  行われます
+- `/setblock`(`destroy`指定なし)・`/fill`・`/clone`で置き換えた場合は、バニラの
+  仕様で`onBlockReplaced()`が呼ばれません。このとき残った強制ロードは
+  `/tvm unloadchunks`で解除できます
+
+---
+
+## 11. 制限事項
 
 ### バージョンの一致
 

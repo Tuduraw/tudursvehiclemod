@@ -171,7 +171,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		this.lastCarriedByRunwayTick = this.getEntityWorld().getTime();
 	}
 
-	/** Motionless, in mid-air after its own carrier (and runway) disappeared while it was still being carried: called once, the instant that happens (see AbstractVehicleEntity's own onRemoved()) - forces hasLifted back to true immediately, so this class's own normal physics recognizes it's genuinely airborne (with no ground support at all anymore) right away, rather than depending on some later tick's own gradual/debounced re-evaluation of that state to ever actually happen correctly once nothing is carrying it into a "landed" state anymore. */
+	/** Motionless, in mid-air after its own carrier (and runway) disappeared while it was still being carried: called once, the instant that happens (see AbstractVehicleEntity's own onRemove()) - forces hasLifted back to true immediately, so this class's own normal physics recognizes it's genuinely airborne (with no ground support at all anymore) right away, rather than depending on some later tick's own gradual/debounced re-evaluation of that state to ever actually happen correctly once nothing is carrying it into a "landed" state anymore. */
 	public void tudursvehiclemod$releaseFromCarrier() {
 		this.hasLifted = true;
 	}
@@ -1804,9 +1804,10 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		return fraction > 0f ? Math.min(1.0f, fraction) : CARRIER_LANDING_CRUISE_SPEED_FRACTION;
 	}
 
-	/** Per casForcedChunks's own doc: releases every chunk in the grid whenever this entity is actually removed from the world, for ANY reason (timeout despawn, route-completion despawn, destroyed by damage, etc.) - otherwise those chunks would stay permanently requested with nothing left to ever release them. Uses ChunkForceTracker.releaseAll() (see that class's own doc) rather than un-forcing directly - a shared chunk another aircraft/block still needs stays correctly force-loaded even after this one releases its own claim on it. */
+	/** Per casForcedChunks's own doc: the grid is released whenever this entity goes away (timeout despawn, route-completion despawn, recovery, destroyed by damage, etc.) - otherwise those chunks would stay force-loaded with nothing left to ever release them. super does the releasing (the grid's requester is this aircraft itself - see AbstractVehicleEntity's own onRemove() doc, including why this used to be onRemoved(), which the server never calls, and why an unload keeps the chunks); this clears the grid's own bookkeeping and the lock-candidate highlight. Uses ChunkForceTracker (see that class's own doc) rather than un-forcing directly - a shared chunk another aircraft/block still needs stays correctly force-loaded even after this one releases its own claim on it. */
 	@Override
-	public void onRemoved() {
+	public void onRemove(Entity.RemovalReason reason) {
+		super.onRemove(reason);
 		if (this.carrierLockCandidatePreviousId != null && this.getEntityWorld() instanceof ServerWorld serverWorldForLockCleanup) {
 			Entity previous = serverWorldForLockCleanup.getEntityById(this.carrierLockCandidatePreviousId);
 			if (previous != null) {
@@ -1814,11 +1815,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 			}
 			this.carrierLockCandidatePreviousId = null;
 		}
-		if (!this.casForcedChunks.isEmpty() && this.getEntityWorld() instanceof ServerWorld serverWorld) {
-			com.example.tudursvehiclemod.ChunkForceTracker.releaseAll(serverWorld, this);
-			this.casForcedChunks = java.util.Set.of();
-		}
-		super.onRemoved();
+		this.casForcedChunks = java.util.Set.of();
 	}
 
 	/** This entire CAS state was previously never persisted at all - casWaypointOverride reset to null on load, so the CAS dispatch (including BOTH timeout checks) was skipped entirely, falling through to the normal Drone Center block lookup (which finds nothing at a CAS target position), leaving the aircraft in an undefined fallback state. Persists everything needed to resume exactly where it left off: the route itself (encoded the same semicolon-joined way block.DroneCenterBlockEntity's own waypoints are), the parallel attack flags, the weapon slot, both timeout counters, and the current waypoint index. */

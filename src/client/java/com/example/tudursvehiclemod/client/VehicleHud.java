@@ -98,7 +98,7 @@ public class VehicleHud {
 
 		Text label = Text.translatable("hud.tudursvehiclemod.throttle", Math.round(throttle * 100));
 		int labelWidth = client.textRenderer.getWidth(label);
-		context.drawText(client.textRenderer, label, screenWidth / 2 - labelWidth / 2, y - 12, 0xFFFFFF, true);
+		context.drawText(client.textRenderer, label, screenWidth / 2 - labelWidth / 2, y - 12, 0xFFFFFFFF, true);
 
 		// This built-in fallback HUD (used whenever
 		// a vehicle has no custom HUD script of its own assigned at all
@@ -126,25 +126,25 @@ public class VehicleHud {
 
 		Text fuelLabel = Text.translatable("hud.tudursvehiclemod.fuel", Math.round(fuelFraction * 100));
 		int fuelLabelWidth = client.textRenderer.getWidth(fuelLabel);
-		context.drawText(client.textRenderer, fuelLabel, screenWidth / 2 - fuelLabelWidth / 2, fuelY + BAR_HEIGHT + 2, 0xFFFFFF, true);
+		context.drawText(client.textRenderer, fuelLabel, screenWidth / 2 - fuelLabelWidth / 2, fuelY + BAR_HEIGHT + 2, 0xFFFFFFFF, true);
 
 		// getCruiseSpeed() (airspeed), not getVelocity().length() (total physical velocity magnitude).
 		double speedKbPerHour = vehicle.getCruiseSpeed() * BLOCKS_PER_TICK_TO_KB_PER_HOUR;
 		Text speedLabel = Text.of(String.format("%.1f kb/h", speedKbPerHour));
-		context.drawText(client.textRenderer, speedLabel, 4, 4, 0xFFFFFF, true);
+		context.drawText(client.textRenderer, speedLabel, 4, 4, 0xFFFFFFFF, true);
 
 		if (vehicle.isFreeLook()) {
 			Text freeLook = Text.translatable("hud.tudursvehiclemod.free_look");
 			int freeLookWidth = client.textRenderer.getWidth(freeLook);
 			context.drawText(client.textRenderer, freeLook, screenWidth / 2 - freeLookWidth / 2,
-					y + BAR_HEIGHT + 4, 0xFFFF55, true);
+					y + BAR_HEIGHT + 4, 0xFFFFFF55, true);
 		}
 
 		if (vehicle instanceof com.example.tudursvehiclemod.entity.AircraftEntity aircraft && aircraft.isManualMode()) {
 			Text manualMode = Text.translatable("hud.tudursvehiclemod.manual_mode");
 			int manualModeWidth = client.textRenderer.getWidth(manualMode);
 			context.drawText(client.textRenderer, manualMode, screenWidth / 2 - manualModeWidth / 2,
-					y + BAR_HEIGHT + 16, 0xFF5555, true);
+					y + BAR_HEIGHT + 16, 0xFFFF5555, true);
 		}
 	}
 

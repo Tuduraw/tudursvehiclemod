@@ -11,11 +11,14 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Box;
 
-/** Bulk-removes vehicles within the executing player's own currently loaded world. "/tvm clean" targets only DESTROYED vehicles (AbstractVehicleEntity's own tudursvehiclemod$isDestroyed() - a wreck that would otherwise despawn on its own after VehicleModServerConfig's own destroyedVehicleDespawnSeconds anyway, per that field's own doc, so this simply does the exact same thing (Entity.discard()) immediately rather than waiting on the timer); "/tvm clean -a" instead targets EVERY entity belonging to this mod at all, destroyed or not - not just AbstractVehicleEntity and its own subclasses (aircraft/car/ship/submarine/VTOL/static emplacement), but also projectiles, Carrier runway platform tiles, and dummy pilots, identified generically by this mod's own registry namespace (VehicleMod.MOD_ID) rather than enumerating each entity type by hand, so a future new entity type is automatically covered without needing this command updated too. "/tvm clean -b" targets EVERY projectile entity specifically (VehicleProjectileEntity and its own subclasses, e.g. VehicleModelProjectileEntity for OBJ-modeled rockets/missiles) regardless of age/state - a quick way to clear an accumulated mass of in-flight bullets/rockets/missiles without touching any vehicle at all. "/tvm clean -d" and "/tvm clean -d --all" BOTH scan every generated chunk regardless of load state identically, and both hand off to command.WorldDataCleanupTask - see that class's own doc for the full multi-tick, region-file-scanning mechanism, its own periodic progress reporting, and VehicleModServerConfig's own worldDataCleanupChunksPerTick for controlling its speed. The presence/absence of "--all" is now purely about how each found vehicle is handled: "-d" alone RESETS it (a fresh replacement of the exact same vehicle, at the exact same position/rotation - every persisted field defaults, but the vehicle itself is preserved as a presence in the world), "-d --all" DISCARDS it outright (nothing spawned in its place). */
+/** Bulk-removes vehicles within the executing player's own currently loaded world. "/tvm clean" targets only DESTROYED vehicles (AbstractVehicleEntity's own tudursvehiclemod$isDestroyed() - a wreck that would otherwise despawn on its own after VehicleModServerConfig's own destroyedVehicleDespawnSeconds anyway, per that field's own doc, so this simply does the exact same thing (Entity.discard()) immediately rather than waiting on the timer); "/tvm clean -a" instead targets EVERY entity belonging to this mod at all, destroyed or not - not just AbstractVehicleEntity and its own subclasses (aircraft/car/ship/submarine/VTOL/static emplacement), but also projectiles, Carrier runway platform tiles, and dummy pilots, identified generically by this mod's own registry namespace (VehicleMod.MOD_ID) rather than enumerating each entity type by hand, so a future new entity type is automatically covered without needing this command updated too. "/tvm clean -b" targets EVERY projectile entity specifically (VehicleProjectileEntity and its own subclasses, e.g. VehicleModelProjectileEntity for OBJ-modeled rockets/missiles) regardless of age/state - a quick way to clear an accumulated mass of in-flight bullets/rockets/missiles without touching any vehicle at all. "/tvm clean -d" and "/tvm clean -d --all" BOTH scan every generated chunk regardless of load state identically, and both hand off to command.WorldDataCleanupTask - see that class's own doc for the full multi-tick, region-file-scanning mechanism, its own periodic progress reporting, and VehicleModServerConfig's own worldDataCleanupChunksPerTick for controlling its speed. The presence/absence of "--all" is now purely about how each found vehicle is handled: "-d" alone RESETS it (a fresh replacement of the exact same vehicle, at the exact same position/rotation - every persisted field defaults, but the vehicle itself is preserved as a presence in the world), "-d --all" DISCARDS it outright (nothing spawned in its place). "/tvm unloadchunks" resets force-loaded chunks - see unloadChunks()'s own doc. */
 public final class TvmCommand {
 
 	private TvmCommand() {
 	}
+
+	/** /tvm unloadchunks is refused for this long (10 seconds) after the server starts - see unloadChunks(). */
+	private static final int UNLOADCHUNKS_MIN_SERVER_TICKS = 200;
 
 	// A box spanning the entire possible world border, matching VehicleMod's own established getEntitiesByClass() pattern (see that class's own resyncAllVehicleAmmo doc) - getEntitiesByClass only ever returns currently-loaded entities regardless of box size, so this naturally satisfies "within loaded range" without any separate chunk-loaded check of its own.
 	private static final Box ENTIRE_WORLD = new Box(-30000000, -2048, -30000000, 30000000, 2048, 30000000);
@@ -37,7 +40,37 @@ public final class TvmCommand {
 						.then(CommandManager.literal("-d")
 								.executes(ctx -> resetAllVehicleData(ctx.getSource()))
 								.then(CommandManager.literal("--all")
-										.executes(ctx -> cleanAllPersistedVehicleData(ctx.getSource()))))));
+										.executes(ctx -> cleanAllPersistedVehicleData(ctx.getSource())))))
+				.then(CommandManager.literal("unloadchunks")
+						.executes(ctx -> unloadChunks(ctx.getSource()))));
+	}
+
+	/** "/tvm unloadchunks": resets every dimension's force-loaded chunks to exactly the ones this mod is still using - see ChunkForceTracker.resetForcedChunks()'s own doc. Releases the leftovers (from before removal cleanup was fixed, from earlier sessions - force-loading is saved with the world - and any made with vanilla /forceload or by other mods); keeps whatever an aircraft in flight, an active Drone Center, a Station or a projectile still needs, so they carry on uninterrupted. Everything else is then loaded around players as usual. */
+	private static int unloadChunks(ServerCommandSource source) {
+		// Right after the world loads, an aircraft, a Drone Center or a mothership may not have asked for its chunks again yet (force-loading is saved with the world, but its bookkeeping isn't, and entities load a little after their chunks) - its chunks would look like leftovers and be released, leaving it stranded in an unloaded chunk.
+		if (source.getServer().getTicks() < UNLOADCHUNKS_MIN_SERVER_TICKS) {
+			source.sendError(Text.literal("[tvm] The world has only just loaded - wait a few seconds so everything that force-loads chunks has asked for them again, then run this again."));
+			return 0;
+		}
+		int released = 0;
+		int kept = 0;
+		StringBuilder perWorld = new StringBuilder();
+		for (ServerWorld world : source.getServer().getWorlds()) {
+			com.example.tudursvehiclemod.ChunkForceTracker.ResetResult result =
+					com.example.tudursvehiclemod.ChunkForceTracker.resetForcedChunks(world);
+			released += result.released();
+			kept += result.kept();
+			if (result.released() > 0 || result.kept() > 0) {
+				perWorld.append("\n  ").append(world.getRegistryKey().getValue())
+						.append(": released ").append(result.released()).append(", kept ").append(result.kept());
+			}
+		}
+		int releasedCount = released;
+		int keptCount = kept;
+		String details = perWorld.toString();
+		source.sendFeedback(() -> Text.literal("[tvm] Released " + releasedCount + " force-loaded chunk(s); kept "
+				+ keptCount + " still in use by this mod's aircraft, Drone Centers, Stations or projectiles." + details), true);
+		return releasedCount;
 	}
 
 	private static int cleanDestroyedVehicles(ServerCommandSource source) {

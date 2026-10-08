@@ -55,7 +55,7 @@ public class DroneCenterFormationScreen extends HandledScreen<DroneCenterFormati
 
 		int formationSize = this.getScreenHandler().tudursvehiclemod$getFormationSize();
 		context.drawText(this.textRenderer, Text.translatable("gui.tudursvehiclemod.drone_center_formation.size", formationSize),
-				x + 8, y + 6, 0xFFFFFF, false);
+				x + 8, y + 6, 0xFFFFFFFF, false);
 
 		int slotCount = Math.max(0, formationSize - 1);
 		int pageStart = this.getScreenHandler().tudursvehiclemod$getCurrentPage() * DroneCenterFormationScreenHandler.PAGE_SIZE;

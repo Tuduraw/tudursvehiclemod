@@ -392,20 +392,24 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 	protected static final float UNDERWATER_CRUISE_FALLBACK_YAW_DEGREES = 0f;
 
 	/** A plain,
-	 * global count of every currently-alive VehicleProjectileEntity (and
+	 * global count of every currently-alive server-side VehicleProjectileEntity (and
 	 * subclass, e.g. VehicleModelProjectileEntity) instance across every
-	 * loaded world - incremented once here (the one constructor every
+	 * loaded world - incremented once in the constructor (the one constructor every
 	 * other constructor overload below actually chains through, including
-	 * vanilla's own entity-deserialization path, so this covers every
-	 * possible way an instance can actually come into existence) and
-	 * decremented in tudursvehiclemod$remove()'s own override below (see
-	 * that method's own doc). AbstractVehicleEntity's own
-	 * tudursvehiclemod$updateCustomHitDetection() checks this FIRST, for
-	 * every vehicle, every tick, and skips its own (comparatively
-	 * expensive) per-vehicle world query for nearby projectiles entirely
-	 * whenever this is 0 - overwhelmingly the common case (nobody's
-	 * actually firing anything at any given moment), and a plain int read
-	 * is essentially free compared to that query. */
+	 * vanilla's own entity-deserialization path) and
+	 * decremented in onRemove() (see that method's own doc).
+	 *
+	 * AbstractVehicleEntity's own tudursvehiclemod$updateCustomHitDetection()
+	 * used to skip its per-vehicle projectile query whenever this was 0 -
+	 * but that query handles every ProjectileEntity (vanilla arrows and
+	 * tridents too - ProjectileVehicleHitMixin stops their own collision
+	 * with vehicles), so a vanilla projectile went straight through a
+	 * vehicle whenever none of this mod's own were in flight. That only
+	 * went unnoticed because this count used to drift upward for good
+	 * (client copies were counted but never removed through remove()), so
+	 * it rarely read 0 - on a dedicated server, where it did, arrows
+	 * passed through. That check now counts every loaded projectile
+	 * instead (entity.LoadedProjectiles); this is kept as public API. */
 	protected static final java.util.concurrent.atomic.AtomicInteger ACTIVE_COUNT = new java.util.concurrent.atomic.AtomicInteger(0);
 
 	/** See ACTIVE_COUNT's own doc. */
@@ -416,7 +420,42 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 	/** Required by EntityType deserialization (e.g. */
 	public VehicleProjectileEntity(EntityType<? extends ThrownItemEntity> type, World world) {
 		super(type, world);
-		ACTIVE_COUNT.incrementAndGet();
+		// Server-side instances only: a client's copy of a projectile is removed without ever reaching remove() (client-side removal calls setRemoved() directly), so counting those too - in singleplayer they share this JVM-wide counter with the server - only ever went up.
+		if (!world.isClient()) {
+			ACTIVE_COUNT.incrementAndGet();
+		}
+	}
+
+	/** Set when this projectile is loaded from a save instead of being fired - see tudursvehiclemod$discardIfRestoredFromSave()'s own doc. */
+	private boolean tudursvehiclemod$restoredFromSave;
+
+	/** Guards onRemove() against running its cleanup twice for the same instance. */
+	private boolean tudursvehiclemod$removalHandled;
+
+	@Override
+	protected void readCustomData(net.minecraft.storage.ReadView view) {
+		super.readCustomData(view);
+		this.tudursvehiclemod$restoredFromSave = true;
+	}
+
+	/** None of a projectile's own state (explosion, fuses, guidance, torpedo cruise, its model) is saved, so one that was still in flight when the world was saved used to load back in as a plain 4-damage item that went off as nothing. It's dropped instead, on its first server tick after loading. Returns true if it was dropped.
+	 *
+	 * The chunks it was force-loading when it was saved are left alone here: taking them over to release them could also un-force a chunk an aircraft, Drone Center or Station next to it hasn't requested again yet this soon after loading. On a normal stop there aren't any - VehicleMod releases every projectile's force-loaded chunks when the server starts stopping, before the world is saved (see tudursvehiclemod$releaseChunksForServerStop()). /tvm unloadchunks releases any left over from a world saved some other way (an autosave, then a crash) or by an earlier version. A projectile rebuilt from saved data some other way (carried through a portal, /summon with NBT) is dropped here too. */
+	private boolean tudursvehiclemod$discardIfRestoredFromSave() {
+		if (!this.tudursvehiclemod$restoredFromSave || this.getEntityWorld().isClient()) {
+			return false;
+		}
+		this.discard();
+		return true;
+	}
+
+	/** Called when the server starts stopping (VehicleMod's SERVER_STOPPING listener), before the world is saved: releases the force-loaded chunks of every projectile in world, so force-loading is saved without them - otherwise every projectile still in flight at a stop would leave a 3x3 of chunks force-loaded for good. The projectiles themselves are left as they are (saved, and dropped when they load again - see tudursvehiclemod$discardIfRestoredFromSave()) rather than discarded here: discarding counts as "used up" to anything watching a projectile's removal - an addon's grenade, say, that sets off its smoke or fire when it's removed - and that shouldn't happen just because the server stopped. */
+	public static void tudursvehiclemod$releaseChunksForServerStop(ServerWorld world) {
+		for (Entity entity : world.iterateEntities()) {
+			if (entity instanceof VehicleProjectileEntity projectile && !projectile.isRemoved()) {
+				projectile.tudursvehiclemod$releaseProjectileForcedChunk();
+			}
+		}
 	}
 
 	/** The same way CAS/Carrier aircraft already keep themselves loaded (see AircraftEntity's own casForcedChunks doc) - this has no linked block to do that FOR it either, so it force-loads a small grid of chunks around itself directly, same idea as that class's own implementation. Per a further direct correction, uses the SAME 3x3 grid (not a single chunk) - a projectile is often EVEN faster-moving than a CAS aircraft, so the same "single-chunk tracking can't keep up with a genuinely fast mover crossing a boundary mid-tick" reasoning that motivated CAS's own 3x3 grid applies here too, if not more so. Routed through entity.projectile.ProjectileChunkLoadTracker (not ChunkForceTracker directly) - see that class's own doc for the server-wide, configurable total-chunk-count budget (VehicleModServerConfig#projectileForcedChunkLimit) this now enforces, deliberately kept separate from every OTHER always-loaded feature (CAS/Carrier included). */
@@ -458,7 +497,7 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		this.tudursvehiclemod$updateProjectileForcedChunks();
 	}
 
-	/** Releases any chunk claims held by this projectile (see projectileForcedChunks's own doc) - called from remove() itself (the single, guaranteed choke point every one of this class's own several discard() call sites ultimately funnels through), so a projectile's own forced chunks are always correctly released the instant it actually goes away, regardless of which specific code path (impact, explosion, timeout, etc.) triggered that. */
+	/** Releases any chunk claims held by this projectile (see projectileForcedChunks's own doc) - called from onRemove() (the single, guaranteed choke point every removal funnels through), so a projectile's own forced chunks are always correctly released the instant it actually goes away, regardless of which specific code path (impact, explosion, timeout, etc.) triggered that. */
 	private void tudursvehiclemod$releaseProjectileForcedChunk() {
 		if (this.getEntityWorld() instanceof ServerWorld serverWorld) {
 			ProjectileChunkLoadTracker.remove(this, serverWorld);
@@ -466,33 +505,17 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		}
 	}
 
+	/** The single choke point every removal funnels through - every discard() call site (onEntityHit/onBlockHit/updateWaterContactExplosion/updateExplosionAltitude/updateTimeFuse/updateImpactFuse), but also a chunk unloading and a dimension change, which never reach remove() (they call setRemoved() directly, which ends here; this used to be a remove() override, so those paths skipped it all). Decrements ACTIVE_COUNT, releases TV control (see tudursvehiclemod$releaseTvControl()'s own doc) and releases this projectile's force-loaded chunks, whatever the reason: a projectile can't be restored from a save (see tudursvehiclemod$discardIfRestoredFromSave()'s own doc), so there's nothing to keep them forced for. Server side only; guarded so it runs once. */
 	@Override
-	public void remove(net.minecraft.entity.Entity.RemovalReason reason) {
-		// Guards against double-decrementing ACTIVE_COUNT if remove() were
-		// ever somehow called more than once for the same instance (not
-		// expected in normal vanilla usage, but cheap enough to guard
-		// against outright rather than risk this counter drifting
-		// positive over a long-running server's own lifetime).
-		boolean wasAlreadyRemoved = this.isRemoved();
-		super.remove(reason);
-		if (!wasAlreadyRemoved) {
-			ACTIVE_COUNT.decrementAndGet();
-			// Guarantees
-			// tudursvehiclemod$releaseTvControl() (see that method's own
-			// doc) is ALWAYS called the instant this entity actually
-			// goes away, no matter which of this class's own several
-			// discard() call sites (onEntityHit/onBlockHit/
-			// updateWaterContactExplosion/updateExplosionAltitude/
-			// updateTimeFuse/updateImpactFuse) actually triggered it -
-			// remove() (unlike discard(), which is final and can't be
-			// overridden at all) is the one place EVERY one of those
-			// ultimately funnels through, so this is the single,
-			// guaranteed choke point rather than needing every one of
-			// those call sites to separately remember to release
-			// control themselves.
-			this.tudursvehiclemod$releaseTvControl();
-			this.tudursvehiclemod$releaseProjectileForcedChunk();
+	public void onRemove(net.minecraft.entity.Entity.RemovalReason reason) {
+		super.onRemove(reason);
+		if (this.tudursvehiclemod$removalHandled || !(this.getEntityWorld() instanceof ServerWorld)) {
+			return;
 		}
+		this.tudursvehiclemod$removalHandled = true;
+		ACTIVE_COUNT.decrementAndGet();
+		this.tudursvehiclemod$releaseTvControl();
+		this.tudursvehiclemod$releaseProjectileForcedChunk();
 	}
 
 	/** Used by AbstractVehicleEntity#tryFireWeapon to actually fire one. */
@@ -834,14 +857,14 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 	 * triggered it, rather than needing every one of those to
 	 * separately remember to release control themselves (and risk one
 	 * getting missed, leaving a controlling player's own camera stuck
-	 * on a now-vanished entity). Handled in remove() instead of
-	 * discard() itself - discard() is final (can't be overridden at
-	 * all), but it just calls remove(RemovalReason.DISCARDED)
-	 * internally, which every one of those call sites already funnels
-	 * through either way - see that method's own doc, just above. */
+	 * on a now-vanished entity). Handled in onRemove() - see that
+	 * method's own doc for why not remove() or discard(). */
 
 	@Override
 	public void tick() {
+		if (this.tudursvehiclemod$discardIfRestoredFromSave()) {
+			return;
+		}
 		// The torpedo's own orientation was
 		// specifically unstable compared to every OTHER projectile type -
 		// this used to run only inside the server-only block below,
@@ -878,6 +901,10 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 			}
 		}
 		super.tick();
+		// super.tick() is where a hit happens (onEntityHit()/onBlockHit()), and a hit usually explodes and discards this projectile. Nothing below may run for a projectile that's already gone: updateGuidance() would find the target it just hit still within ProximityFuseDist and explode it a second time (double damage, double crater), and the lost-target/flare countdowns could fire as well.
+		if (this.isRemoved()) {
+			return;
+		}
 		// Every guided missile type (TVMissile,
 		// but also AS_MISSILE/AA_MISSILE/AT_MISSILE/MK_ROCKET) eventually
 		// stopped mid-air and/or spun erratically, even after this
@@ -1200,10 +1227,10 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 
 	/** Re-fires tudursvehiclemod$spawnWaterSplash() every
 	 * WATER_COLUMN_WAVE_INTERVAL_TICKS, so the water column visibly
-	 * persists rather than vanishing after its own initial burst - same
-	 * END_SERVER_TICK-listener, self-limiting-instead-of-unregistering
-	 * approach as tudursvehiclemod$scheduleGroundSmokeWaves() below (see
-	 * that method's own doc for why).
+	 * persists rather than vanishing after its own initial burst - run as
+	 * a com.example.tudursvehiclemod.ServerTickTasks task that finishes
+	 * after its last wave, same as tudursvehiclemod$scheduleGroundSmokeWaves()
+	 * below (see ServerTickTasks's own doc for why not a tick listener).
 	 *
 	 * Rather than every wave spawning at the exact
 	 * same fixed height, each wave's own spawn Y now follows a sine curve
@@ -1244,10 +1271,8 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		int countPerLevel = Math.max(1, perWaveCount / WATER_COLUMN_HEIGHT_LEVELS);
 		int[] tickCount = {0};
 		int[] wavesSpawned = {0};
-		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
-			if (wavesSpawned[0] >= totalWaves) {
-				return;
-			}
+		// One shared scheduler rather than a listener per explosion - see com.example.tudursvehiclemod.ServerTickTasks's own doc.
+		com.example.tudursvehiclemod.ServerTickTasks.schedule(server -> {
 			tickCount[0]++;
 			if (tickCount[0] % WATER_COLUMN_WAVE_INTERVAL_TICKS == 0) {
 				float progress = (float) wavesSpawned[0] / (float) totalWaves;
@@ -1259,6 +1284,7 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 				}
 				wavesSpawned[0]++;
 			}
+			return wavesSpawned[0] >= totalWaves;
 		});
 	}
 
@@ -1287,10 +1313,7 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		int particlesPerRing = 10;
 		int[] tickCount = {0};
 		int[] ringsSpawned = {0};
-		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
-			if (ringsSpawned[0] >= RIPPLE_RING_COUNT) {
-				return;
-			}
+		com.example.tudursvehiclemod.ServerTickTasks.schedule(server -> {
 			tickCount[0]++;
 			if (tickCount[0] % RIPPLE_RING_INTERVAL_TICKS == 0) {
 				double ringRadius = 1.0 + ringsSpawned[0] * (1.0 + columnScale * 0.5);
@@ -1304,6 +1327,7 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 				}
 				ringsSpawned[0]++;
 			}
+			return ringsSpawned[0] >= RIPPLE_RING_COUNT;
 		});
 	}
 
@@ -2183,10 +2207,9 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 	/** Re-fires a smaller version of tudursvehiclemod$spawnGroundExplosionSmoke()
 	 * every GROUND_SMOKE_WAVE_INTERVAL_TICKS, for a total duration that
 	 * itself scales with the explosion's own power (see
-	 * GROUND_SMOKE_BASE_TICKS's own doc) - same
-	 * END_SERVER_TICK-listener, self-limiting-instead-of-unregistering
-	 * approach as tudursvehiclemod$scheduleWaterColumnWaves() (see that
-	 * method's own doc for why). */
+	 * GROUND_SMOKE_BASE_TICKS's own doc) - the same kind of
+	 * com.example.tudursvehiclemod.ServerTickTasks task as
+	 * tudursvehiclemod$scheduleWaterColumnWaves(). */
 	protected static void tudursvehiclemod$scheduleGroundSmokeWaves(ServerWorld world, double x, double y, double z, float power) {
 		int totalTicks = Math.min(GROUND_SMOKE_MAX_TICKS,
 				GROUND_SMOKE_BASE_TICKS + MathHelper.floor(power * GROUND_SMOKE_TICKS_PER_POWER));
@@ -2195,10 +2218,7 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		double spread = 1.0 + power * 0.3;
 		int[] tickCount = {0};
 		int[] wavesSpawned = {0};
-		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
-			if (wavesSpawned[0] >= totalWaves) {
-				return;
-			}
+		com.example.tudursvehiclemod.ServerTickTasks.schedule(server -> {
 			tickCount[0]++;
 			if (tickCount[0] % GROUND_SMOKE_WAVE_INTERVAL_TICKS == 0) {
 				for (int i = 0; i < perWaveCount; i++) {
@@ -2210,6 +2230,7 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 				}
 				wavesSpawned[0]++;
 			}
+			return wavesSpawned[0] >= totalWaves;
 		});
 	}
 
@@ -2524,7 +2545,8 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 			if (this.tudursvehiclemod$startImpactFuse()) {
 				return;
 			}
-			if (bounced) {
+			// A bounce with no DelayFuse explodes right here, as described above and in WeaponStats's own Bound doc - this used to return instead, so such a projectile bounced (and kept its chunks force-loaded) forever, resting on the ground re-bouncing every tick. A TimeFuse (timeFuseTicks >= 0 - see tudursvehiclemod$updateTimeFuse()) is the one thing that still ends it, so with one set it keeps bouncing until that runs out.
+			if (bounced && this.timeFuseTicks >= 0) {
 				return;
 			}
 			this.tudursvehiclemod$explodeIfConfigured(this.getX(), this.getY(), this.getZ());

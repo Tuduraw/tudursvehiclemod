@@ -64,7 +64,7 @@ public final class ProjectileChunkLoadTracker {
 		}
 	}
 
-	/** Called from VehicleProjectileEntity's own remove() (the single, guaranteed choke point every one of that class's own several discard() call sites ultimately funnels through) - releases every chunk this specific projectile was holding and stops tracking it entirely. Safe to call even if this projectile was never actually tracked at all (e.g. projectileForcedChunkLimit was 0 its whole lifetime). */
+	/** Called from VehicleProjectileEntity's own onRemove() (the single, guaranteed choke point every removal of that class funnels through) - releases every chunk this specific projectile was holding and stops tracking it entirely. Safe to call even if this projectile was never actually tracked at all (e.g. projectileForcedChunkLimit was 0 its whole lifetime). */
 	public static void remove(VehicleProjectileEntity projectile, ServerWorld world) {
 		Set<ChunkPos> chunks = ACTIVE.remove(projectile);
 		if (chunks != null) {
@@ -72,5 +72,10 @@ public final class ProjectileChunkLoadTracker {
 				ChunkForceTracker.release(world, chunk, projectile);
 			}
 		}
+	}
+
+	/** Called when the server stops - entries would otherwise keep the session's projectiles (and through them, its ServerWorld) reachable into the next one. */
+	public static void clear() {
+		ACTIVE.clear();
 	}
 }

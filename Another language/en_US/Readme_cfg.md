@@ -28,6 +28,7 @@ dedicated server can't be changed directly from this screen.
 2. Client settings (`tudursvehiclemod.json`)
 3. Server settings (`tudursvehiclemod-server.json`)
 4. Settings that don't appear on the settings screen
+5. Resetting force-loaded chunks (`/tvm unloadchunks`)
 
 ---
 
@@ -244,6 +245,11 @@ with no restart.
   projectiles never force-load chunks at all. This doesn't affect
   CAS/Carrier aircraft or other always-loaded features (those are tuned
   on their own weapon/vehicle files).
+- A projectile's state (explosion, fuses, guidance and so on) isn't saved
+  with the world. When the server stops (including closing a
+  singleplayer world), the force-loading of projectiles still in flight
+  is released, and those projectiles are removed - without exploding -
+  the next time their chunk loads.
 
 ---
 
@@ -273,3 +279,40 @@ screen, so changing them requires editing the file directly.
   progress is logged periodically. Setting a positive value (50, say)
   adds a chunk-count cap on top of that time limit, smoothing the
   per-tick load at the cost of taking even longer to finish overall.
+
+---
+
+## 5. Resetting force-loaded chunks (`/tvm unloadchunks`)
+
+Not a setting, but it's the command that goes with chunk force-loading,
+so it's covered here.
+
+- **Permission**: operator (permission level 2 or higher)
+- **What it does**: across every dimension, keeps only the force-loaded
+  chunks this mod's features are currently using and releases every
+  other force-loaded chunk.
+  - Released chunks go back to being loaded only around players, as
+    usual.
+  - Anything still in use (CAS/Carrier aircraft and motherships in
+    flight, active Drone Centers, Stations, projectiles in flight) keeps
+    its force-loading, so running it doesn't interrupt anything.
+    Force-loading that starts afterwards works as usual.
+- **Why**: in earlier versions, chunks could stay force-loaded after the
+  aircraft, projectile, Drone Center or Station that needed them was
+  gone. Force-loading is saved with the world, so those survive a
+  restart too. This command releases all of those leftovers at once.
+- **Note**: it also releases chunks force-loaded with vanilla
+  `/forceload` or by other mods. Set those up again afterwards if you
+  still need them.
+- **Output**: how many chunks were released, and how many were kept
+  because they're in use, per dimension.
+- **When to run it**: not right after the world loads (for about 10
+  seconds after the server starts it's refused). Run that early, it
+  would release the chunks of aircraft, Drone Centers and the like that
+  have loaded but haven't asked for their force-loading again yet.
+- **Blocks replaced with `/setblock` and similar**: when a player breaks
+  a Drone Center or Station, its cleanup (releasing its force-loading,
+  among other things) runs. Replacing it with `/setblock` (without
+  `destroy`), `/fill`, `/clone` and the like skips that cleanup, as
+  vanilla does for every block entity. Any force-loading left behind
+  that way is released by this command.

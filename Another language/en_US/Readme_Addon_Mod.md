@@ -23,7 +23,8 @@ mixins into it are needed.
 7. Bundling weapon files
 8. Firing weapons from outside a vehicle
 9. Adding variables to the HUD
-10. Limitations
+10. Cleanup on removal and chunk force-loading
+11. Limitations
 
 ---
 
@@ -554,7 +555,152 @@ DrawString = -100, 92, "%s", myaddon_mode
 
 ---
 
-## 10. Limitations
+## 10. Cleanup on removal and chunk force-loading
+
+### Stopping a Drone Center from force-loading
+
+By default, a `DroneCenterBlockEntity` force-loads:
+
+- its own chunk
+- the 3x3 chunks around its linked vehicle
+- a chunk to look for the vehicle in while the vehicle isn't loaded
+
+To stop a subclass from doing any of this (an enemy base that should only
+run while players are nearby, say), override
+`tudursvehiclemod$forceLoadsChunks()` to return `false`. Everything else
+the center does (managing its vehicle, waypoints, formations and so on)
+is unchanged.
+
+```java
+public class EnemyBaseBlockEntity extends DroneCenterBlockEntity {
+    // constructor and so on omitted
+
+    @Override
+    protected boolean tudursvehiclemod$forceLoadsChunks() {
+        return false;
+    }
+}
+```
+
+- Return the same value for the whole life of the block entity. Switching
+  to `false` partway through doesn't release what was already requested
+  right away.
+- Keeping chunks loaded with the addon's own ticket type
+  (`ChunkTicketType`) is fine. `/tvm unloadchunks` only releases forced
+  chunks (the same kind as `/forceload`).
+
+### Don't mix into calls inside the base mod
+
+Rewriting an individual call inside one of the base mod's methods
+(`ServerWorld.setChunkForced()`, say) with `@WrapOperation`, `@Redirect`
+and the like **crashes the game at startup** once the base mod's
+implementation changes and the injection point is gone (when the mixin
+config sets `"defaultRequire": 1`, which is the Fabric template's
+default). Compiling doesn't catch this.
+
+This has already happened: the Drone Center's force-loading now goes
+through `ChunkForceTracker`, so `DroneCenterBlockEntity` no longer calls
+`setChunkForced()` at all. When the `protected` and `public` hooks aren't
+enough, consider adding a hook to the base mod before reaching for a
+mixin.
+
+### Force-loading chunks yourself
+
+If an addon feature force-loads chunks, use `ChunkForceTracker` rather
+than calling `ServerWorld.setChunkForced()` directly.
+
+```java
+// request force-loading (loads the chunk first, then forces it)
+ChunkForceTracker.request(serverWorld, chunkPos, this);
+// withdraw the request
+ChunkForceTracker.release(serverWorld, chunkPos, this);
+// withdraw everything this requested, Purposes included
+ChunkForceTracker.releaseAllOwnedBy(serverWorld, this);
+```
+
+- Requests are counted per requester (the third argument), and a chunk
+  stops being forced once every requester has withdrawn. Calling
+  `setChunkForced(…, false)` directly also releases chunks other features
+  are using (a vehicle flying nearby, a Drone Center and so on).
+- `/tvm unloadchunks` keeps only the force-loading requested through
+  `ChunkForceTracker`. Chunks forced by calling `setChunkForced()`
+  directly are released by it.
+- When one object manages force-loading for several different purposes,
+  use `new ChunkForceTracker.Purpose(this, "purpose name")` as the
+  requester. Each purpose is withdrawn on its own, and withdrawing one
+  never releases another where they overlap.
+- Requests are only kept in memory, not saved with the world (the forced
+  state itself is). Request again after the world loads. The base mod's
+  Drone Center and Station request again when their block entity loads.
+- When the requester is an entity or a block entity (or a `Purpose` owned
+  by one), `/tvm unloadchunks` drops the requests of removed requesters.
+  With any other object as the requester, always withdraw the requests
+  yourself.
+- To request a block entity's own chunk while that block entity is
+  loading, use `requestWithoutLoading()`. `request()` loads the chunk
+  synchronously, and calling it for a chunk that's still loading hangs
+  the server (a deadlock).
+
+### Cleaning up entities
+
+To add cleanup on removal (to a vehicle subclass, say), override
+`onRemove(Entity.RemovalReason)` and always call `super.onRemove(reason)`.
+
+```java
+@Override
+public void onRemove(Entity.RemovalReason reason) {
+    super.onRemove(reason);
+    if (this.getEntityWorld() instanceof ServerWorld serverWorld) {
+        if (reason == Entity.RemovalReason.UNLOADED_TO_CHUNK) {
+            // only being saved with its chunk (it loads back in later)
+            ChunkForceTracker.forgetAllOwnedBy(serverWorld, this);
+        } else {
+            ChunkForceTracker.releaseAllOwnedBy(serverWorld, this);
+        }
+    }
+}
+```
+
+- `onRemove` is called on every removal path (`discard()`, `kill()`,
+  chunk unloading, changing dimension and so on), on both the server and
+  the client.
+- `onRemoved()` is only called on the client. `remove(RemovalReason)` is
+  only called through `discard()` and `kill()`, not on chunk unloading or
+  a dimension change. Server-side cleanup written there may not run.
+- With `UNLOADED_TO_CHUNK` (which includes a server stop), the entity is
+  saved with the world and loads back in later. Don't release its
+  force-loading then - only drop the bookkeeping (the forced state is
+  saved with the world, so it's still in place when the entity loads back
+  in).
+
+### Cleaning up block entities
+
+Put cleanup for when a block is broken in the block entity's
+`onBlockReplaced(BlockPos, BlockState)`, not in the block's
+`onStateReplaced()`. By the time `onStateReplaced()` is called, the block
+entity has already been removed from the world, and
+`world.getBlockEntity(pos)` returns `null`.
+
+```java
+@Override
+public void onBlockReplaced(BlockPos pos, BlockState oldState) {
+    if (this.getWorld() instanceof ServerWorld serverWorld) {
+        ChunkForceTracker.releaseAllOwnedBy(serverWorld, this);
+    }
+    super.onBlockReplaced(pos, oldState); // drops the inventory's contents
+}
+```
+
+- In a `DroneCenterBlockEntity` subclass, `super.onBlockReplaced()` runs
+  the base mod's own cleanup (removing the dummy pilot, unlinking the
+  vehicle, breaking up the formation, releasing force-loading and so on).
+- When the block is replaced with `/setblock` (without `destroy`),
+  `/fill` or `/clone`, vanilla doesn't call `onBlockReplaced()`. Leftover
+  force-loading from that can be released with `/tvm unloadchunks`.
+
+---
+
+## 11. Limitations
 
 ### Version matching
 

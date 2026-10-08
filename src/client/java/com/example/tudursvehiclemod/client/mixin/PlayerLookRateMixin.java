@@ -24,7 +24,8 @@ public abstract class PlayerLookRateMixin {
 	@Unique
 	private float tudursvehiclemod$pitchBefore;
 
-	@org.spongepowered.asm.mixin.injection.ModifyVariable(method = "changeLookDirection(DD)V", at = @At("HEAD"), argsOnly = true, index = 1)
+	// index is the local-variable slot, not the argument's position: slot 0 is `this` and each double takes two slots, so cursorDeltaX (yaw) is slot 1 and cursorDeltaY (pitch) is slot 3. This was index = 1, which made FixCameraPitch freeze left/right look (and CameraRotationSpeedPitch scale it) instead of pitch.
+	@org.spongepowered.asm.mixin.injection.ModifyVariable(method = "changeLookDirection(DD)V", at = @At("HEAD"), argsOnly = true, index = 3)
 	private double tudursvehiclemod$applyWeaponCameraPitchSetting(double cursorDeltaY) {
 		Entity self = (Entity) (Object) this;
 		if (!(self instanceof PlayerEntity player)) {

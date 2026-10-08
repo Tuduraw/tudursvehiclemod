@@ -163,12 +163,12 @@ public class VehicleSelectScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		super.render(context, mouseX, mouseY, delta);
-		context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 4, 0xFFFFFF);
+		context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 4, 0xFFFFFFFF);
 
 		if (matches.isEmpty()) {
 			context.drawCenteredTextWithShadow(this.textRenderer,
 					Text.translatable("screen.tudursvehiclemod.no_vehicles_available"),
-					this.width / 2, this.height / 2, 0xFFAAAA);
+					this.width / 2, this.height / 2, 0xFFFFAAAA);
 		}
 	}
 

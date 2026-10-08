@@ -139,10 +139,26 @@ public class VehicleMod implements ModInitializer {
 		// Creates every explosion queued this tick by a vehicle's own destruction, on a fresh stack each tick rather than recursively within whichever explosion triggered it.
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server ->
 				com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$processPendingExplosions());
+		// Every multi-tick effect (explosion water column/ripple/smoke, smoke weapon, TargetingPod timers) - see ServerTickTasks's own doc for why these no longer register a listener each.
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(ServerTickTasks::onEndServerTick);
+		// See entity.LoadedProjectiles's own doc - lets a vehicle skip its per-tick projectile hit query while its world has no projectile loaded at all.
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_LOAD.register(com.example.tudursvehiclemod.entity.LoadedProjectiles::onLoad);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_UNLOAD.register(com.example.tudursvehiclemod.entity.LoadedProjectiles::onUnload);
+		// Nothing scheduled by a previous session (singleplayer: the same JVM) may run against the new one.
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTING.register(server -> ServerTickTasks.clear());
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			// First, while everything is still loaded and before the world is saved: projectiles in flight can't be restored from a save, so their force-loaded chunks are released now, before force-loading is saved with the world - see VehicleProjectileEntity.tudursvehiclemod$releaseChunksForServerStop()'s own doc.
+			for (net.minecraft.server.world.ServerWorld world : server.getWorlds()) {
+				com.example.tudursvehiclemod.entity.projectile.VehicleProjectileEntity.tudursvehiclemod$releaseChunksForServerStop(world);
+			}
 			com.example.tudursvehiclemod.entity.HitDetectionCoordinator.tudursvehiclemod$clear();
 			// Cleared here too, so leaving a world can never carry entity instances from that session forward into the next one within the same JVM. Without this, a singleplayer player who exits and re-enters worlds repeatedly would accumulate every previous session's own motherships indefinitely - the same strong-reference leak as the per-entity case, just at world granularity instead.
 			com.example.tudursvehiclemod.entity.AbstractVehicleEntity.CARRIER_ACTIVE_MOTHERSHIPS.clear();
+			// Same reason: pending effects and force-load bookkeeping hold the ServerWorld and the entities/block entities of the session being left.
+			ServerTickTasks.clear();
+			ChunkForceTracker.clear();
+			com.example.tudursvehiclemod.entity.projectile.ProjectileChunkLoadTracker.clear();
+			com.example.tudursvehiclemod.entity.LoadedProjectiles.clear();
 		});
 
 		// Chunk force-loading "didn't seem to
@@ -170,15 +186,27 @@ public class VehicleMod implements ModInitializer {
 		// world with many stations scattered across a large area, this
 		// could also mean a large burst of MANY simultaneous forced
 		// chunk loads/generations firing all at once during startup,
-		// compounding the same risk further. Deferred to
-		// server.execute() instead - runs at the START of the next
-		// server tick, a normal, safe point already used throughout
-		// vanilla/Fabric for exactly this kind of "don't act reentrant
-		// during a sensitive callback" case - rather than inline, right
+		// compounding the same risk further. Deferred to the end of the
+		// tick instead (see just below for how), rather than inline, right
 		// here, while still potentially deep inside chunk-loading itself.
+		// The Drone Center keeps its own chunk loaded the same way, and needs the same re-request on load: its force-loading now goes through ChunkForceTracker (as the Station's does), whose in-memory bookkeeping starts empty after a restart even though the forced chunk itself was saved with the world - without this, /tvm unloadchunks would see a loaded Drone Center's own chunk as a leftover.
+		//
+		// server.execute() turned out not to defer anything here: called on the server thread itself (which is where block entities load), it runs the task right away, inline. ServerTickTasks really does run it at the end of the tick, outside the chunk loading. (The request itself also no longer loads the chunk it's in - see ChunkForceTracker.requestWithoutLoading() - which inline, mid-load, hung the server.)
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents.BLOCK_ENTITY_LOAD.register((blockEntity, world) -> {
 			if (blockEntity instanceof com.example.tudursvehiclemod.block.StationBlockEntity station) {
-				world.getServer().execute(() -> station.tudursvehiclemod$updateChunkForceLoading(true));
+				ServerTickTasks.schedule(server -> {
+					if (!station.isRemoved()) {
+						station.tudursvehiclemod$updateChunkForceLoading(true);
+					}
+					return true;
+				});
+			} else if (blockEntity instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity droneCenter) {
+				ServerTickTasks.schedule(server -> {
+					if (!droneCenter.isRemoved()) {
+						droneCenter.tudursvehiclemod$updateChunkForceLoading(true);
+					}
+					return true;
+				});
 			}
 		});
 

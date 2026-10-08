@@ -1703,7 +1703,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	 *
 	 * SERVER-ONLY (guarded by the isClient() check below). Also mirrors this tick's computed values into the synced GROUND_AUTOPILOT_THROTTLE_INPUT/-STEER_INPUT/GROUND_ROUTE_ACTIVE fields (see tudursvehiclemod$getSyncedThrottleInput()/-SidewaysInput()'s own doc for how a client prefers these over the plain, otherwise-stale copy) - fixes a client-side jitter for an autopilot-driven vehicle, since the plain syncedThrottleInput/syncedSidewaysInput fields were never actually networked. */
 	protected boolean tudursvehiclemod$applyGroundWaypointAutopilotInputs(VehicleDefinition def) {
-		if (this.getEntityWorld().isClient() || !this.tudursvehiclemod$isDroneActive()) {
+		// Client: leaves the synced flags exactly as the server sent them. Clearing GROUND_ROUTE_ACTIVE here (as this used to, every tick) overwrote the client's copy with false for good - the server's value stays true for the whole route, so it's never re-sent - and the client then never used the synced autopilot inputs at all, which is the jitter those inputs were added to fix.
+		if (this.getEntityWorld().isClient()) {
+			return false;
+		}
+		if (!this.tudursvehiclemod$isDroneActive()) {
 			this.dataTracker.set(GROUND_ROUTE_ACTIVE, false);
 			return false;
 		}
@@ -1891,19 +1895,54 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	private Entity pendingDismountPassenger;
 	private Vec3d pendingDismountPosition;
 
-	/** Guarantees tryExitRemoteControl() always runs whenever this vehicle goes away at all (any removal path, not just combat destruction) - a remote controller should never be left stuck controlling a vehicle that no longer exists.
+	/** Everything this vehicle has to let go of when it goes away. In 1.21.11 every removal - discard()/kill(), a chunk unloading, a dimension change, a player logging out with it, and every client-side removal - ends in setRemoved(), which calls this; Entity.remove() (where part of this used to be) is only reached through discard()/kill(), and Entity.onRemoved() (where the rest used to be) is only ever called by ClientWorld.removeEntity() - so every server-side part of the old onRemoved() never ran at all: a Carrier mothership's (and every CAS/Carrier aircraft's) force-loaded chunks stayed forced for good - force-loading is saved with the world - and the runway tiles, carried aircraft and lock highlights were never cleaned up either.
 	 *
-	 * This vehicle's own wake history is cleared HERE rather than in tudursvehiclemod$onRemoved(). This method fires on EVERY removal path - crucially including RemovalReason.UNLOADED_TO_CHUNK and UNLOADED_WITH_PLAYER (a vehicle simply going out of load range), which is exactly the "機体非読み込み時" case the request asks about, and which onRemoved() does NOT reliably cover. That distinction matters especially here because wake history is CLIENT-side only (see wakeBowHistory's own doc), while onRemoved()'s own other cleanup work is all explicitly ServerWorld-gated.
-	 *
-	 * Repeated spawn/sail/remove cycles without rejoining the world grew memory steadily, with GC reclaiming little of it: CARRIER_ACTIVE_MOTHERSHIPS is de-registered here too, for exactly the same reason, and this is the far more serious of the two. That static Set holds STRONG REFERENCES TO ENTITY INSTANCES THEMSELVES (not UUIDs), and any runway-equipped vehicle re-adds itself to it EVERY SINGLE TICK - while removal only ever happened in onRemoved(). Any vehicle that left by a path onRemoved() doesn't cover therefore stayed in that Set permanently, keeping the whole entity - and transitively everything reachable from it, its wake deques included - alive for the entire remaining JVM session, completely immune to GC. That is precisely the reported "GC runs but memory doesn't come back" signature, and precisely why it accumulates per spawn/remove cycle rather than resetting until the world is reloaded. */
+	 * <ul>
+	 * <li>Remote control: a remote controller should never be left stuck controlling a vehicle that no longer exists. (setRemoved() has already dismounted every passenger, so this is normally a no-op - it covers a controller that wasn't actually mounted.)</li>
+	 * <li>CARRIER_ACTIVE_MOTHERSHIPS holds strong references to entity instances, and a runway-equipped vehicle re-adds itself every tick - leaving an entry behind kept the whole entity (wake deques and all) alive for the rest of the JVM session ("GC runs but memory doesn't come back"). The wake history is client-side only (see wakeBowHistory's own doc) and is cleared for the same reason.</li>
+	 * <li>Force-loaded chunks (this vehicle's own requests: the Carrier mothership grid, and AircraftEntity's CAS/Carrier grid, which uses the same requester): released - except when the vehicle is just being unloaded with its chunk (RemovalReason.UNLOADED_TO_CHUNK, a server stop in practice, since a vehicle that force-loads keeps its own chunk loaded). The forced chunks are saved with the world then, so it loads back in and requests them again; only this session's bookkeeping is dropped.</li>
+	 * <li>Lock-on highlights this vehicle set on other entities are turned off.</li>
+	 * <li>Anything it was carrying on its deck is released - except on an unload with its chunk (UNLOADED_TO_CHUNK), when the carried vehicles are being unloaded along with it. Its runway tiles are discarded only when it's really destroyed (KILLED/DISCARDED - RemovalReason.shouldDestroy()): on an unload the entity manager is walking the chunk's entities, and on a logout or dimension change the tiles (passengers, possibly) are going along with it - discarding other entities from inside either isn't safe. The tiles clean themselves up anyway (see CarrierRunwayPlatformEntity's own doc).</li>
+	 * </ul> */
 	@Override
-	public void remove(net.minecraft.entity.Entity.RemovalReason reason) {
+	public void onRemove(net.minecraft.entity.Entity.RemovalReason reason) {
+		super.onRemove(reason);
 		this.tudursvehiclemod$tryExitRemoteControl();
 		CARRIER_ACTIVE_MOTHERSHIPS.remove(this);
 		this.wakeBowHistory.clear();
 		this.wakeSternHistory.clear();
 		this.wakeSideHistory.clear();
-		super.remove(reason);
+		if (!(this.getEntityWorld() instanceof ServerWorld serverWorld)) {
+			return;
+		}
+		for (Integer previousId : this.tudursvehiclemod$previousLockOnTargetIds) {
+			Entity previous = serverWorld.getEntityById(previousId);
+			if (previous != null) {
+				tudursvehiclemod$setEntityHighlighted(previous, false);
+			}
+		}
+		this.tudursvehiclemod$previousLockOnTargetIds = java.util.Set.of();
+		if (reason == net.minecraft.entity.Entity.RemovalReason.UNLOADED_TO_CHUNK) {
+			com.example.tudursvehiclemod.ChunkForceTracker.forgetAllOwnedBy(serverWorld, this);
+		} else {
+			com.example.tudursvehiclemod.ChunkForceTracker.releaseAllOwnedBy(serverWorld, this);
+		}
+		this.carrierMothershipForcedChunks = java.util.Set.of();
+		if (reason == net.minecraft.entity.Entity.RemovalReason.UNLOADED_TO_CHUNK) {
+			return;
+		}
+		if (reason.shouldDestroy()) {
+			for (RunwayTileState state : this.runwayTileStates) {
+				tudursvehiclemod$discardAndClearRunwayTiles(serverWorld, state.interior);
+			}
+		}
+		// Motionless, in mid-air after this vehicle (and its own runway) disappeared while still actively carrying it: explicitly releases whatever this vehicle was carrying on its own most recent tick, rather than leaving each one in whatever forced state (hasLifted=false, etc.) it was left in, with no guarantee its own physics would naturally re-evaluate that state correctly once this vehicle itself is simply gone.
+		for (java.util.UUID candidateUuid : this.carrierLastCarriedCandidates) {
+			Entity candidate = serverWorld.getEntity(candidateUuid);
+			if (candidate instanceof AircraftEntity aircraftCandidate) {
+				aircraftCandidate.tudursvehiclemod$releaseFromCarrier();
+			}
+		}
 	}
 
 	@Override
@@ -3349,10 +3388,10 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	private static final double CARRIER_ACCEL_COMPENSATION_MAX_BLOCKS = 0.1;
 	/** Runway tiles were unstable specifically right after a fresh mothership spawn - see the initial-spawn loop's own doc in tudursvehiclemod$updateCarrierRunwayPlatform() for the full reasoning: how many new tiles are spawned per tick during that initial burst, instead of the entire remaining backlog at once. */
 	private static final int CARRIER_RUNWAY_TILES_SPAWNED_PER_TICK = 4;
-	/** Motionless, in mid-air after this vehicle (and its own runway) was removed while still actively carrying it: which candidates this vehicle carried on its own most recent tick - consulted in onRemoved() to explicitly release each one (see tudursvehiclemod$releaseCarriedCandidate()'s own doc) rather than leaving them in whatever forced state (hasLifted=false, etc.) they were left in, with no guarantee their own physics would ever naturally re-evaluate that state correctly once this vehicle itself is simply gone. Replaced wholesale each tick (see tudursvehiclemod$carryRunwayDeckEntities()'s own doc), not incrementally updated.
+	/** Motionless, in mid-air after this vehicle (and its own runway) was removed while still actively carrying it: which candidates this vehicle carried on its own most recent tick - consulted in onRemove() to explicitly release each one (see tudursvehiclemod$releaseCarriedCandidate()'s own doc) rather than leaving them in whatever forced state (hasLifted=false, etc.) they were left in, with no guarantee their own physics would ever naturally re-evaluate that state correctly once this vehicle itself is simply gone. Replaced wholesale each tick (see tudursvehiclemod$carryRunwayDeckEntities()'s own doc), not incrementally updated.
 	 */
 	private java.util.Set<java.util.UUID> carrierLastCarriedCandidates = java.util.Set.of();
-	/** Per tudursvehiclemod$carryRunwayDeckEntities()'s own doc: every currently-loaded vehicle that has a runway configured, self-registered (see this class's own tick()) and self-unregistered (see onRemoved()) - consulted by a global END_WORLD_TICK callback (VehicleMod's own onInitialize()) to actually invoke carrying on each, after every entity in the world has already finished its own tick this cycle. */
+	/** Per tudursvehiclemod$carryRunwayDeckEntities()'s own doc: every currently-loaded vehicle that has a runway configured, self-registered (see this class's own tick()) and self-unregistered (see onRemove()) - consulted by a global END_WORLD_TICK callback (VehicleMod's own onInitialize()) to actually invoke carrying on each, after every entity in the world has already finished its own tick this cycle. */
 	public static final java.util.Set<AbstractVehicleEntity> CARRIER_ACTIVE_MOTHERSHIPS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 	/** 10 km/h = 2.7778 m/s = 0.13889 blocks/tick (1 block ~= 1m, 20 ticks/s) - squared here since it's compared against Vec3d.lengthSquared() (avoids an actual sqrt every check). Used by tudursvehiclemod$updateCarrierLandingToAmmo()'s own in-flight-exclusion check, and kept comfortably above AircraftEntity's own CARRIER_LANDING_FINAL_MIN_SPEED (its own glide-mode speed floor) so a released, decelerating aircraft reliably ends up BELOW this threshold once it's actually coasted down to that floor. */
 	private static final double CARRIER_ESSENTIALLY_LANDED_SPEED_SQ = 0.019290;
@@ -6064,15 +6103,14 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		int totalWaves = Math.max(1, totalTicks / SMOKE_WAVE_INTERVAL_TICKS);
 		int[] tickCount = {0};
 		int[] wavesSpawned = {0};
-		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
-			if (wavesSpawned[0] >= totalWaves) {
-				return;
-			}
+		// One shared scheduler rather than a listener per shot - see com.example.tudursvehiclemod.ServerTickTasks's own doc.
+		com.example.tudursvehiclemod.ServerTickTasks.schedule(server -> {
 			tickCount[0]++;
 			if (tickCount[0] % SMOKE_WAVE_INTERVAL_TICKS == 0) {
 				world.spawnParticles(effect, true, true, spawnPos.x, spawnPos.y, spawnPos.z, 3, 0.15, 0.15, 0.15, 0.01);
 				wavesSpawned[0]++;
 			}
+			return wavesSpawned[0] >= totalWaves;
 		});
 	}
 
@@ -6420,41 +6458,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	/** STAGE 1 ONLY - always fully autonomous, identical to CAS's own in-flight behavior once airborne (reuses AircraftEntity's own casWaypointOverride/casAttackFlags/casForcedChunks/casTimeoutTicksRemaining/casStuckTimeoutTicks fields and tudursvehiclemod$updateDroneWaypointAutopilot()/tudursvehiclemod$updateCasAutoFire() methods as-is - there is no Carrier-specific autopilot at all in this stage). The one meaningful difference from tudursvehiclemod$fireCasStrike(): spawnPos is given directly (this weapon's own AddWeapon mount position, already computed by the caller) rather than derived from the route's own first waypoint - a carrier aircraft launches FROM the firing vehicle itself, not at a distant point. The marked ground point (targetPos) still serves as the route's own relative-coordinate center exactly like CAS's own target point does, so the SAME weapon file's own route format/rotation/accuracy-perturbation logic works completely unchanged. Faces toward the route's own first waypoint (rather than CAS's own "waypoint 0 -> waypoint 1" facing, since here the aircraft actually has to fly TO waypoint 0 first, unlike CAS where it spawns AT waypoint 0's own position already). */
-	/** Per carrierMothershipForcedChunks's own doc: releases any chunks this vehicle itself was force-loading as a Carrier mothership, whenever IT is removed from the world for any reason - otherwise those chunks would stay permanently requested with nothing left to ever release them. Uses ChunkForceTracker.releaseAll() (see that class's own doc, and AircraftEntity's own equivalent migration) rather than un-forcing directly - a shared chunk an orbiting/launching aircraft still needs stays correctly force-loaded even after this mothership releases its own claim on it. */
-	@Override
-	public void onRemoved() {
-		if (this.getEntityWorld() instanceof ServerWorld serverWorldForLockCleanup) {
-			for (Integer previousId : this.tudursvehiclemod$previousLockOnTargetIds) {
-				Entity previous = serverWorldForLockCleanup.getEntityById(previousId);
-				if (previous != null) {
-					tudursvehiclemod$setEntityHighlighted(previous, false);
-				}
-			}
-		}
-		this.tudursvehiclemod$previousLockOnTargetIds = java.util.Set.of();
-		if (!this.carrierMothershipForcedChunks.isEmpty() && this.getEntityWorld() instanceof ServerWorld serverWorld) {
-			com.example.tudursvehiclemod.ChunkForceTracker.releaseAll(serverWorld, this);
-			this.carrierMothershipForcedChunks = java.util.Set.of();
-		}
-		if (this.getEntityWorld() instanceof ServerWorld serverWorld) {
-			for (RunwayTileState state : this.runwayTileStates) {
-				tudursvehiclemod$discardAndClearRunwayTiles(serverWorld, state.interior);
-			}
-		}
-		CARRIER_ACTIVE_MOTHERSHIPS.remove(this);
-		// Motionless, in mid-air after this vehicle (and its own runway) disappeared while still actively carrying it: explicitly releases whatever this vehicle was carrying on its own most recent tick, rather than leaving each one in whatever forced state (hasLifted=false, etc.) it was left in, with no guarantee its own physics would naturally re-evaluate that state correctly once this vehicle itself is simply gone.
-		if (!this.carrierLastCarriedCandidates.isEmpty() && this.getEntityWorld() instanceof ServerWorld serverWorld) {
-			for (java.util.UUID candidateUuid : this.carrierLastCarriedCandidates) {
-				Entity candidate = serverWorld.getEntity(candidateUuid);
-				if (candidate instanceof AircraftEntity aircraftCandidate) {
-					aircraftCandidate.tudursvehiclemod$releaseFromCarrier();
-				}
-			}
-		}
-		super.onRemoved();
-	}
-
-	/** Avoids duplicating onRemoved()'s own discard-and-clear loop four times (once per border side) - discards every entity in tiles (if still present) and clears the list. No-op if already empty. */
+	/** Avoids duplicating onRemove()'s own discard-and-clear loop four times (once per border side) - discards every entity in tiles (if still present) and clears the list. No-op if already empty. */
 	private static void tudursvehiclemod$discardAndClearRunwayTiles(ServerWorld serverWorld, java.util.List<java.util.UUID> tiles) {
 		if (tiles.isEmpty()) {
 			return;
@@ -6519,7 +6523,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (!(this.getEntityWorld() instanceof ServerWorld serverWorld)) {
 			return;
 		}
-		// Rather than continuing to be maintained/repositioned indefinitely while it sinks (previously only actually cleaned up via onRemoved() once the mothership itself is finally fully removed, much later).
+		// Rather than continuing to be maintained/repositioned indefinitely while it sinks (previously only actually cleaned up via onRemove() once the mothership itself is finally fully removed, much later).
 		if (this.tudursvehiclemod$isDestroyed()) {
 			for (RunwayTileState state : this.runwayTileStates) {
 				tudursvehiclemod$discardAndClearRunwayTiles(serverWorld, state.interior);
@@ -7664,17 +7668,18 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	/** Turns the highlight back off for entityId after durationTicks - see tudursvehiclemod$fireTargetingPod()'s own doc for why this is needed at all (neither setGlowing() nor HIGHLIGHT_ACTIVE is a timed effect on its own). Looks the entity back up by ID each tick rather than holding a direct reference, since it may have been unloaded/removed/changed dimension in the meantime. */
 	private void tudursvehiclemod$scheduleGlowOff(int entityId, int durationTicks) {
 		int[] ticksRemaining = {Math.max(1, durationTicks)};
-		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
-			if (ticksRemaining[0] <= 0) {
-				return;
-			}
+		com.example.tudursvehiclemod.ServerTickTasks.schedule(server -> {
 			ticksRemaining[0]--;
-			if (ticksRemaining[0] == 0 && this.getEntityWorld() instanceof ServerWorld serverWorld) {
+			if (ticksRemaining[0] > 0) {
+				return false;
+			}
+			if (this.getEntityWorld() instanceof ServerWorld serverWorld) {
 				Entity target = serverWorld.getEntityById(entityId);
 				if (target != null) {
 					tudursvehiclemod$setEntityHighlighted(target, false);
 				}
 			}
+			return true;
 		});
 	}
 
@@ -7705,15 +7710,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		int totalWaves = Math.max(1, durationTicks / SMOKE_WAVE_INTERVAL_TICKS);
 		int[] tickCount = {0};
 		int[] wavesSpawned = {0};
-		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
-			if (wavesSpawned[0] >= totalWaves) {
-				return;
-			}
+		com.example.tudursvehiclemod.ServerTickTasks.schedule(server -> {
 			tickCount[0]++;
 			if (tickCount[0] % SMOKE_WAVE_INTERVAL_TICKS == 0) {
 				world.spawnParticles(effect, true, true, cx, cy, cz, 4, 0.3, 0.05, 0.3, 0.0);
 				wavesSpawned[0]++;
 			}
+			return wavesSpawned[0] >= totalWaves;
 		});
 	}
 
@@ -9284,16 +9287,15 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (!(this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld)) {
 			return;
 		}
-		// Skips EVERYTHING
-		// below (including the mesh lookup and, more importantly, the
-		// per-vehicle world query for nearby projectiles) the instant
-		// there isn't a single VehicleProjectileEntity anywhere in any
-		// loaded world at all - see
-		// VehicleProjectileEntity.tudursvehiclemod$anyActiveAnywhere()'s
-		// own doc. This is overwhelmingly the common case (most of the
-		// time, across most vehicles, nobody's actually firing anything
-		// at any given moment) and this check itself is essentially free.
-		if (!com.example.tudursvehiclemod.entity.projectile.VehicleProjectileEntity.tudursvehiclemod$anyActiveAnywhere()) {
+		// Skips EVERYTHING below (the mesh lookup and, more importantly, the per-vehicle
+		// world query for nearby projectiles - a wide box for a large vehicle) while this
+		// world has no projectile loaded at all, overwhelmingly the common case. Counts
+		// every ProjectileEntity (see LoadedProjectiles's own doc): this used to check
+		// VehicleProjectileEntity.tudursvehiclemod$anyActiveAnywhere() instead, which only
+		// counts this mod's own, so vanilla arrows and tridents - which can't hit a vehicle
+		// any other way (see mixin.ProjectileVehicleHitMixin) - went straight through
+		// whenever none of this mod's own were in flight.
+		if (!LoadedProjectiles.any(serverWorld)) {
 			return;
 		}
 		var wholeMeshOpt = com.example.tudursvehiclemod.asset.ServerObjModelHitboxes.getMesh(def.model());

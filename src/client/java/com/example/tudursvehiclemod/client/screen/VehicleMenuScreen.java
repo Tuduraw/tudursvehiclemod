@@ -309,7 +309,7 @@ public class VehicleMenuScreen extends HandledScreen<VehicleMenuScreenHandler> {
 
 		int areaX = tudursvehiclemod$resupplyAreaX();
 		int nameY = this.y + 8 + TAB_GRID_TOTAL_HEIGHT + 8;
-		context.drawText(this.textRenderer, Text.literal(weapon.weaponName()), areaX, nameY, 0xFFFFFF, false);
+		context.drawText(this.textRenderer, Text.literal(weapon.weaponName()), areaX, nameY, 0xFFFFFFFF, false);
 
 		// Item icons + required counts, directly below the weapon name -
 		// only the resources this specific weapon actually costs (iron
@@ -344,7 +344,7 @@ public class VehicleMenuScreen extends HandledScreen<VehicleMenuScreenHandler> {
 		int tabY = this.y + 8;
 		int nameY = tabY + TAB_HEIGHT + 8;
 
-		context.drawText(this.textRenderer, Text.translatable("gui.tudursvehiclemod.repair"), areaX, nameY, 0xFFFFFF, false);
+		context.drawText(this.textRenderer, Text.translatable("gui.tudursvehiclemod.repair"), areaX, nameY, 0xFFFFFFFF, false);
 
 		int barX = areaX;
 		int barY = nameY + 12;
@@ -366,7 +366,7 @@ public class VehicleMenuScreen extends HandledScreen<VehicleMenuScreenHandler> {
 				String.valueOf(REPAIR_TIER_IRON_COST[this.selectedRepairTier]));
 		context.drawText(this.textRenderer,
 				Text.translatable("gui.tudursvehiclemod.repair_percent", Math.round(REPAIR_TIER_HEAL_PERCENT[this.selectedRepairTier])),
-				areaX + 20, iconY + 4, 0xFFFFFF, false);
+				areaX + 20, iconY + 4, 0xFFFFFFFF, false);
 	}
 
 	/** drawBorder(int, int, int, int, int) was removed from DrawContext as of this project's own Minecraft version. */

@@ -71,7 +71,7 @@ public class StationBlockEntity extends BlockEntity implements NamedScreenHandle
 		if (this.lastKnownVehicleChunk == null) {
 			return Result.NEVER_SEEN;
 		}
-		world.setChunkForced(this.lastKnownVehicleChunk.x, this.lastKnownVehicleChunk.z, true);
+		com.example.tudursvehiclemod.ChunkForceTracker.requestWithoutLoading(world, this.lastKnownVehicleChunk, this.tudursvehiclemod$pendingControlRequester());
 		this.pendingControlForcedChunk = this.lastKnownVehicleChunk;
 		this.pendingControlPlayerId = player.getUuid();
 		this.pendingControlTicksWaited = 0;
@@ -125,7 +125,7 @@ public class StationBlockEntity extends BlockEntity implements NamedScreenHandle
 
 	private void tudursvehiclemod$finishPendingControlAttempt(ServerWorld world, java.util.function.Consumer<ServerPlayerEntity> notify) {
 		if (this.pendingControlForcedChunk != null) {
-			world.setChunkForced(this.pendingControlForcedChunk.x, this.pendingControlForcedChunk.z, false);
+			com.example.tudursvehiclemod.ChunkForceTracker.release(world, this.pendingControlForcedChunk, this.tudursvehiclemod$pendingControlRequester());
 			this.pendingControlForcedChunk = null;
 		}
 		UUID playerId = this.pendingControlPlayerId;
@@ -148,19 +148,43 @@ public class StationBlockEntity extends BlockEntity implements NamedScreenHandle
 	/** Called when this station block is removed - releases any pending control attempt's temporarily-forced chunk, since tick() won't run again to do it. Usually a no-op (pending attempts only last a few ticks). */
 	public void tudursvehiclemod$releasePendingControlChunk(ServerWorld world) {
 		if (this.pendingControlForcedChunk != null) {
-			world.setChunkForced(this.pendingControlForcedChunk.x, this.pendingControlForcedChunk.z, false);
+			com.example.tudursvehiclemod.ChunkForceTracker.release(world, this.pendingControlForcedChunk, this.tudursvehiclemod$pendingControlRequester());
 			this.pendingControlForcedChunk = null;
 		}
 		this.pendingControlPlayerId = null;
 		this.pendingControlTicksWaited = 0;
 	}
 
-	/** This station's own chunk stays loaded permanently for as long as the block entity exists, regardless of binding/control state. */
+	/** This station's own chunk stays loaded permanently for as long as the block entity exists, regardless of binding/control state. Goes through ChunkForceTracker (requester: this block entity), so an aircraft or Drone Center that also needs this chunk can't un-force it from under the station, and /tvm unloadchunks knows it's a live request. */
 	public void tudursvehiclemod$updateChunkForceLoading(boolean forced) {
 		if (this.getWorld() instanceof ServerWorld serverWorld) {
 			ChunkPos ownChunk = new ChunkPos(this.getPos());
-			serverWorld.setChunkForced(ownChunk.x, ownChunk.z, forced);
+			if (forced) {
+				// Its own chunk is loaded by definition - requestWithoutLoading() skips the synchronous load, which would hang the server when this runs while that chunk is still loading (see VehicleMod's BLOCK_ENTITY_LOAD listener).
+				com.example.tudursvehiclemod.ChunkForceTracker.requestWithoutLoading(serverWorld, ownChunk, this);
+			} else {
+				com.example.tudursvehiclemod.ChunkForceTracker.release(serverWorld, ownChunk, this);
+			}
 		}
+	}
+
+	/** A pending control attempt's chunk is a separate request from the station's own chunk - they can be the same chunk, and finishing the attempt must not un-force the station's. */
+	private Object tudursvehiclemod$pendingControlRequester() {
+		return new com.example.tudursvehiclemod.ChunkForceTracker.Purpose(this, "pending_control");
+	}
+
+	/** Breaking the station: ends remote control of its vehicle and releases every chunk it was force-loading. This used to be in StationBlock.onStateReplaced(), which in 1.21.11 runs only after this block entity has already been removed from the world (getBlockEntity() there returns null), so none of it ever ran. This runs while the block entity is still in place. super scatters the slot's stick. */
+	@Override
+	public void onBlockReplaced(BlockPos pos, net.minecraft.block.BlockState oldState) {
+		if (this.getWorld() instanceof ServerWorld serverWorld) {
+			this.tudursvehiclemod$releasePendingControlChunk(serverWorld);
+			if (tudursvehiclemod$findBoundVehicle(serverWorld, this.tudursvehiclemod$getBoundVehicleId())
+					instanceof com.example.tudursvehiclemod.entity.AbstractVehicleEntity vehicle) {
+				vehicle.tudursvehiclemod$tryExitRemoteControl();
+			}
+			com.example.tudursvehiclemod.ChunkForceTracker.releaseAllOwnedBy(serverWorld, this);
+		}
+		super.onBlockReplaced(pos, oldState);
 	}
 
 	// --- NamedScreenHandlerFactory / Inventory (see this class's own doc) ---

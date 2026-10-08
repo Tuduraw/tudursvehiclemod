@@ -53,31 +53,7 @@ public class StationBlock extends BlockWithEntity {
 		}
 	}
 
-	@Override
-	public void onStateReplaced(BlockState state, ServerWorld world, BlockPos pos, boolean moved) {
-		if (world.getBlockEntity(pos) instanceof StationBlockEntity blockEntity) {
-			blockEntity.tudursvehiclemod$updateChunkForceLoading(false);
-			// Checks this specific release path
-			// carefully (it's hard to verify during actual play whether
-			// a chunk got left permanently force-loaded or not) - see
-			// StationBlockEntity's own tudursvehiclemod$releasePendingControlChunk()
-			// doc for exactly why this explicit call, right here, is
-			// required at all (this block entity's own tick() - where
-			// that same release would otherwise eventually happen
-			// automatically - never runs again after this point).
-			blockEntity.tudursvehiclemod$releasePendingControlChunk(world);
-			if (StationBlockEntity.tudursvehiclemod$findBoundVehicle(world, blockEntity.tudursvehiclemod$getBoundVehicleId())
-					instanceof com.example.tudursvehiclemod.entity.AbstractVehicleEntity vehicle) {
-				vehicle.tudursvehiclemod$tryExitRemoteControl();
-			}
-			// Real slot UI (see StationBlockEntity's own doc).
-			ItemStack insertedStick = blockEntity.getStack(0);
-			if (!insertedStick.isEmpty()) {
-				net.minecraft.util.ItemScatterer.spawn(world, pos.getX(), pos.getY() + 1, pos.getZ(), insertedStick);
-			}
-		}
-		super.onStateReplaced(state, world, pos, moved);
-	}
+	// Breaking the block: see StationBlockEntity.onBlockReplaced() - in 1.21.11 the block entity is already gone by the time onStateReplaced() runs, so the cleanup lives there.
 
 	/** The previous sneak-right-click access to the item slot container UI was removed entirely (sneaking while holding any item bypasses block interaction unconditionally in vanilla Minecraft - see tudursvehiclemod$registerUseBlockCallback()'s own doc), consolidating the remote-control toggle and the item slots into one reachable screen: right-click (sneaking or not, identically) always opens client.screen.StationMenuScreen, which offers a "Toggle Remote Control" button (running the exact logic that used to fire immediately on right-click - see tudursvehiclemod$handleToggleRemoteControl()'s own doc) and an "Item Slots" button. */
 	@Override

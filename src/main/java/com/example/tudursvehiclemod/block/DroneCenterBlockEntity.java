@@ -730,11 +730,34 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 		this.tudursvehiclemod$toggleActive(world);
 	}
 
+	/** Everything this center force-loads for its vehicle - the 3x3 grid around it and the last-known-chunk search window - released together whenever the center stops managing the vehicle (deactivated, vehicle destroyed, landing finished, block broken). The window used to be left out here, so a center deactivated while it was still searching for an unloaded vehicle kept that chunk force-loaded for good (tick() returns early once inactive, so its own countdown never ran out). */
 	private void tudursvehiclemod$releaseCurrentlyForcedChunk(ServerWorld world) {
+		Object gridRequester = this.tudursvehiclemod$gridRequester();
 		for (ChunkPos chunk : this.currentlyForcedChunks) {
-			world.setChunkForced(chunk.x, chunk.z, false);
+			com.example.tudursvehiclemod.ChunkForceTracker.release(world, chunk, gridRequester);
 		}
 		this.currentlyForcedChunks = java.util.Set.of();
+		this.tudursvehiclemod$releaseSearchWindowChunk(world);
+	}
+
+	/** The vehicle's grid, the search window and this center's own chunk are separate ChunkForceTracker requests (they often overlap - a vehicle parked next to its center, say), so releasing one never un-forces another. */
+	private Object tudursvehiclemod$gridRequester() {
+		return new com.example.tudursvehiclemod.ChunkForceTracker.Purpose(this, "vehicle_grid");
+	}
+
+	private Object tudursvehiclemod$searchWindowRequester() {
+		return new com.example.tudursvehiclemod.ChunkForceTracker.Purpose(this, "vehicle_search_window");
+	}
+
+	/** The chunk the current search window actually force-loaded - remembered separately from lastKnownVehicleChunk, which tick() updates (via rememberVehicleChunk()) as soon as the vehicle is found, before the window gets released: releasing "lastKnownVehicleChunk" at that point used to un-force the centre of the vehicle's brand-new grid instead of the window chunk, leaving the window chunk forced. */
+	private ChunkPos searchWindowChunk;
+
+	private void tudursvehiclemod$releaseSearchWindowChunk(ServerWorld world) {
+		if (this.searchWindowChunk != null) {
+			com.example.tudursvehiclemod.ChunkForceTracker.release(world, this.searchWindowChunk, this.tudursvehiclemod$searchWindowRequester());
+			this.searchWindowChunk = null;
+		}
+		this.forceLoadTicksRemaining = 0;
 	}
 
 	/** The 3x3 grid of chunks centered on centerChunk - same helper shape as entity.AircraftEntity's own tudursvehiclemod$computeChunkGrid(). */
@@ -754,18 +777,21 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 			this.lastKnownVehicleChunk = current;
 			this.markDirty();
 		}
+		if (!this.tudursvehiclemod$forceLoadsChunks()) {
+			return;
+		}
 		java.util.Set<ChunkPos> newGrid = tudursvehiclemod$computeChunkGrid(current);
 		if (!newGrid.equals(this.currentlyForcedChunks)) {
+			Object gridRequester = this.tudursvehiclemod$gridRequester();
 			for (ChunkPos chunk : this.currentlyForcedChunks) {
 				if (!newGrid.contains(chunk)) {
-					world.setChunkForced(chunk.x, chunk.z, false);
+					com.example.tudursvehiclemod.ChunkForceTracker.release(world, chunk, gridRequester);
 				}
 			}
 			for (ChunkPos chunk : newGrid) {
 				if (!this.currentlyForcedChunks.contains(chunk)) {
-					// setChunkForced() alone (without this getChunk() call first) left a real gap for a genuinely NEW, never-before-loaded chunk crossed during flight.
-					world.getChunk(chunk.x, chunk.z);
-					world.setChunkForced(chunk.x, chunk.z, true);
+					// ChunkForceTracker.request() loads the chunk (getChunk()) before forcing it - setChunkForced() alone left a real gap for a genuinely NEW, never-before-loaded chunk crossed during flight.
+					com.example.tudursvehiclemod.ChunkForceTracker.request(world, chunk, gridRequester);
 				}
 			}
 			this.currentlyForcedChunks = newGrid;
@@ -815,10 +841,8 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 				return;
 			}
 			blockEntity.tudursvehiclemod$rememberVehicleChunk(serverWorld, vehicle);
-			if (blockEntity.forceLoadTicksRemaining > 0) {
-				serverWorld.setChunkForced(blockEntity.lastKnownVehicleChunk.x, blockEntity.lastKnownVehicleChunk.z, false);
-				blockEntity.forceLoadTicksRemaining = 0;
-			}
+			// Found - the search window (if one was open) is no longer needed.
+			blockEntity.tudursvehiclemod$releaseSearchWindowChunk(serverWorld);
 			// Re-applied every tick while active (not just once on toggleActive()) so a vehicle that only just now loaded back in (e.g. after being unloaded while still flagged active) still picks the link back up on its own.
 			vehicle.tudursvehiclemod$setDroneLink(pos, blockEntity.speedFraction, blockEntity.orbitAltitude, blockEntity.radiusMultiplier);
 			blockEntity.tudursvehiclemod$updateFormationWingmen(serverWorld, vehicle);
@@ -828,12 +852,15 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 			return;
 		}
 		if (blockEntity.forceLoadTicksRemaining <= 0) {
-			serverWorld.setChunkForced(blockEntity.lastKnownVehicleChunk.x, blockEntity.lastKnownVehicleChunk.z, true);
+			if (blockEntity.tudursvehiclemod$forceLoadsChunks()) {
+				blockEntity.searchWindowChunk = blockEntity.lastKnownVehicleChunk;
+				com.example.tudursvehiclemod.ChunkForceTracker.requestWithoutLoading(serverWorld, blockEntity.searchWindowChunk, blockEntity.tudursvehiclemod$searchWindowRequester());
+			}
 			blockEntity.forceLoadTicksRemaining = FORCE_LOAD_WINDOW_TICKS;
 		} else {
 			blockEntity.forceLoadTicksRemaining--;
 			if (blockEntity.forceLoadTicksRemaining == 0) {
-				serverWorld.setChunkForced(blockEntity.lastKnownVehicleChunk.x, blockEntity.lastKnownVehicleChunk.z, false);
+				blockEntity.tudursvehiclemod$releaseSearchWindowChunk(serverWorld);
 			}
 		}
 	}
@@ -846,21 +873,56 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 		return entity instanceof com.example.tudursvehiclemod.entity.AbstractVehicleEntity vehicle ? vehicle : null;
 	}
 
-	/** Called when this block is removed - releases any still-forced chunk, since tick() won't run again to do it. */
+	/** Releases every chunk this center force-loads for its vehicle (the grid and the search window), since tick() won't run again to do it. */
 	public void tudursvehiclemod$releaseForcedChunk(ServerWorld world) {
-		if (this.forceLoadTicksRemaining > 0 && this.lastKnownVehicleChunk != null) {
-			world.setChunkForced(this.lastKnownVehicleChunk.x, this.lastKnownVehicleChunk.z, false);
-		}
-		this.forceLoadTicksRemaining = 0;
 		this.tudursvehiclemod$releaseCurrentlyForcedChunk(world);
 	}
 
-	/** This center's own chunk stays loaded permanently for as long as the block entity exists, same as StationBlockEntity's own equivalent. */
+	/** Whether this center force-loads chunks at all - its own chunk, the 3x3 around its vehicle and the search window for an unloaded vehicle. true for the Drone Center. An addon's subclass whose vehicle should only run while players are around (an enemy base that goes dormant when nobody is near, say - it then keeps things loaded its own way, or not at all) overrides this to return false, and none of those requests are made; everything else the center does is unchanged. Must return the same value for the whole life of the block entity (it's asked on every load and tick, and a request made while it returned true is only released through the ordinary paths).
+	 *
+	 * Overriding this replaces mixing into the setChunkForced() calls this class used to make: those calls now go through ChunkForceTracker, and their exact shape is an implementation detail that can change again. */
+	protected boolean tudursvehiclemod$forceLoadsChunks() {
+		return true;
+	}
+
+	/** This center's own chunk stays loaded permanently for as long as the block entity exists, same as StationBlockEntity's own equivalent - through ChunkForceTracker (requester: this block entity), re-requested on every load by VehicleMod's BLOCK_ENTITY_LOAD listener. */
 	public void tudursvehiclemod$updateChunkForceLoading(boolean forced) {
 		if (this.getWorld() instanceof ServerWorld serverWorld) {
 			ChunkPos ownChunk = new ChunkPos(this.getPos());
-			serverWorld.setChunkForced(ownChunk.x, ownChunk.z, forced);
+			if (forced) {
+				if (this.tudursvehiclemod$forceLoadsChunks()) {
+					// Its own chunk is loaded by definition - requestWithoutLoading() skips the synchronous load, which would hang the server when this runs while that chunk is still loading (see VehicleMod's BLOCK_ENTITY_LOAD listener).
+					com.example.tudursvehiclemod.ChunkForceTracker.requestWithoutLoading(serverWorld, ownChunk, this);
+				}
+			} else {
+				com.example.tudursvehiclemod.ChunkForceTracker.release(serverWorld, ownChunk, this);
+			}
 		}
+	}
+
+	/** Breaking the center: removes its dummy pilot, lets go of the vehicle and any formation wingmen, drops the formation slots' sticks and releases every chunk it was force-loading. This used to be in DroneCenterBlock.onStateReplaced(), which in 1.21.11 runs only after this block entity has already been removed from the world (getBlockEntity() there returns null), so none of it ever ran: the chunks stayed force-loaded for good, the vehicle kept flying around a center that no longer existed, and the formation sticks were lost. This runs while the block entity is still in place. super scatters the main two slots (stick, route book). */
+	@Override
+	public void onBlockReplaced(BlockPos pos, net.minecraft.block.BlockState oldState) {
+		if (this.getWorld() instanceof ServerWorld serverWorld) {
+			this.tudursvehiclemod$removeDummyPilot();
+			com.example.tudursvehiclemod.entity.AbstractVehicleEntity vehicle =
+					tudursvehiclemod$findBoundVehicle(serverWorld, this.tudursvehiclemod$getBoundVehicleId());
+			if (vehicle != null) {
+				vehicle.tudursvehiclemod$setDroneLink(null);
+			}
+			for (UUID wingmanId : this.currentlyFollowingWingmen) {
+				if (serverWorld.getEntity(wingmanId) instanceof com.example.tudursvehiclemod.entity.AircraftEntity wingman) {
+					wingman.tudursvehiclemod$clearDroneFormationFollow();
+				}
+			}
+			this.currentlyFollowingWingmen.clear();
+			net.minecraft.util.ItemScatterer.spawn(serverWorld, pos, this.formationSlotsInventory);
+			com.example.tudursvehiclemod.ChunkForceTracker.releaseAllOwnedBy(serverWorld, this);
+			this.currentlyForcedChunks = java.util.Set.of();
+			this.searchWindowChunk = null;
+			this.forceLoadTicksRemaining = 0;
+		}
+		super.onBlockReplaced(pos, oldState);
 	}
 
 	// --- NamedScreenHandlerFactory / Inventory (see this class's own doc) ---
