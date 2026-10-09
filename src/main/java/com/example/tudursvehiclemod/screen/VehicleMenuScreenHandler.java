@@ -191,10 +191,22 @@ public class VehicleMenuScreenHandler extends ScreenHandler {
 		return this.vehicle.tudursvehiclemod$tryResupplyWeapon(player, id);
 	}
 
+	/** Riders always; a UAV's menu is opened by right-clicking it from outside (it can't be boarded - see AbstractVehicleEntity.interact()), so that one stays open while the player is within reach of it and nobody takes it over by remote control. Requiring a ride for every vehicle closed the UAV menu the tick after it opened. */
 	@Override
 	public boolean canUse(PlayerEntity player) {
-		return this.vehicle != null && player.getVehicle() == this.vehicle;
+		if (this.vehicle == null || this.vehicle.isRemoved()) {
+			return false;
+		}
+		if (player.getVehicle() == this.vehicle) {
+			return true;
+		}
+		return this.vehicle.tudursvehiclemod$isUav()
+				&& this.vehicle.tudursvehiclemod$getRemoteControllerId() == null
+				&& this.vehicle.getBoundingBox().squaredMagnitude(player.getEyePos()) <= UAV_MENU_REACH * UAV_MENU_REACH;
 	}
+
+	/** How far (from the UAV's bounding box) a player outside it can keep its menu open. */
+	private static final double UAV_MENU_REACH = 8.0;
 
 	@Override
 	public ItemStack quickMove(PlayerEntity player, int index) {

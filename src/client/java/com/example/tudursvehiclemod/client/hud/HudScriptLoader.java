@@ -169,7 +169,8 @@ public class HudScriptLoader implements SimpleSynchronousResourceReloadListener 
 								client.execute(() -> client.getTextureManager()
 										.registerTexture(id, new NativeImageBackedTexture(id::toString, nativeImage)));
 							}
-						} catch (IOException e) {
+						} catch (IOException | RuntimeException e) {
+							// RuntimeException too: a namespace folder that isn't a valid identifier throws from Identifier.of() and used to abort the whole reload.
 							System.err.println("[tudursvehiclemod] Failed to read loose HUD texture " + pngFile
 									+ ": " + e.getMessage());
 						}

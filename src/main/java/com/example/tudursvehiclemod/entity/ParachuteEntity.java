@@ -43,27 +43,28 @@ public class ParachuteEntity extends AbstractVehicleEntity {
 	protected void readCustomData(net.minecraft.storage.ReadView view) {
 		super.readCustomData(view);
 		this.tudursvehiclemod$setTintColor(view.getInt("TintColor", 0xFFFFFFFF));
+		// Saved so a parachute reloaded from disk still hands its item back - this used to reset to false on every load. An older save without the key keeps the old behavior (no item).
+		this.consumedRealItem = view.getBoolean("ConsumedRealItem", false);
 	}
 
 	@Override
 	protected void writeCustomData(net.minecraft.storage.WriteView view) {
 		super.writeCustomData(view);
 		view.putInt("TintColor", this.tudursvehiclemod$getTintColor());
+		view.putBoolean("ConsumedRealItem", this.consumedRealItem);
 	}
 
 	/** How many ticks after actually settling on the ground the rider is automatically dismounted ("着地から20tick後にパラシュートから自動的に降車"). Counts up from -1 (not yet landed) once isOnGround() first reads true; reaching this value triggers the dismount, but - unlike the previous behavior - does NOT discard this entity itself, which instead survives afterward as a vacant, motionless, recoverable item source (see tudursvehiclemod$interact()'s own doc). */
 	private static final int LANDED_DISMOUNT_DELAY_TICKS = 20;
 	/** -1 while still airborne/mid-controlled-descent; counts 0, 1, 2,.. once isOnGround() first reads true, until it reaches LANDED_DISMOUNT_DELAY_TICKS (dismount) and then keeps sitting at that value forever afterward (this entity is now vacant and inert - see updateVehicleMovement()'s own doc for why physics stops running once this happens). */
 	private int landedTicks = -1;
-	/** Per-tick diagnostic tracking only (see updateVehicleMovement()'s own new logging) - not otherwise used for any actual logic. */
-	private int lastKnownPassengerCount = 0;
 
 	/** The horizontal speed steering eases toward, once WASD input is held. Deliberately gentle - real parachute steering is a slow drift, not aircraft-style maneuvering. */
 	private static final double HORIZONTAL_STEER_TARGET_SPEED = 0.3;
 	/** How quickly horizontal velocity eases toward HORIZONTAL_STEER_TARGET_SPEED each tick, rather than that speed being injected directly as an instantaneous per-tick delta (which a frame-to-frame wobble in the steering direction - itself derived from the pilot's own last-reported view yaw, which can lag slightly behind their actual current view due to ordinary network latency - could otherwise translate directly into visible jitter). */
 	private static final double HORIZONTAL_STEER_EASE_RATE = 0.1;
 
-	/** A parachute spawned WITHOUT actually consuming a real item (a virtual grant, e.g. enable_parachuting/mob-drop with nothing equipped) never itself be recoverable as an item at all, automatically or manually ("パラシュート降下などのアイテム消費せずに出現した場合は通常の撤去も含めてアイテム化しないようにしてください") - true only when tudursvehiclemod$spawnAndMount()'s own caller actually cleared a real ParachuteItem off the rider's own chest slot to create this entity. Server-side only (never synced - only ever read here, on the server). */
+	/** A parachute spawned WITHOUT actually consuming a real item (a virtual grant, e.g. enable_parachuting/mob-drop with nothing equipped) never itself be recoverable as an item at all, automatically or manually ("パラシュート降下などのアイテム消費せずに出現した場合は通常の撤去も含めてアイテム化しないようにしてください") - true only when tudursvehiclemod$spawnAndMount()'s own caller actually cleared a real ParachuteItem off the rider's own chest slot to create this entity. Server-side only (never synced - only ever read here, on the server); saved with the entity. */
 	private boolean consumedRealItem = false;
 
 	public boolean tudursvehiclemod$didConsumeRealItem() {
@@ -97,10 +98,6 @@ public class ParachuteEntity extends AbstractVehicleEntity {
 
 	@Override
 	protected void updateVehicleMovement(VehicleDefinition def) {
-		int currentPassengerCount = this.tudursvehiclemod$getRealPassengerList().size();
-		if (currentPassengerCount != this.lastKnownPassengerCount) {
-			this.lastKnownPassengerCount = currentPassengerCount;
-		}
 		// Per LANDED_DISMOUNT_DELAY_TICKS' own doc: once this entity has fully finished its own landing sequence, it's an inert, vacant leftover - no descent physics run at all any more, it just sits exactly where it settled until someone actually interacts with it (recovery), it auto-itemizes/discards after VACANT_AUTO_ITEMIZE_TICKS, or it happens to be destroyed by ordinary vehicle damage.
 		if (this.tudursvehiclemod$isLandedAndVacant()) {
 			if (!this.getEntityWorld().isClient()) {

@@ -429,13 +429,13 @@ releases every wingman's lock) works as it always has.
     instant this waypoint is reached, instantly changes speed to this
     km/h value while keeping the current horizontal direction (a
     catapult-launch effect)
-  - Currently, `gear`/`bay` only actually take effect at the very first
-    waypoint (index 0, right after launch) and the final waypoint of the
-    landing route (they're ignored at any waypoint in between)
+  - For `gear`, `1` deploys and `0` retracts. `gear`/`bay` take effect at
+    every waypoint (launch and landing routes alike), the moment the
+    aircraft starts heading for that waypoint
 - **Example** (retracts the gear right after launch, catapult-accelerates
   to 250 km/h):
   ```
-  CarrierLaunchWaypoint = 0,10,60,100,1,-,250
+  CarrierLaunchWaypoint = 0,10,60,100,0,-,250
   ```
 
 ### `CarrierLandingWaypoint`

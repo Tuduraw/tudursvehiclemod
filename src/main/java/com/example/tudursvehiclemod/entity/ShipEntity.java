@@ -127,14 +127,7 @@ public class ShipEntity extends AbstractVehicleEntity {
 				// restricted to begin with), so this is the only thing
 				// that keeps a passenger's own view in sync with the
 				// ship's own rotation at all.
-				for (Entity passenger : this.tudursvehiclemod$getRealPassengerList()) {
-					passenger.setYaw(passenger.getYaw() - yawDelta);
-					if (passenger instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
-						serverPlayer.networkHandler.requestTeleport(
-								serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
-								serverPlayer.getYaw(), serverPlayer.getPitch());
-					}
-				}
+				this.tudursvehiclemod$turnPassengerViews(yawDelta);
 			}
 
 			velocity = approachThrottledVelocity(def, throttle, false);
@@ -154,9 +147,7 @@ public class ShipEntity extends AbstractVehicleEntity {
 			// gradual, symmetric idea as CarEntity's own
 			// UNMANNED_THROTTLE_DECAY.
 			float currentThrottle = this.getThrottle();
-			float decayedThrottle = currentThrottle > 0f
-					? Math.max(0f, currentThrottle - UNMANNED_THROTTLE_DECAY)
-					: Math.min(0f, currentThrottle + UNMANNED_THROTTLE_DECAY);
+			float decayedThrottle = tudursvehiclemod$decayTowardZero(currentThrottle, UNMANNED_THROTTLE_DECAY);
 			this.setThrottleDirect(decayedThrottle);
 			// Unpiloted: eases towards 0 like every other unpiloted vehicle here, rather than just leaving whatever velocity already existed (this class's own previous behavior).
 			velocity = approachThrottledVelocity(def, decayedThrottle, false);
@@ -194,31 +185,6 @@ public class ShipEntity extends AbstractVehicleEntity {
 		if (surfaceY.isPresent()) {
 			this.tudursvehiclemod$updateWakeTrail(surfaceY.getAsDouble(), this.tudursvehiclemod$getSignedForwardSpeed(velocity));
 		}
-	}
-
-	/** Scans a small vertical range around this vehicle's own position for
-	 * the topmost water block - returns empty if no water is found nearby
-	 * At all (an earlier version of this fell back to
-	 * this vehicle's own current Y in that case, which - combined with a
-	 * non-zero SURFACE_FLOAT_DEPTH offset - made the "target" float
-	 * position permanently chase "current Y + offset" every tick, a target
-	 * that can never actually be caught, causing perpetual climbing (or,
-	 * before SURFACE_FLOAT_DEPTH's own sign was reversed per an earlier
-	 * request, perpetual sinking) for a ship or submarine that's nowhere
-	 * near any water at all). Callers should skip the surface-spring logic
-	 * entirely and fall back to plain gravity when this is empty. */
-	protected java.util.OptionalDouble tudursvehiclemod$findWaterSurfaceY() {
-		BlockPos basePos = BlockPos.ofFloored(this.getX(), this.getY(), this.getZ());
-		double surfaceY = this.getY();
-		boolean foundWater = false;
-		for (int dy = -2; dy <= 3; dy++) {
-			BlockPos checkPos = basePos.add(0, dy, 0);
-			if (this.getEntityWorld().getFluidState(checkPos).isIn(FluidTags.WATER)) {
-				surfaceY = checkPos.getY() + 1.0;
-				foundWater = true;
-			}
-		}
-		return foundWater ? java.util.OptionalDouble.of(surfaceY) : java.util.OptionalDouble.empty();
 	}
 
 	@Override

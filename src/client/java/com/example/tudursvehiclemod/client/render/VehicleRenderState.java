@@ -111,8 +111,6 @@ public class VehicleRenderState extends EntityRenderState {
 	public boolean wakeReversing;
 	/** This vehicle's own current yaw (degrees). used to re-rotate a young stern-band point's own local offset while it's still within its own gap-delay window, so it tracks this vehicle's own current turn instead of assuming a straight path. */
 	public float wakeCurrentYaw;
-	/** The game-world tick wakeBowHistory/wakeSternHistory/wakeSideHistory were most recently actually re-copied for. -1 initially, guaranteeing the very first call always copies. */
-	public long wakeHistoryCopiedForTick = -1L;
 
 	/** One entry per SearchLightPart that's currently ON, with everything renderSearchLightBeams() needs already resolved this frame - see LightBeam's own doc for why the world-space direction (rather than the raw definition + a live re-derivation at render time) is what gets carried here. Empty whenever this vehicle's own search light is off, or it has none defined - a no-op for every vehicle without one, costing nothing beyond this now-unused empty list. */
 	public java.util.List<LightBeam> activeSearchLightBeams = java.util.List.of();

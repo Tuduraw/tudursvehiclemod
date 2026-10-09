@@ -215,6 +215,11 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		builder.add(CAS_WAYPOINT_SPEED_FRACTION, 0.0f);
 	}
 
+	/** Called once per tick by the stall check: true keeps the aircraft out of a stall this tick. None by default; VtolEntity keeps one for a short while after converting to aircraft mode (see its own override). */
+	protected boolean tudursvehiclemod$consumeStallGraceTick() {
+		return false;
+	}
+
 	/** Whether this aircraft is currently stalled. */
 	public boolean isStalling() {
 		return this.stalling;
@@ -414,21 +419,6 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 	protected static final double GROUNDED_STICK_VELOCITY = -0.05;
 	/** Float-capable aircraft actually on water uses spring buoyancy instead of GROUNDED_STICK_VELOCITY (same formula as Ship/SubmarineEntity's surfaced mode). */
 	protected static final double SURFACE_FLOAT_DEPTH = 0.125;
-
-	/** Topmost water block near this vehicle, or empty if none nearby - callers should fall back to plain gravity (not current Y) when empty. */
-	protected java.util.OptionalDouble tudursvehiclemod$findWaterSurfaceY() {
-		net.minecraft.util.math.BlockPos basePos = net.minecraft.util.math.BlockPos.ofFloored(this.getX(), this.getY(), this.getZ());
-		double surfaceY = this.getY();
-		boolean foundWater = false;
-		for (int dy = -2; dy <= 3; dy++) {
-			net.minecraft.util.math.BlockPos checkPos = basePos.add(0, dy, 0);
-			if (this.getEntityWorld().getFluidState(checkPos).isIn(net.minecraft.registry.tag.FluidTags.WATER)) {
-				surfaceY = checkPos.getY() + 1.0;
-				foundWater = true;
-			}
-		}
-		return foundWater ? java.util.OptionalDouble.of(surfaceY) : java.util.OptionalDouble.empty();
-	}
 
 	/** Slow, gradual downward velocity while sinking (not an immediate plunge - gives passengers a moment to bail out). */
 	protected static final double SINKING_VERTICAL_SPEED = -0.08;
@@ -673,7 +663,7 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		float stallEngageFraction = MathHelper.lerp(this.getLandingGearProgress(),
 				def.stallSpeedFraction() - 0.1f, def.stallSpeedFraction());
 		// Stall state with hysteresis: engages below stallEngageFraction of max speed, but only disengages once back up to stallDisengageFraction..
-		if (surfaced || this.age < SPAWN_GRACE_TICKS) {
+		if (surfaced || this.age < SPAWN_GRACE_TICKS || this.tudursvehiclemod$consumeStallGraceTick()) {
 			this.stalling = false;
 		} else if (!this.stalling && this.hasLifted && actualSpeed < effectiveMaxSpeed * stallEngageFraction) {
 			this.stalling = true;
@@ -1223,7 +1213,9 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 	/** Parallel to casWaypointOverride/casAttackFlags (same index, same length) - Optional.empty() for "no change", or a fixed true/false the aircraft's own landing_gear/weapon_bay toggle_parts state gets force-set to the INSTANT droneWaypointIndex advances onto that waypoint (a one-time trigger applied in tudursvehiclemod$updateDroneWaypointAutopilot()'s own "passedWaypoint" handling, not a continuous per-tick state like casAttackFlags's own attack flag). Always present (even for the normal, non-launch portion of a Carrier route, or for CAS) as a same-length list of Optional.empty() entries - simplifies the index-matching logic elsewhere to not need a separate null/empty-list check. */
 	private java.util.List<java.util.Optional<Boolean>> carrierGearFlags = java.util.List.of();
 	private java.util.List<java.util.Optional<Boolean>> carrierBayFlags = java.util.List.of();
-	/** Per CarrierLaunchWaypoint's own speedBoostKmh doc (the current catapult mechanic, replacing an earlier player-boarding-based design): parallel to carrierGearFlags/carrierBayFlags (same index, same length, same always-present-as-a-same-length-list convention) - Optional.empty() for "no boost", or a fixed speed (km/h) this aircraft's own velocity magnitude gets instantly snapped to (current horizontal direction preserved) the INSTANT droneWaypointIndex advances onto that waypoint. UNLIKE carrierGearFlags/carrierBayFlags, this one IS actually consumed for every launch-route waypoint (not just waypoint 0) - see tudursvehiclemod$applyCarrierSpeedBoost()'s own doc for exactly where. */
+	/** The landing waypoint whose gear/bay columns were last applied (-1: none yet) - so each is applied once, when it becomes the one being flown to. Not saved: after a reload the current one is simply applied again, which sets the same state. */
+	private int carrierLandingGearBayAppliedIndex = -1;
+	/** Per CarrierLaunchWaypoint's own speedBoostKmh doc (the current catapult mechanic, replacing an earlier player-boarding-based design): parallel to carrierGearFlags/carrierBayFlags (same index, same length, same always-present-as-a-same-length-list convention) - Optional.empty() for "no boost", or a fixed speed (km/h) this aircraft's own velocity magnitude gets instantly snapped to (current horizontal direction preserved) the INSTANT droneWaypointIndex advances onto that waypoint. Consumed for every launch-route waypoint, like carrierGearFlags/carrierBayFlags - see tudursvehiclemod$applyCarrierSpeedBoost()'s own doc for exactly where. */
 	private java.util.List<java.util.Optional<Float>> carrierSpeedBoostFlags = java.util.List.of();
 	/** How many of this aircraft's own combined route waypoints (config.launchWaypoints() + config.waypoints(), same order tudursvehiclemod$setCasWaypointRoute() receives them in) are the launch segment specifically - droneWaypointIndex < this value means still launching. 0 (the default) for any aircraft that was never Carrier-launched, or hasn't had this set at all. */
 	private int carrierLaunchWaypointCount;
@@ -1732,6 +1724,13 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		}
 		// CarrierLandingWaypoints is required (at least one - validated at parse time), and the LAST one now serves the exact role the old approach point used to (the anchor for the final straight-line approach into AddWeapon itself). Any waypoints BEFORE the last are flown through first, in order - each one's own world position recomputed fresh every tick (mothershipForwardX/Z, addWeaponPos, same rotation basis throughout), since unlike the static launch route (computed once at spawn, since the aircraft departs immediately), a landing approach can span many seconds during which the mothership may still be moving/turning.
 		int lastLandingWaypointIndex = this.carrierLandingWaypoints.size() - 1;
+		// D-2: a landing waypoint's gear/bay columns take effect as it becomes the one being flown to - every one of them, not only the last (which is also applied below, as the final approach starts).
+		if (this.carrierLandingWaypointIndex <= lastLandingWaypointIndex && this.carrierLandingGearBayAppliedIndex != this.carrierLandingWaypointIndex) {
+			this.carrierLandingGearBayAppliedIndex = this.carrierLandingWaypointIndex;
+			com.example.tudursvehiclemod.asset.CarrierLaunchWaypoint enteredLandingWaypoint = this.carrierLandingWaypoints.get(this.carrierLandingWaypointIndex);
+			enteredLandingWaypoint.gearState().ifPresent(this::tudursvehiclemod$setGearDeployed);
+			enteredLandingWaypoint.bayState().ifPresent(open -> this.tudursvehiclemod$setWeaponBayForcedOpen(java.util.Optional.of(open)));
+		}
 		if (this.carrierLandingWaypointIndex < lastLandingWaypointIndex) {
 			com.example.tudursvehiclemod.asset.CarrierLaunchWaypoint currentLandingWaypoint = this.carrierLandingWaypoints.get(this.carrierLandingWaypointIndex);
 			double[] landingWaypointRotated = tudursvehiclemod$rotateCasOffset(currentLandingWaypoint.relX(), currentLandingWaypoint.relZ(), mothershipForwardX, mothershipForwardZ);
@@ -1893,6 +1892,13 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 				this.carrierLaunchDesignatedTargetUuid = java.util.UUID.fromString(designatedTargetUuidString);
 				this.carrierLaunchDesignatedWeaponIndex = view.getInt("CarrierLaunchDesignatedWeaponIndex", 0);
 			}
+			// See the matching write side. An older save has no CarrierLaunchMothershipUuid: the mothership link (set for a player-fired launch) is the same ship, so it stands in.
+			String launchMothershipUuidString = view.getString("CarrierLaunchMothershipUuid", "");
+			this.carrierLaunchMothershipUuid = !launchMothershipUuidString.isEmpty()
+					? java.util.UUID.fromString(launchMothershipUuidString) : this.carrierMothershipUuid;
+			this.carrierLaunchWaypointCount = view.getInt("CarrierLaunchWaypointCount", 0);
+			this.carrierWaitingToLand = view.getBoolean("CarrierWaitingToLand", false);
+			this.carrierLandingQueueTicksRemaining = view.getInt("CarrierLandingQueueTicksRemaining", 0);
 			String formationRootLeaderUuidString = view.getString("CarrierFormationRootLeaderUuid", "");
 			if (!formationRootLeaderUuidString.isEmpty()) {
 				this.carrierFormationRootLeaderUuid = java.util.UUID.fromString(formationRootLeaderUuidString);
@@ -1977,6 +1983,13 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 				view.putString("CarrierFormationRootLeaderUuid", this.carrierFormationRootLeaderUuid.toString());
 			}
 			view.putInt("CarrierFormationIndex", this.carrierFormationIndex);
+			// A-8: these were lost on every reload. Without the launch mothership a wingman whose leader starts landing took itself for a CAS wingman and was discarded (aircraft and round gone); the waiting/queue state and the launch-segment length decide when it may land and when a designated target becomes a lock.
+			if (this.carrierLaunchMothershipUuid != null) {
+				view.putString("CarrierLaunchMothershipUuid", this.carrierLaunchMothershipUuid.toString());
+			}
+			view.putInt("CarrierLaunchWaypointCount", this.carrierLaunchWaypointCount);
+			view.putBoolean("CarrierWaitingToLand", this.carrierWaitingToLand);
+			view.putInt("CarrierLandingQueueTicksRemaining", this.carrierLandingQueueTicksRemaining);
 		}
 	}
 
@@ -2176,7 +2189,6 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		double dx = targetX - this.getX();
 		double dy = targetY - this.getY();
 		double dz = targetZ - this.getZ();
-		double horizontalDistance = Math.sqrt(dx * dx + dz * dz);
 
 		float cruiseSpeedTarget = this.tudursvehiclemod$rampAutopilotThrottle(def, waypoint.speedFraction(), def.maxSpeed());
 		// This vehicle's own ACTUAL yaw turn rate, not the raw un-multiplied def.turnSpeed(). scaled specifically by this waypoint's own turnManeuverabilityMultiplier (see DroneWaypoint's own doc).
@@ -2256,18 +2268,20 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 				this.carrierOrbitingForFormation = true;
 				return;
 			}
-			int previousWaypointIndexForLog = this.droneWaypointIndex;
 			this.droneWaypointIndex = (this.droneWaypointIndex + 1) % waypoints.size();
-			// Per the same investigation as updateDroneFormationFollow()'s own identical diagnostic - lets a wingman's own convergence event be directly correlated against exactly when/how sharply this leader itself transitioned between waypoints.
-			if (this.carrierFormationRootLeaderUuid == null || this.getUuid().equals(FORMATION_LEADER_SLOT.get(this.carrierFormationRootLeaderUuid))) {
-				// Only meaningful for an actual formation LEADER (a wingman's own droneWaypointIndex is separately mirrored from the leader elsewhere, and logging it here too would be redundant/confusing).
-			}
 			this.droneLegStartX = this.getX();
 			this.droneLegStartY = this.getY();
 			this.droneLegStartZ = this.getZ();
 			// Per carrierSpeedBoostFlags's own doc: applies the NEWLY-reached waypoint's own boost (if any) exactly once, right here at the transition itself - this "if (passedWaypoint)" block only ever runs on the single tick droneWaypointIndex actually changes, never on any of the many ticks in between while still flying toward it, so this can never compound/re-apply for the same waypoint. Empty for a plain (non-Carrier) Drone Center route (carrierSpeedBoostFlags defaults to List.of()), so the bounds check below naturally no-ops there without needing a separate casWaypointOverride != null guard.
 			if (this.droneWaypointIndex < this.carrierSpeedBoostFlags.size()) {
 				this.carrierSpeedBoostFlags.get(this.droneWaypointIndex).ifPresent(kmh -> this.tudursvehiclemod$applyCarrierSpeedBoost(kmh, -Math.sin(newYawRad), Math.cos(newYawRad)));
+			}
+			// D-2: the gear/bay columns of every launch waypoint, applied the same way (they used to be read for waypoint 0 only).
+			if (this.droneWaypointIndex < this.carrierGearFlags.size()) {
+				this.carrierGearFlags.get(this.droneWaypointIndex).ifPresent(this::tudursvehiclemod$setGearDeployed);
+			}
+			if (this.droneWaypointIndex < this.carrierBayFlags.size()) {
+				this.carrierBayFlags.get(this.droneWaypointIndex).ifPresent(open -> this.tudursvehiclemod$setWeaponBayForcedOpen(java.util.Optional.of(open)));
 			}
 		}
 	}
@@ -2426,16 +2440,6 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		float newRoll = coordinatedTurn[1];
 		this.droneTrackedYaw = newYaw;
 		this.droneOrbitTrackedRoll = newRoll;
-
-		// Throttled (once per second) diagnostic comparing this wingman's own CONFIGURED offset against its ACTUAL relative position in the leader's own body frame, plus the leader's own route progress and this wingman's own current heading-blend weight.
-		if (this.age % 20 == 0) {
-			double actualDx = this.getX() - leader.getX();
-			double actualDz = this.getZ() - leader.getZ();
-			double actualLongitudinal = actualDx * leaderForwardX + actualDz * leaderForwardZ;
-			double rightX = leaderForwardZ;
-			double rightZ = -leaderForwardX;
-			double actualLateral = actualDx * rightX + actualDz * rightZ;
-		}
 
 		double altitudeError = targetY - this.getY();
 		double targetVerticalSpeed = MathHelper.clamp(altitudeError * DRONE_ORBIT_ALTITUDE_CORRECTION_GAIN,

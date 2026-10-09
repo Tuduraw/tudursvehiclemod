@@ -181,11 +181,8 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 
 		state.crawlerTracks = def.crawlerTracks();
 		if (!def.crawlerTracks().isEmpty()) {
-			// The map is REUSED rather than rebuilt. This runs once per visible vehicle per frame, and its keys are the definition's own track part names, which never change at runtime - so the only thing that actually differs frame to frame is the float each one maps to. Allocating a fresh HashMap (plus a boxed Float per entry) every frame for that was pure garbage. Cleared and refilled in place instead; the state object is per-entity and only ever touched from the render thread, so reuse is safe.
-			java.util.Map<String, Float> crawlerPhase = state.crawlerTrackPhase instanceof java.util.HashMap<String, Float> reusable
-					? reusable
-					: new java.util.HashMap<>();
-			crawlerPhase.clear();
+			// A fresh map: 1.21.11 creates a new render state for every entity every frame (EntityRenderer.getAndUpdateRenderState()), so there was never a previous map to reuse.
+			java.util.Map<String, Float> crawlerPhase = new java.util.HashMap<>();
 			for (var track : def.crawlerTracks()) {
 				crawlerPhase.put(track.part(), entity.tudursvehiclemod$getCrawlerTrackPhase(track.part(), tickProgress));
 			}
@@ -203,11 +200,7 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 
 		if (!def.ammoParts().isEmpty()) {
 			state.ammoParts = def.ammoParts();
-			// Reused for the same reason as crawlerTrackPhase above - fixed keys, only the boolean changes per frame.
-			java.util.Map<String, Boolean> visibility = state.ammoPartVisibility instanceof java.util.HashMap<String, Boolean> reusable
-					? reusable
-					: new java.util.HashMap<>();
-			visibility.clear();
+			java.util.Map<String, Boolean> visibility = new java.util.HashMap<>();
 			for (var part : def.ammoParts()) {
 				visibility.put(part.part(), entity.tudursvehiclemod$isAmmoPartVisible(part));
 			}
@@ -217,18 +210,12 @@ public class VehicleEntityRenderer extends EntityRenderer<AbstractVehicleEntity,
 			state.ammoPartVisibility = java.util.Map.of();
 		}
 
-		// Reverted back to per-entity copying. This method's own tickProgress parameter confirms it runs once per RENDERED FRAME, not once per GAME TICK - the underlying wakeBowHistory/wakeSternHistory/wakeSideHistory deques themselves are only ever actually modified from this vehicle's own tick logic, never mid-frame - so re-copying them fresh on every extra frame would be wasted allocation. Skipped whenever this SAME entity's own current world tick matches the tick its own history was already copied for.
-		long currentWorldTick = entity.getEntityWorld().getTime();
-		if (state.wakeHistoryCopiedForTick != currentWorldTick) {
-			// Copy, not a live reference, so render() works from a stable list.
-			// Routed through tudursvehiclemod$snapshotWakeHistory() rather than a bare List.copyOf(). For an EMPTY source that returns the shared, immutable List.of() singleton instead of allocating anything at all - which both avoids a pointless per-tick allocation for the (common) no-wake case AND, more importantly, immediately drops this state's own reference to whatever previous, potentially large snapshot it was still holding. Without that, a vehicle whose trail had just fully aged out would keep its last non-empty snapshot alive here until the next tick happened to overwrite it.
-			state.wakeBowHistory = tudursvehiclemod$snapshotWakeHistory(entity.tudursvehiclemod$getWakeBowHistory());
-			state.wakeSternHistory = tudursvehiclemod$snapshotWakeHistory(entity.tudursvehiclemod$getWakeSternHistory());
-			state.wakeSideHistory = tudursvehiclemod$snapshotWakeHistory(entity.tudursvehiclemod$getWakeSideHistory());
-			state.wakeHistoryCopiedForTick = currentWorldTick;
-		}
+		// Copied every frame: the render state is new each frame (see crawlerTrackPhase above), so a "copied already this tick" guard on it never had anything to skip. Copies, not live references, so render() works from a stable list; tudursvehiclemod$snapshotWakeHistory() hands back the shared List.of() for an empty history, allocating nothing in the common no-wake case.
+		state.wakeBowHistory = tudursvehiclemod$snapshotWakeHistory(entity.tudursvehiclemod$getWakeBowHistory());
+		state.wakeSternHistory = tudursvehiclemod$snapshotWakeHistory(entity.tudursvehiclemod$getWakeSternHistory());
+		state.wakeSideHistory = tudursvehiclemod$snapshotWakeHistory(entity.tudursvehiclemod$getWakeSideHistory());
 		state.wakeTrailDurationTicks = def.wakeTrailDurationTicks();
-		state.currentWorldTick = currentWorldTick;
+		state.currentWorldTick = entity.getEntityWorld().getTime();
 		state.wakeReversing = entity.tudursvehiclemod$isWakeReversing();
 		state.wakeCurrentYaw = entity.getYaw();
 

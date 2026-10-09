@@ -102,11 +102,12 @@ public final class WeaponStatsLoader {
 							String key = fileName.substring(0, fileName.length() - ".txt".length()).toLowerCase(Locale.ROOT);
 							try {
 								result.put(key, parse(txtFile, namespace, key));
-							} catch (IOException e) {
+							} catch (Exception e) {
+								// Any failure (not just I/O) is this one file's: an addon folder whose namespace isn't a valid identifier (upper case, say) throws from Identifier and used to abort the whole reload.
 								LOGGER.error("Failed to read weapon config {}", txtFile, e);
 							}
 						}
-					} catch (IOException e) {
+					} catch (IOException | java.io.UncheckedIOException e) {
 						LOGGER.error("Failed to scan {}", weaponsDir, e);
 					}
 				}
@@ -130,11 +131,12 @@ public final class WeaponStatsLoader {
 						try {
 							WeaponStats stats = parse(txtFile, namespace, key);
 							result.put(key, stats);
-						} catch (IOException e) {
+						} catch (Exception e) {
+							// See the same catch in the mod-jar loop above.
 							LOGGER.error("Failed to read weapon config {}", txtFile, e);
 						}
 					}
-				} catch (IOException e) {
+				} catch (IOException | java.io.UncheckedIOException e) {
 					LOGGER.error("Failed to scan {}", weaponsDir, e);
 				}
 			}

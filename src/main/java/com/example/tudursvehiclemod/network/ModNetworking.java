@@ -140,7 +140,6 @@ public class ModNetworking {
 		PayloadTypeRegistry.playC2S().register(TvMissileInputPayload.ID, TvMissileInputPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(RemoteControlStartPayload.ID, RemoteControlStartPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(RemoteControlEndPayload.ID, RemoteControlEndPayload.CODEC);
-		PayloadTypeRegistry.playS2C().register(RemoteControlVehicleTransformPayload.ID, RemoteControlVehicleTransformPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(
 				com.example.tudursvehiclemod.network.DroneCenterConfigOpenPayload.ID,
 				com.example.tudursvehiclemod.network.DroneCenterConfigOpenPayload.CODEC);
@@ -169,39 +168,30 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.StationMenuOpenPayload.ID,
 				com.example.tudursvehiclemod.network.StationMenuOpenPayload.CODEC);
 
-		ServerPlayNetworking.registerGlobalReceiver(HatchTogglePayload.ID, (payload, context) ->
-				context.server().execute(() -> {
-					if (com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$getEffectiveVehicle(context.player()) instanceof AbstractVehicleEntity vehicle) {
-						vehicle.tudursvehiclemod$tryToggleHatch();
-					}
-				}));
+		tudursvehiclemod$onEffectiveVehicle(HatchTogglePayload.ID, AbstractVehicleEntity::tudursvehiclemod$tryToggleHatch);
 
-		ServerPlayNetworking.registerGlobalReceiver(WingFoldTogglePayload.ID, (payload, context) ->
-				context.server().execute(() -> {
-					if (com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$getEffectiveVehicle(context.player()) instanceof AbstractVehicleEntity vehicle) {
-						vehicle.tryToggleWingFold();
-					}
-				}));
+		tudursvehiclemod$onEffectiveVehicle(WingFoldTogglePayload.ID, AbstractVehicleEntity::tryToggleWingFold);
 
-		ServerPlayNetworking.registerGlobalReceiver(GearTogglePayload.ID, (payload, context) ->
-				context.server().execute(() -> {
-					if (com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$getEffectiveVehicle(context.player()) instanceof AbstractVehicleEntity vehicle) {
-						vehicle.toggleLandingGear();
-					}
-				}));
+		tudursvehiclemod$onEffectiveVehicle(GearTogglePayload.ID, AbstractVehicleEntity::toggleLandingGear);
 
 		ServerPlayNetworking.registerGlobalReceiver(
 				com.example.tudursvehiclemod.network.DroneCenterConfigUpdatePayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity
 							&& context.player().getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
 						blockEntity.tudursvehiclemod$setConfig(serverWorld, payload.speedFraction(), payload.orbitAltitude(), payload.radiusMultiplier());
-						if (blockEntity.tudursvehiclemod$isRedstoneControlEnabled() != payload.redstoneControlEnabled()) {
+						boolean redstoneControlBefore = blockEntity.tudursvehiclemod$isRedstoneControlEnabled();
+						if (redstoneControlBefore != payload.redstoneControlEnabled()) {
 							blockEntity.tudursvehiclemod$setRedstoneControlEnabled(serverWorld, payload.redstoneControlEnabled());
 						}
-						if (blockEntity.tudursvehiclemod$isActive() != payload.active()) {
+						// The screen's active value is only a manual choice while redstone control was off both before and after this packet. Under redstone control the signal decides (turning it on has just set active from the signal, and the screen's value, sent in the same packet from before, used to flip it straight back); and right after turning it off, the screen's value is the one from when the screen opened, not the signal-driven current one.
+						if (!redstoneControlBefore && !blockEntity.tudursvehiclemod$isRedstoneControlEnabled()
+								&& blockEntity.tudursvehiclemod$isActive() != payload.active()) {
 							blockEntity.tudursvehiclemod$toggleActive(serverWorld);
 						}
 						blockEntity.tudursvehiclemod$decodeAndApplyFormationConfig(payload.formationConfig());
@@ -212,6 +202,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.DummyPilotConfigRequestPayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity) {
 						ServerPlayNetworking.send(context.player(),
@@ -235,6 +228,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.DroneCenterAutoDisableModeUpdatePayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity) {
 						blockEntity.tudursvehiclemod$setAutoDisableResumeMode(payload.autoResume()
@@ -247,6 +243,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.DummyPilotConfigUpdatePayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity
 							&& context.player().getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
@@ -261,6 +260,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.DummyPilotWeaponConfigRequestPayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity) {
 						com.example.tudursvehiclemod.entity.AbstractVehicleEntity boundVehicle =
@@ -289,6 +291,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.DummyPilotWeaponConfigUpdatePayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity
 							&& context.player().getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
@@ -308,6 +313,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.DroneWaypointsUpdatePayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity) {
 						java.util.List<com.example.tudursvehiclemod.block.DroneWaypoint> waypoints = new java.util.ArrayList<>();
@@ -338,6 +346,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.DroneWaypointsRequestPayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity) {
 						// Decides here, from the bound vehicle's own type, which of the two "open" payloads to answer with (see block.DroneCenterBlockEntity's own tudursvehiclemod$usesGroundRoute() doc). The client sends the SAME request payload either way - it doesn't need to know the vehicle's type at all, and the aircraft path below is byte-for-byte what it always was.
@@ -382,6 +393,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.GroundWaypointsUpdatePayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity) {
 						java.util.List<com.example.tudursvehiclemod.block.GroundWaypoint> waypoints = new java.util.ArrayList<>();
@@ -444,6 +458,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.OpenBlockSlotsPayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					net.minecraft.block.entity.BlockEntity blockEntity = context.player().getEntityWorld().getBlockEntity(pos);
 					if (blockEntity instanceof net.minecraft.screen.NamedScreenHandlerFactory factory
 							&& (blockEntity instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity
@@ -456,6 +473,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.OpenDroneCenterFormationPayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity) {
 						context.player().openHandledScreen(new net.minecraft.screen.NamedScreenHandlerFactory() {
@@ -476,6 +496,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.DroneCenterFormationConfigUpdatePayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity) {
 						blockEntity.tudursvehiclemod$decodeAndApplyFormationConfig(payload.formationConfig());
@@ -486,6 +509,9 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.DroneCenterBasicConfigUpdatePayload.ID, (payload, context) ->
 				context.server().execute(() -> {
 					net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(payload.x(), payload.y(), payload.z());
+					if (!tudursvehiclemod$canReachBlock(context.player(), pos)) {
+						return;
+					}
 					if (context.player().getEntityWorld().getBlockEntity(pos)
 							instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity blockEntity
 							&& context.player().getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
@@ -597,13 +623,7 @@ public class ModNetworking {
 				com.example.tudursvehiclemod.network.ToggleCarrierSeatPayload.ID, (payload, context) ->
 				context.server().execute(() -> com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$toggleCarrierSeat(context.player())));
 
-		ServerPlayNetworking.registerGlobalReceiver(
-				com.example.tudursvehiclemod.network.ToggleCarrierLockModePayload.ID, (payload, context) ->
-				context.server().execute(() -> {
-					if (com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$getEffectiveVehicle(context.player()) instanceof AbstractVehicleEntity vehicle) {
-						vehicle.tudursvehiclemod$toggleCarrierLockMode();
-					}
-				}));
+		tudursvehiclemod$onEffectiveVehicle(com.example.tudursvehiclemod.network.ToggleCarrierLockModePayload.ID, AbstractVehicleEntity::tudursvehiclemod$toggleCarrierLockMode);
 
 		ServerPlayNetworking.registerGlobalReceiver(
 				com.example.tudursvehiclemod.network.DeployParachutePayload.ID, (payload, context) ->
@@ -681,13 +701,7 @@ public class ModNetworking {
 					}
 				}));
 
-		ServerPlayNetworking.registerGlobalReceiver(
-				com.example.tudursvehiclemod.network.ReleaseAllCarrierLocksPayload.ID, (payload, context) ->
-				context.server().execute(() -> {
-					if (com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$getEffectiveVehicle(context.player()) instanceof AbstractVehicleEntity vehicle) {
-						vehicle.tudursvehiclemod$releaseAllCarrierLocks();
-					}
-				}));
+		tudursvehiclemod$onEffectiveVehicle(com.example.tudursvehiclemod.network.ReleaseAllCarrierLocksPayload.ID, AbstractVehicleEntity::tudursvehiclemod$releaseAllCarrierLocks);
 
 		ServerPlayNetworking.registerGlobalReceiver(FireWeaponPayload.ID, (payload, context) ->
 				context.server().execute(() -> {
@@ -764,26 +778,11 @@ public class ModNetworking {
 					}
 				}));
 
-		ServerPlayNetworking.registerGlobalReceiver(ToggleSearchLightPayload.ID, (payload, context) ->
-				context.server().execute(() -> {
-					if (com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$getEffectiveVehicle(context.player()) instanceof AbstractVehicleEntity vehicle) {
-						vehicle.tudursvehiclemod$toggleSearchLight();
-					}
-				}));
+		tudursvehiclemod$onEffectiveVehicle(ToggleSearchLightPayload.ID, AbstractVehicleEntity::tudursvehiclemod$toggleSearchLight);
 
-		ServerPlayNetworking.registerGlobalReceiver(DeployFlaresPayload.ID, (payload, context) ->
-				context.server().execute(() -> {
-					if (com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$getEffectiveVehicle(context.player()) instanceof AbstractVehicleEntity vehicle) {
-						vehicle.tudursvehiclemod$deployFlares();
-					}
-				}));
+		tudursvehiclemod$onEffectiveVehicle(DeployFlaresPayload.ID, AbstractVehicleEntity::tudursvehiclemod$deployFlares);
 
-		ServerPlayNetworking.registerGlobalReceiver(ToggleNavLightsPayload.ID, (payload, context) ->
-				context.server().execute(() -> {
-					if (com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$getEffectiveVehicle(context.player()) instanceof AbstractVehicleEntity vehicle) {
-						vehicle.tudursvehiclemod$toggleNavLights();
-					}
-				}));
+		tudursvehiclemod$onEffectiveVehicle(ToggleNavLightsPayload.ID, AbstractVehicleEntity::tudursvehiclemod$toggleNavLights);
 
 		ServerPlayNetworking.registerGlobalReceiver(TvMissileInputPayload.ID, (payload, context) ->
 				context.server().execute(() -> {
@@ -848,5 +847,22 @@ public class ModNetworking {
 		world.spawnEntity(entity);
 
 		TieredVehicleSpawnerItem.consumeOne(player, hand);
+	}
+
+	/** How far from a block's centre a player may be for a packet that changes that block (Drone Center/Station settings) to be accepted. These screens are only ever opened by using the block, so a request from further away than this comes from a modified client - without the check, any loaded block anywhere could be reconfigured. Generous on purpose (a player may step back while the screen is open). */
+	private static final double BLOCK_PACKET_REACH = 16.0;
+
+	public static boolean tudursvehiclemod$canReachBlock(net.minecraft.server.network.ServerPlayerEntity player, net.minecraft.util.math.BlockPos pos) {
+		return player.getEyePos().squaredDistanceTo(net.minecraft.util.math.Vec3d.ofCenter(pos)) <= BLOCK_PACKET_REACH * BLOCK_PACKET_REACH;
+	}
+
+	/** Registers a C2S payload with no data of its own that just tells the sender's vehicle (ridden, or remote-controlled - see AbstractVehicleEntity.tudursvehiclemod$getEffectiveVehicle()) to do one thing, on the server thread. Eight receivers used to spell this out each. */
+	private static <T extends net.minecraft.network.packet.CustomPayload> void tudursvehiclemod$onEffectiveVehicle(
+			net.minecraft.network.packet.CustomPayload.Id<T> id, java.util.function.Consumer<AbstractVehicleEntity> action) {
+		ServerPlayNetworking.registerGlobalReceiver(id, (payload, context) -> context.server().execute(() -> {
+			if (AbstractVehicleEntity.tudursvehiclemod$getEffectiveVehicle(context.player()) instanceof AbstractVehicleEntity vehicle) {
+				action.accept(vehicle);
+			}
+		}));
 	}
 }

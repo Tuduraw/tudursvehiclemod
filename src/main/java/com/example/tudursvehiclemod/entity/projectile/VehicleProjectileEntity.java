@@ -376,6 +376,8 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 	/** This torpedo's own target cruise depth (an absolute world Y), computed once at the moment CRUISING begins as (water surface Y at that moment) - (the firing weapon's own TargetDepth stat - see WeaponStats's own doc). Synced via DataTracker - see CRUISE_STARTED's own doc for why. */
 	protected static final net.minecraft.entity.data.TrackedData<Float> CRUISE_TARGET_DEPTH_Y =
 			net.minecraft.entity.data.DataTracker.registerData(VehicleProjectileEntity.class, net.minecraft.entity.data.TrackedDataHandlerRegistry.FLOAT);
+	/** Server-side mirror of CRUISE_STARTED (FALLING until the torpedo starts cruising, then CRUISING), kept up to date for any subclass that reads it. Nothing in this mod reads it: CRUISE_STARTED is what decides, on both sides. Deprecated for that reason - read CRUISE_STARTED instead; this field may be removed in a later version. */
+	@Deprecated
 	protected UnderwaterCruisePhase underwaterCruisePhase = UnderwaterCruisePhase.FALLING;
 	/** Ramps from 0 up to accelerationInWaterTarget once CRUISING begins - see tudursvehiclemod$updateUnderwaterCruise()'s own doc. */
 	protected float currentCruiseSpeed;
@@ -471,18 +473,6 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		for (int dx = -1; dx <= 1; dx++) {
 			for (int dz = -1; dz <= 1; dz++) {
 				newGrid.add(new net.minecraft.util.math.ChunkPos(currentChunk.x + dx, currentChunk.z + dz));
-			}
-		}
-		// If the CURRENT chunk wasn't already covered by the PREVIOUS grid (before this update), this projectile crossed more than one chunk boundary within a single tick - the 3x3 grid's own radius (1 chunk in every direction from where it was last tick) wasn't enough to cover where it actually ended up. Logged as a warning (not merely info) since this is specifically the "tracking is falling behind" case being investigated, with the exact chunk-distance it fell behind by so severity is directly visible rather than just a bare boolean.
-		if (!this.projectileForcedChunks.isEmpty() && !this.projectileForcedChunks.contains(currentChunk)) {
-			net.minecraft.util.math.ChunkPos previousCenter = null;
-			double nearestDistance = Double.MAX_VALUE;
-			for (net.minecraft.util.math.ChunkPos chunk : this.projectileForcedChunks) {
-				double distance = Math.hypot(chunk.x - currentChunk.x, chunk.z - currentChunk.z);
-				if (distance < nearestDistance) {
-					nearestDistance = distance;
-					previousCenter = chunk;
-				}
 			}
 		}
 		if (newGrid.equals(this.projectileForcedChunks)) {
@@ -1420,9 +1410,13 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		// controlling instead.
 		ACTIVE_TV_CONTROL.remove(this.tvControllingPlayerId, this.getId());
 		if (this.getEntityWorld() instanceof ServerWorld serverWorld) {
-			if (serverWorld.getEntityById(this.tvControllingPlayerId) instanceof net.minecraft.server.network.ServerPlayerEntity player) {
-				net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player,
-						new com.example.tudursvehiclemod.network.TvMissileControlEndPayload());
+			// Looked up across every world, not just this missile's own: a controller who changed dimension never got the end notice, and their view stayed locked.
+			for (net.minecraft.server.network.ServerPlayerEntity player : serverWorld.getServer().getPlayerManager().getPlayerList()) {
+				if (player.getId() == this.tvControllingPlayerId) {
+					net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player,
+							new com.example.tudursvehiclemod.network.TvMissileControlEndPayload());
+					break;
+				}
 			}
 		}
 		this.tvControllingPlayerId = null;

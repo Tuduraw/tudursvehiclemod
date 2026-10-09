@@ -1518,8 +1518,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	private java.util.UUID remoteControllerId;
 	/** Which StationBlockEntity (by BlockPos) is remote-controlling this vehicle, so tryExitRemoteControl() can tell that station control ended too. */
 	private net.minecraft.util.math.BlockPos remoteControlStationPos;
-	/** The remote controller's own isInvulnerable() state from before tryEnterRemoteControl() forced it true - restored exactly rather than always flipping to false. */
-	private boolean remoteControllerWasInvulnerable;
 
 	/** Which DroneCenterBlockEntity (by BlockPos), if any, this vehicle is currently linked to for autonomous target-drone flight - see that class's own doc, and tudursvehiclemod$isDroneActive()'s own doc for what this actually gates. Null = not linked (ordinary vehicle, or a linked-but-since-unlinked one). */
 	private net.minecraft.util.math.BlockPos droneCenterPos;
@@ -1763,6 +1761,21 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		return null;
 	}
 
+	/** Whether player is remote-controlling a vehicle right now. Remote controllers take no damage (VehicleMod's ALLOW_DAMAGE listener) - their body sits in the drone's pilot seat, out of reach of their own station. This used to be setInvulnerable(true), which was saved with the player when they logged out mid-control and never undone: survival invulnerability for good. */
+	public static boolean tudursvehiclemod$isRemoteControlling(net.minecraft.entity.player.PlayerEntity player) {
+		return ACTIVE_REMOTE_CONTROL.containsKey(player.getUuid());
+	}
+
+	/** Ends player's remote control if they have one (their body goes back to the station, as ending control normally does). For a logout or server stop, before the player is saved - see mixin.RemoteControlLogoutMixin. */
+	public static void tudursvehiclemod$endRemoteControlOf(net.minecraft.server.network.ServerPlayerEntity player) {
+		if (tudursvehiclemod$getEffectiveVehicle(player) instanceof AbstractVehicleEntity vehicle
+				&& player.getUuid().equals(vehicle.remoteControllerId)) {
+			vehicle.tudursvehiclemod$tryExitRemoteControl();
+		}
+		// Bookkeeping for a vehicle that couldn't be found (unloaded) - nothing else would ever clear it.
+		ACTIVE_REMOTE_CONTROL.remove(player.getUuid());
+	}
+
 	/** This vehicle's own current remote controller, or null if nobody's remote-controlling it right now - see remoteControllerId's own doc. Public so block.StationBlockEntity (a different package) can check it. */
 	public java.util.UUID tudursvehiclemod$getRemoteControllerId() {
 		return this.remoteControllerId;
@@ -1787,8 +1800,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		this.remoteControlStationPos = stationPos;
 		ACTIVE_REMOTE_CONTROL.put(player.getUuid(), this.getId());
 		this.dataTracker.set(REMOTE_CONTROLLER_UUID, player.getUuid().toString());
-		this.remoteControllerWasInvulnerable = player.isInvulnerable();
-		player.setInvulnerable(true);
 		if (this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
 			player.teleport(serverWorld, this.getX(), this.getY(), this.getZ(),
 					java.util.Set.of(), this.getYaw(), this.getPitch(), false);
@@ -3537,7 +3548,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			ACTIVE_REMOTE_CONTROL.remove(this.remoteControllerId, this.getId());
 			this.dataTracker.set(REMOTE_CONTROLLER_UUID, "");
 			if (passenger instanceof net.minecraft.server.network.ServerPlayerEntity remotePlayer) {
-				remotePlayer.setInvulnerable(this.remoteControllerWasInvulnerable);
 				net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(remotePlayer, new com.example.tudursvehiclemod.network.RemoteControlEndPayload());
 			}
 			this.remoteControllerId = null;
@@ -4100,7 +4110,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		return ActionResult.PASS;
 	}
 
-	/** Sneak + right-click turns the vehicle back into an item, provided nobody is currently riding it. */
+	/** Sneak + right-click turns the vehicle back into an item, provided nobody is currently riding it. Its cargo is dropped on the spot; a destroyed wreck is removed without giving an item back. */
 	private ActionResult tryPackUp(PlayerEntity player) {
 		if (this.getEntityWorld().isClient()) {
 			// Let the client predict a successful interaction (swing animation etc.); the server performs the actual pack-up and is the source of truth.
@@ -4111,8 +4121,20 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			return ActionResult.FAIL;
 		}
 
+		// The cargo (and the fuel can slot) used to vanish with the vehicle - it's dropped where the vehicle stood instead, the way a chest minecart's contents are.
+		if (this.getEntityWorld() instanceof ServerWorld serverWorld) {
+			DefaultedList<ItemStack> cargo = this.tudursvehiclemod$getInventory();
+			for (ItemStack stack : cargo) {
+				if (!stack.isEmpty()) {
+					net.minecraft.util.ItemScatterer.spawn(serverWorld, this.getX(), this.getY() + 0.5, this.getZ(), stack);
+				}
+			}
+			cargo.clear();
+		}
+
 		// Creative players never spent an item to place this vehicle (spawner items in the creative tab aren't consumed on use either), so handing one back here would..
-		if (!player.isCreative()) {
+		// A destroyed wreck is only cleared away: handing a brand-new spawner back for it would undo the destruction.
+		if (!player.isCreative() && !this.tudursvehiclemod$isDestroyed()) {
 			VehicleDefinition def = getDefinition();
 			com.example.tudursvehiclemod.item.VehicleConverterTargets.byEntityTypeId(def.entityType()).ifPresent(target -> {
 				net.minecraft.item.Item[] tiers = target.tieredSpawnerItems();
@@ -4990,7 +5012,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		this.tudursvehiclemod$surfaceYLocked = false;
 	}
 
-	/** Shared default: scans a small vertical range around this vehicle's own position for the topmost water block - returns empty if no water is found nearby at all. Ship/Submarine/Aircraft each already declare their own more specialized version of this same method (silently overriding this default, with no behavior change) - this shared default exists for any OTHER vehicle type (Helicopter/Car/StaticEmplacement's own new float support, and any future type) that doesn't need anything more specialized. Callers should skip surface-spring logic entirely and fall back to plain gravity/normal physics when this is empty. */
+	/** Shared default: scans a small vertical range around this vehicle's own position for the topmost water block - returns empty if no water is found nearby at all. Used by every vehicle type (Ship, Submarine and Aircraft used to carry identical copies of it). Callers should skip surface-spring logic entirely and fall back to plain gravity/normal physics when this is empty. */
 	protected java.util.OptionalDouble tudursvehiclemod$findWaterSurfaceY() {
 		net.minecraft.util.math.BlockPos basePos = net.minecraft.util.math.BlockPos.ofFloored(this.getX(), this.getY(), this.getZ());
 		double surfaceY = this.getY();
@@ -5496,6 +5518,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			return false;
 		}
 		// A Carrier launch made with this vehicle's lock mode on is sent after the entity under the shooter's crosshair, so with nothing there the shot is refused HERE - before anything below happens. Everything past this point is the shot actually being fired (recoil, the fire bit, heat, the ammo, the cooldown, the sound), and a key press aimed at empty sky must cost none of it. (tudursvehiclemod$fireCarrierLaunch() looks the target up again for the launch itself.)
+		// A Carrier formation still launching from this slot: firing again replaced its sequence, so its remaining wingmen never launched and the ones already out circled forever waiting for them. The shot is refused (before anything is spent) until the last of the formation is off the deck.
+		if (weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CARRIER
+				&& this.carrierPendingLaunches.containsKey(weaponIndex)) {
+			return false;
+		}
 		if (shooter != null && this.tudursvehiclemod$isLockDesignatedLaunch(weaponIndex)
 				&& this.tudursvehiclemod$findCarrierLaunchTarget(shooter) == null) {
 			return false;
@@ -5930,8 +5957,23 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			Vec3d pos = spawnPos.add(forward.multiply(smoke.distanceFromMuzzle()));
 			int rgb = smoke.argbColor() & 0xFFFFFF;
 			net.minecraft.particle.DustParticleEffect effect = new net.minecraft.particle.DustParticleEffect(rgb, smoke.size() * 0.2f);
-			serverWorld.spawnParticles(effect, true, true, pos.x, pos.y, pos.z, smoke.count(),
-					smoke.spreadRange() * 0.1, smoke.spreadRange() * 0.1, smoke.spreadRange() * 0.1, 0.02);
+			double spread = smoke.spreadRange() * 0.1;
+			// displayTicks (the 5th value) used to be read and then ignored. A dust particle's own lifetime can't be set, so the puff is kept up for that long instead: the count is spread over displayTicks ticks at the spot where the shot was fired (the first tick gets any remainder), so it lingers there rather than appearing and fading all at once. 1 or less keeps the old single burst.
+			int total = Math.max(0, smoke.count());
+			int ticks = Math.max(1, Math.min(smoke.displayTicks(), total));
+			int perTick = total / ticks;
+			int first = perTick + total % ticks;
+			serverWorld.spawnParticles(effect, true, true, pos.x, pos.y, pos.z, first, spread, spread, spread, 0.02);
+			if (ticks > 1 && perTick > 0) {
+				int[] remaining = {ticks - 1};
+				com.example.tudursvehiclemod.ServerTickTasks.schedule(server -> {
+					if (serverWorld.getServer() != server) {
+						return true;
+					}
+					serverWorld.spawnParticles(effect, true, true, pos.x, pos.y, pos.z, perTick, spread, spread, spread, 0.02);
+					return --remaining[0] <= 0;
+				});
+			}
 		});
 
 		weapon.cartridge().ifPresent(cart -> {
@@ -7172,8 +7214,9 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				vehicle.tudursvehiclemod$syncWeaponAmmo();
 			}
 			if (entity instanceof SubmarineEntity submarine) {
+				// The launch route follows the mount's heading; the main route the shooter's view with MidgetYawOffset/MidgetTargetYawOffset applied (finalForwardX/Z), as a Carrier's does - see SubmarineEntity's midgetRouteForwardX doc.
 				submarine.tudursvehiclemod$initializeMidgetLaunch(config.launchWaypoints(), midgetRoute,
-						spawnX, spawnZ, mountForwardX, mountForwardZ,
+						spawnX, spawnZ, mountForwardX, mountForwardZ, finalForwardX, finalForwardZ,
 						targetPos.x, targetPos.z, config.weaponIndex(),
 						config.timeoutTicks(), config.stuckTimeoutTicks(), config.recovery(),
 						config.detectRange(), config.detectIntervalTicks(), config.avoidStep());
@@ -8523,20 +8566,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	public int[] getWeaponAmmoState(int weaponIndex) {
-		String raw = this.dataTracker.get(WEAPON_AMMO_SYNC);
-		if (raw.isEmpty()) {
-			return new int[] {-1, 0};
-		}
-		String[] entries = raw.split(",");
-		if (weaponIndex < 0 || weaponIndex >= entries.length) {
-			return new int[] {-1, 0};
-		}
-		String[] parts = entries[weaponIndex].split(":");
-		if (parts.length < 2) {
+		String ammo = this.tudursvehiclemod$syncedWeaponField(weaponIndex, 0);
+		String reload = this.tudursvehiclemod$syncedWeaponField(weaponIndex, 1);
+		if (ammo == null || reload == null) {
 			return new int[] {-1, 0};
 		}
 		try {
-			return new int[] {Integer.parseInt(parts[0]), Integer.parseInt(parts[1])};
+			return new int[] {Integer.parseInt(ammo), Integer.parseInt(reload)};
 		} catch (NumberFormatException e) {
 			return new int[] {-1, 0};
 		}
@@ -8596,20 +8632,9 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 
 	/** Current accumulated heat for weaponIndex (see WeaponStats.isHeatBased()'s own doc). */
 	public float getWeaponHeat(int weaponIndex) {
-		String raw = this.dataTracker.get(WEAPON_AMMO_SYNC);
-		if (raw.isEmpty()) {
-			return 0f;
-		}
-		String[] entries = raw.split(",");
-		if (weaponIndex < 0 || weaponIndex >= entries.length) {
-			return 0f;
-		}
-		String[] parts = entries[weaponIndex].split(":");
-		if (parts.length < 3) {
-			return 0f;
-		}
+		String heat = this.tudursvehiclemod$syncedWeaponField(weaponIndex, 2);
 		try {
-			return Float.parseFloat(parts[2]);
+			return heat == null ? 0f : Float.parseFloat(heat);
 		} catch (NumberFormatException e) {
 			return 0f;
 		}
@@ -8617,44 +8642,65 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 
 	/** Current fire-rate delay remaining for weaponIndex (MC Heli's "Delay" - cooldownTicks here), in ticks (0 = free to fire). Exposed so the HUD can reflect this like it does for reload. */
 	public int getWeaponCooldown(int weaponIndex) {
+		return tudursvehiclemod$parseIntOrZero(this.tudursvehiclemod$syncedWeaponField(weaponIndex, 3));
+	}
+
+	/** Current selected mode (0 or 1 - see WeaponDefinition's own hasModes()/tudursvehiclemod$tryToggleWeaponMode() doc) for weaponIndex, read from WEAPON_AMMO_SYNC. Public so client.hud.HudVariables can show it. */
+	public int getWeaponMode(int weaponIndex) {
+		return tudursvehiclemod$parseIntOrZero(this.tudursvehiclemod$syncedWeaponField(weaponIndex, 4));
+	}
+
+	/** WEAPON_AMMO_SYNC split into entries and columns, kept for as long as the synced string doesn't change. The four readers above (ammo/reload, heat, cooldown, mode) each split the whole string again on every call, several times per weapon per frame from the HUD. */
+	private record WeaponSyncSnapshot(String raw, String[][] fields) {
+	}
+
+	private volatile WeaponSyncSnapshot tudursvehiclemod$weaponSyncSnapshot = new WeaponSyncSnapshot("", new String[0][]);
+
+	/** One column of WEAPON_AMMO_SYNC's "ammo:reload:heat:cooldown:mode" entry for weaponIndex, or null if the string has no such entry or column. */
+	private String tudursvehiclemod$syncedWeaponField(int weaponIndex, int column) {
 		String raw = this.dataTracker.get(WEAPON_AMMO_SYNC);
-		if (raw.isEmpty()) {
-			return 0;
+		WeaponSyncSnapshot snapshot = this.tudursvehiclemod$weaponSyncSnapshot;
+		if (!snapshot.raw().equals(raw)) {
+			String[] entries = raw.isEmpty() ? new String[0] : raw.split(",");
+			String[][] fields = new String[entries.length][];
+			for (int i = 0; i < entries.length; i++) {
+				fields[i] = entries[i].split(":");
+			}
+			snapshot = new WeaponSyncSnapshot(raw, fields);
+			this.tudursvehiclemod$weaponSyncSnapshot = snapshot;
 		}
-		String[] entries = raw.split(",");
-		if (weaponIndex < 0 || weaponIndex >= entries.length) {
-			return 0;
+		if (weaponIndex < 0 || weaponIndex >= snapshot.fields().length || column >= snapshot.fields()[weaponIndex].length) {
+			return null;
 		}
-		String[] parts = entries[weaponIndex].split(":");
-		if (parts.length < 4) {
+		return snapshot.fields()[weaponIndex][column];
+	}
+
+	private static int tudursvehiclemod$parseIntOrZero(String value) {
+		if (value == null) {
 			return 0;
 		}
 		try {
-			return Integer.parseInt(parts[3]);
+			return Integer.parseInt(value);
 		} catch (NumberFormatException e) {
 			return 0;
 		}
 	}
 
-	/** Current selected mode (0 or 1 - see WeaponDefinition's own hasModes()/tudursvehiclemod$tryToggleWeaponMode() doc) for weaponIndex, read from WEAPON_AMMO_SYNC. Public so client.hud.HudVariables can show it. */
-	public int getWeaponMode(int weaponIndex) {
-		String raw = this.dataTracker.get(WEAPON_AMMO_SYNC);
-		if (raw.isEmpty()) {
-			return 0;
+	/** Turns every passenger's view by the same yawDelta the vehicle just turned by, so it stays fixed relative to the hull (Car, Ship and Submarine steer their yaw from A/D, independently of anyone's view). Shared by those three; each used to carry its own copy. */
+	protected void tudursvehiclemod$turnPassengerViews(float yawDelta) {
+		for (Entity passenger : this.tudursvehiclemod$getRealPassengerList()) {
+			passenger.setYaw(passenger.getYaw() - yawDelta);
+			if (passenger instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
+				serverPlayer.networkHandler.requestTeleport(
+						serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
+						serverPlayer.getYaw(), serverPlayer.getPitch());
+			}
 		}
-		String[] entries = raw.split(",");
-		if (weaponIndex < 0 || weaponIndex >= entries.length) {
-			return 0;
-		}
-		String[] parts = entries[weaponIndex].split(":");
-		if (parts.length < 5) {
-			return 0;
-		}
-		try {
-			return Integer.parseInt(parts[4]);
-		} catch (NumberFormatException e) {
-			return 0;
-		}
+	}
+
+	/** value moved step closer to 0 from either side, never past it - an unmanned vehicle's throttle spooling down (forward or reverse). */
+	protected static float tudursvehiclemod$decayTowardZero(float value, float step) {
+		return value > 0f ? Math.max(0f, value - step) : Math.min(0f, value + step);
 	}
 
 	/** Places each passenger at the seat with the same index as their mount order. */

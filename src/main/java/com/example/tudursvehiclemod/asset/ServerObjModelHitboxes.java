@@ -1,6 +1,5 @@
 package com.example.tudursvehiclemod.asset;
 
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -665,13 +664,6 @@ public final class ServerObjModelHitboxes {
 
 	// ---- Waterline slicing (bow/stern extraction for wake-trail generation) ----
 
-	/** Rotates a single local-space vertex by pitchRollRotation (see AbstractVehicleEntity's own tudursvehiclemod$getPitchRollRotation() doc) before it's used anywhere else in the slice - so its own Y afterward correctly reflects "how high is this point GIVEN the vehicle's own current pitch/roll", not just its raw, unrotated local height. */
-	private static float[] tudursvehiclemod$rotateVertex(float x, float y, float z, org.joml.Quaternionf pitchRollRotation) {
-		org.joml.Vector3f vec = new org.joml.Vector3f(x, y, z);
-		pitchRollRotation.transform(vec);
-		return new float[]{vec.x, vec.y, vec.z};
-	}
-
 	/** Finds every crossing point where a mesh's own
 	 * surface crosses a given horizontal (Y=localY) plane, by walking every
 	 * triangle that actually straddles that plane (skipping any triangle
@@ -889,18 +881,6 @@ public final class ServerObjModelHitboxes {
 				leftBowX, leftBowY, leftBowZ, rightBowX, rightBowY, rightBowZ);
 	}
 
-	/** Null if this edge (p1 to p2) doesn't actually straddle Y=localY at all (both endpoints strictly on the same side). An edge lying exactly flat ON the plane (y1==y2==localY) returns p1 itself - either endpoint is equally valid there, and this is rare enough in practice (would need a triangle with an edge exactly level at this specific height) not to need any special handling beyond not dividing by zero. */
-	private static float[] tudursvehiclemod$edgeCrossing(float x1, float y1, float z1, float x2, float y2, float z2, float localY) {
-		if ((y1 < localY && y2 < localY) || (y1 > localY && y2 > localY)) {
-			return null;
-		}
-		if (y1 == y2) {
-			return new float[]{x1, y1, z1};
-		}
-		float t = (localY - y1) / (y2 - y1);
-		return new float[]{x1 + t * (x2 - x1), localY, z1 + t * (z2 - z1)};
-	}
-
 	/** Same resolution order as ServerObjModelBounds's own doc. */
 	/** Resolves which file this model's own HIT DETECTION should actually read, which is not necessarily the file it renders from.
 	 *
@@ -939,21 +919,7 @@ public final class ServerObjModelHitboxes {
 
 	/** Locates one asset-relative path across the addon directories and then the loaded mods, or null if no such file exists in either. */
 	private static Path tudursvehiclemod$findFile(String relativePath) {
-		for (Path addonDir : AddonPaths.listSubdirectories(AddonPaths.getAddonsRoot())) {
-			Path candidate = addonDir.resolve(relativePath);
-			if (Files.isRegularFile(candidate)) {
-				return candidate;
-			}
-		}
-
-		for (var mod : FabricLoader.getInstance().getAllMods()) {
-			Optional<Path> found = mod.findPath(relativePath);
-			if (found.isPresent() && Files.isRegularFile(found.get())) {
-				return found.get();
-			}
-		}
-
-		return null;
+		return ServerAssetFiles.find(relativePath);
 	}
 
 	/** Path segment identifying a display model's own directory - see tudursvehiclemod$resolveModelPath()'s own doc. Matches mcheli_convert.py's own output convention. */

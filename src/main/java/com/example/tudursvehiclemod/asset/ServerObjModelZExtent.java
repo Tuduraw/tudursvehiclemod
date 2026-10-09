@@ -1,6 +1,5 @@
 package com.example.tudursvehiclemod.asset;
 
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,74 +25,35 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ServerObjModelZExtent {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("VehicleMod/ServerObjModelZExtent");
-	private static final Map<Identifier, Optional<Float>> CACHE = new ConcurrentHashMap<>();
-	private static final Map<Identifier, Optional<Float>> MIN_Y_CACHE = new ConcurrentHashMap<>();
+	/** Both values come from one read of the file (they used to be two separate reads, each with its own cache). */
+	private record Extents(Optional<Float> lengthZ, Optional<Float> minY) {
+		static final Extents NONE = new Extents(Optional.empty(), Optional.empty());
+	}
+
+	private static final Map<Identifier, Extents> CACHE = new ConcurrentHashMap<>();
 
 	private ServerObjModelZExtent() {
 	}
 
-	/** Returns the model's own (maxZ - minZ), in model-space units (the
-	 * caller is responsible for applying the vehicle's own "scale" field on
-	 * top) - empty if the file couldn't be found or had no vertices at all. */
+	/** Returns the model's own Z-axis length (max Z - min Z), in model-space units (the caller is responsible for applying the vehicle's own "scale" field on top) - empty if the file couldn't be found or had no vertices at all. */
 	public static Optional<Float> getLengthZ(Identifier modelId) {
-		return CACHE.computeIfAbsent(modelId, ServerObjModelZExtent::tudursvehiclemod$computeLengthZ);
+		return CACHE.computeIfAbsent(modelId, ServerObjModelZExtent::tudursvehiclemod$compute).lengthZ();
 	}
 
-	/** Returns the model's own actual lowest Y vertex, in model-space units
-	 * (the caller is responsible for applying the vehicle's own "scale"
-	 * Field on top) - this is a real reading of the
-	 * model's own actual geometry rather than a bounding-box-derived
-	 * estimate (height/2), which can be significantly off for a hull whose
-	 * own visual center isn't exactly midway between its own top and
-	 * bottom (e.g. a submarine with a conning tower/sail well above the
-	 * main hull, inflating the OVERALL height far beyond the hull's own
-	 * actual draft) - empty if the file couldn't be found or had no
-	 * vertices at all. */
+	/** Returns the model's own actual lowest Y vertex, in model-space units (the caller is responsible for applying the vehicle's own "scale" field on top) - a real reading of the model's geometry rather than a bounding-box-derived estimate (height/2), which can be well off for a hull whose visual center isn't midway between its top and bottom (a submarine with a tall sail, say) - empty if the file couldn't be found or had no vertices at all. */
 	public static Optional<Float> getMinY(Identifier modelId) {
-		return MIN_Y_CACHE.computeIfAbsent(modelId, ServerObjModelZExtent::tudursvehiclemod$computeMinY);
+		return CACHE.computeIfAbsent(modelId, ServerObjModelZExtent::tudursvehiclemod$compute).minY();
 	}
 
-	private static Optional<Float> tudursvehiclemod$computeLengthZ(Identifier modelId) {
-		Path resolved = tudursvehiclemod$resolveModelPath(modelId);
+	private static Extents tudursvehiclemod$compute(Identifier modelId) {
+		Path resolved = ServerAssetFiles.find(modelId);
 		if (resolved == null) {
-			LOGGER.warn("Could not locate model file for {} - hull-length-based checks will fall back to a simpler heuristic", modelId);
-			return Optional.empty();
+			LOGGER.warn("Could not locate model file for {} - hull-length and seabed checks will fall back to a simpler heuristic", modelId);
+			return Extents.NONE;
 		}
 		try {
 			float minZ = Float.MAX_VALUE;
 			float maxZ = -Float.MAX_VALUE;
-			boolean any = false;
-			for (String line : Files.readAllLines(resolved)) {
-				String trimmed = line.strip();
-				if (!trimmed.startsWith("v ")) {
-					continue;
-				}
-				String[] parts = trimmed.split("\\s+");
-				if (parts.length < 4) {
-					continue;
-				}
-				float z = Float.parseFloat(parts[3]);
-				minZ = Math.min(minZ, z);
-				maxZ = Math.max(maxZ, z);
-				any = true;
-			}
-			if (!any) {
-				return Optional.empty();
-			}
-			return Optional.of(maxZ - minZ);
-		} catch (IOException | NumberFormatException e) {
-			LOGGER.warn("Failed to read/parse {} for its own Z extent", resolved, e);
-			return Optional.empty();
-		}
-	}
-
-	private static Optional<Float> tudursvehiclemod$computeMinY(Identifier modelId) {
-		Path resolved = tudursvehiclemod$resolveModelPath(modelId);
-		if (resolved == null) {
-			LOGGER.warn("Could not locate model file for {} - seabed-detection will fall back to a simpler heuristic", modelId);
-			return Optional.empty();
-		}
-		try {
 			float minY = Float.MAX_VALUE;
 			boolean any = false;
 			for (String line : Files.readAllLines(resolved)) {
@@ -106,37 +66,19 @@ public final class ServerObjModelZExtent {
 					continue;
 				}
 				float y = Float.parseFloat(parts[2]);
+				float z = Float.parseFloat(parts[3]);
 				minY = Math.min(minY, y);
+				minZ = Math.min(minZ, z);
+				maxZ = Math.max(maxZ, z);
 				any = true;
 			}
 			if (!any) {
-				return Optional.empty();
+				return Extents.NONE;
 			}
-			return Optional.of(minY);
+			return new Extents(Optional.of(maxZ - minZ), Optional.of(minY));
 		} catch (IOException | NumberFormatException e) {
-			LOGGER.warn("Failed to read/parse {} for its own minimum Y", resolved, e);
-			return Optional.empty();
+			LOGGER.warn("Failed to read/parse {} for its own Z extent and minimum Y", resolved, e);
+			return Extents.NONE;
 		}
-	}
-
-	/** Loose addon folders (see AddonPaths) first, then every loaded mod's own bundled resources. */
-	private static Path tudursvehiclemod$resolveModelPath(Identifier modelId) {
-		String relativePath = "assets/" + modelId.getNamespace() + "/" + modelId.getPath();
-
-		for (Path addonDir : AddonPaths.listSubdirectories(AddonPaths.getAddonsRoot())) {
-			Path candidate = addonDir.resolve(relativePath);
-			if (Files.isRegularFile(candidate)) {
-				return candidate;
-			}
-		}
-
-		for (var mod : FabricLoader.getInstance().getAllMods()) {
-			Optional<Path> found = mod.findPath(relativePath);
-			if (found.isPresent() && Files.isRegularFile(found.get())) {
-				return found.get();
-			}
-		}
-
-		return null;
 	}
 }

@@ -56,6 +56,16 @@ public class VtolEntity extends AircraftEntity {
 	private static final int VTOL_POST_TRANSITION_STALL_GRACE_TICKS = 60;
 	private int vtolPostTransitionStallGraceTicksRemaining;
 
+	/** D-2: the grace above, which used to be set and never read - so a VTOL converting at low speed still stalled the moment the transition finished. */
+	@Override
+	protected boolean tudursvehiclemod$consumeStallGraceTick() {
+		if (this.vtolPostTransitionStallGraceTicksRemaining > 0) {
+			this.vtolPostTransitionStallGraceTicksRemaining--;
+			return true;
+		}
+		return false;
+	}
+
 	/** Yaw locked at the instant a mode transition begins; held fixed for the whole transition regardless of mouse input. */
 	private float vtolTransitionLockedYaw;
 	/** Rising-edge detector for vtolTransitionLockedYaw's own capture; reset once confirmed not transitioning. */
@@ -141,90 +151,12 @@ public class VtolEntity extends AircraftEntity {
 		this.vtolTransitionLockedYaw = this.getYaw();
 	}
 
-	/** Whether this aircraft is currently stalled. */
-	public boolean isStalling() {
-		return this.stalling;
-	}
-
 	@Override
 	protected Identifier defaultDefinitionId() {
 		return Identifier.of(VehicleMod.MOD_ID, "vtol");
 	}
 
 
-
-	@Override
-	public float getYaw(float tickDelta) {
-		Quaternionf interpolated = new Quaternionf(this.prevOrientation).slerp(this.orientation, tickDelta);
-		return extractYawPitchRoll(interpolated)[0];
-	}
-
-	@Override
-	public float getYaw() {
-		return extractYawPitchRoll(this.orientation)[0];
-	}
-
-	@Override
-	public void setYaw(float yaw) {
-		if (this.orientation == null) {
-			// Called from Entity's own constructor before our fields exist yet.
-			return;
-		}
-		float[] current = extractYawPitchRoll(this.orientation);
-		setOrientationFromEuler(yaw, current[1], current[2]);
-		super.setYaw(yaw);
-	}
-
-	@Override
-	public float getPitch(float tickDelta) {
-		Quaternionf interpolated = new Quaternionf(this.prevOrientation).slerp(this.orientation, tickDelta);
-		return extractYawPitchRoll(interpolated)[1];
-	}
-
-	@Override
-	public float getPitch() {
-		return extractYawPitchRoll(this.orientation)[1];
-	}
-
-	@Override
-	public void setPitch(float pitch) {
-		if (this.orientation == null) {
-			return;
-		}
-		float[] current = extractYawPitchRoll(this.orientation);
-		setOrientationFromEuler(current[0], pitch, current[2]);
-		super.setPitch(pitch);
-	}
-
-	@Override
-	public float getRoll(float tickDelta) {
-		Quaternionf interpolated = new Quaternionf(this.prevOrientation).slerp(this.orientation, tickDelta);
-		return extractYawPitchRoll(interpolated)[2];
-	}
-
-	@Override
-	public float getRoll() {
-		return extractYawPitchRoll(this.orientation)[2];
-	}
-
-	@Override
-	public org.joml.Quaternionf tudursvehiclemod$getBodyOrientation() {
-		return new Quaternionf(this.orientation);
-	}
-
-	/** Render-interpolated counterpart - see AbstractVehicleEntity's own tudursvehiclemod$getBodyOrientation(float)
-	 * doc for why this overload exists, and AircraftEntity's own identical override (this class's
-	 * own no-arg override above already matches that class's exactly, for the same reason: whatever
-	 * keeps {@code orientation} current regardless of helicopter/aircraft mode applies here too). */
-	@Override
-	public Quaternionf tudursvehiclemod$getBodyOrientation(float tickDelta) {
-		return new Quaternionf(this.prevOrientation).slerp(this.orientation, tickDelta);
-	}
-
-	@Override
-	public float getExcessPitchForCamera(float tickDelta) {
-		return 0f;
-	}
 
 	@Override
 	protected void updateVehicleMovement(VehicleDefinition def) {
@@ -865,48 +797,6 @@ public class VtolEntity extends AircraftEntity {
 	}
 
 
-	/** Damage to BOTH this aircraft and whatever it hit, on a high-speed collision with another entity. uses the SAME real-mesh-surface test as projectile hit detection (see AbstractVehicleEntity's own tudursvehiclemod$isPointNearMeshSurface() doc) for vehicle-vs-vehicle collisions specifically, rather than trusting the crude bounding-box overlap that found the candidate in the first place (that overlap is still used as a cheap first-pass search filter below, exactly like projectile hit detection's own search box). */
-	protected void tudursvehiclemod$checkEntityCrashDamage(double preMoveSpeed) {
-		if (!(this.getEntityWorld() instanceof ServerWorld serverWorld)) {
-			return;
-		}
-		if (preMoveSpeed < ENTITY_CRASH_MIN_SPEED) {
-			return;
-		}
-		float damage = (float) (preMoveSpeed * ENTITY_CRASH_DAMAGE_PER_SPEED);
-		java.util.List<Entity> candidates = this.getEntityWorld().getOtherEntities(this, this.getBoundingBox().expand(0.1),
-				e -> (e instanceof LivingEntity || e instanceof AbstractVehicleEntity)
-						&& !(e instanceof com.example.tudursvehiclemod.entity.CarrierRunwayPlatformEntity)
-						&& e.isAlive() && !this.hasPassenger(e) && !this.tudursvehiclemod$isRecentlyDismounted(e));
-		if (candidates.isEmpty()) {
-			return;
-		}
-		// The actual per-
-		// candidate touching check (tudursvehiclemod$anyCornerNearMesh()/
-		// tudursvehiclemod$isPointNearMeshSurface() - pure, read-only
-		// geometry math, no side effects) runs in PARALLEL across every
-		// candidate here - same reasoning as AbstractVehicleEntity's own
-		// tudursvehiclemod$updateCustomHitDetection() (see that method's
-		// own doc): the actual damage() calls below are deliberately kept
-		// OUTSIDE this parallel step, strictly sequential, only once
-		// parallelStream() itself has fully finished.
-		java.util.List<Entity> actuallyTouching = candidates.parallelStream()
-				.filter(other -> {
-					if (other instanceof AbstractVehicleEntity otherVehicle) {
-						// Checks BOTH directions (the other vehicle's own corners against this aircraft's own mesh, and this aircraft's own corners against the other vehicle's own mesh) since either one's own surface could be the one actually making contact.
-						return tudursvehiclemod$anyCornerNearMesh(otherVehicle, this)
-								|| tudursvehiclemod$anyCornerNearMesh(this, otherVehicle);
-					}
-					// A living entity has no mesh of its own to sample corners from - just tests its own position directly against this aircraft's own mesh.
-					return this.tudursvehiclemod$isPointNearMeshSurface(other.getEntityPos());
-				})
-				.collect(java.util.stream.Collectors.toList());
-		for (Entity other : actuallyTouching) {
-			other.damage(serverWorld, this.getDamageSources().flyIntoWall(), damage);
-			this.damage(serverWorld, this.getDamageSources().flyIntoWall(), damage);
-		}
-	}
-
 	/** Eases this aircraft's current yaw-preserving pitch towards def.onGroundPitch() and rolls back towards level (at GROUND_ROLL_SMOOTHING_MULTIPLIER times the yaw/pitch rate - see that field's own doc). player's own A/D input steers this target yaw (taxi turning) while surfaced, same turnSpeed-scaled convention as ShipEntity/CarEntity's own steering. */
 	protected void tudursvehiclemod$easeTowardsGroundAttitude(VehicleDefinition def, PlayerEntity player) {
 		if (this.getEntityWorld().isClient()) {
@@ -974,13 +864,4 @@ public class VtolEntity extends AircraftEntity {
 		this.dataTracker.set(SYNCED_ROLL, newRoll);
 	}
 
-	@Override
-	public float getAnimationPhase(float tickDelta) {
-		return this.prevPropellerRotation + (this.propellerRotation - this.prevPropellerRotation) * tickDelta;
-	}
-
-	@Override
-	public boolean tudursvehiclemod$supportsLandingGearDisplay() {
-		return true;
-	}
 }

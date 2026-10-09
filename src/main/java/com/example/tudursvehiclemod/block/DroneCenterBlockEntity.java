@@ -43,6 +43,10 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 
 	/** How many total aircraft (including the leader, this center's own bound vehicle in slot 0) fly together. 1 (the default) means no formation at all - existing saves/behavior are completely unchanged. */
 	private int formationSize = 1;
+	/** Largest formation the config screen can express (3 digits). */
+	public static final int MAX_FORMATION_SIZE = 999;
+	/** Largest formation spacing accepted from the config screen, in blocks. */
+	private static final double MAX_FORMATION_SPACING = 1000.0;
 	/** See formationSize's own doc. LINE_ABREAST by default, matching CasStrikeConfig's own equivalent default. */
 	private com.example.tudursvehiclemod.asset.FormationType formationType = com.example.tudursvehiclemod.asset.FormationType.LINE_ABREAST;
 	/** See formationSize's own doc. */
@@ -189,11 +193,13 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 		ItemStack book = this.items.get(1);
 		if (book.getItem() instanceof com.example.tudursvehiclemod.item.DroneRouteBookItem) {
 			java.util.List<DroneRouteBookWaypoint> absolute = com.example.tudursvehiclemod.item.DroneRouteBookItem.tudursvehiclemod$getWaypoints(book);
+			// The book's offset applies to the ground route too (it used to be ignored here) - the same shift the aircraft route gets.
+			net.minecraft.util.math.Vec3i offset = com.example.tudursvehiclemod.item.DroneRouteBookItem.tudursvehiclemod$getOffset(book);
 			java.util.List<GroundWaypoint> relative = new java.util.ArrayList<>();
 			for (int i = 0; i < absolute.size(); i++) {
 				DroneRouteBookWaypoint wp = absolute.get(i);
 				int waitTicks = i < this.groundWaypoints.size() ? this.groundWaypoints.get(i).waitTicks() : 0;
-				relative.add(new GroundWaypoint(wp.x() - this.getPos().getX(), wp.z() - this.getPos().getZ(), wp.speedFraction(), waitTicks));
+				relative.add(new GroundWaypoint(wp.x() + offset.getX() - this.getPos().getX(), wp.z() + offset.getZ() - this.getPos().getZ(), wp.speedFraction(), waitTicks));
 			}
 			return relative;
 		}
@@ -205,12 +211,19 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 		ItemStack book = this.items.get(1);
 		if (book.getItem() instanceof com.example.tudursvehiclemod.item.DroneRouteBookItem) {
 			java.util.List<DroneRouteBookWaypoint> previousAbsolute = com.example.tudursvehiclemod.item.DroneRouteBookItem.tudursvehiclemod$getWaypoints(book);
+			net.minecraft.util.math.Vec3i offset = com.example.tudursvehiclemod.item.DroneRouteBookItem.tudursvehiclemod$getOffset(book);
 			java.util.List<DroneRouteBookWaypoint> newAbsolute = new java.util.ArrayList<>();
 			for (int i = 0; i < newWaypoints.size(); i++) {
 				GroundWaypoint wp = newWaypoints.get(i);
-				int y = i < previousAbsolute.size() ? previousAbsolute.get(i).y() : this.getPos().getY();
-				newAbsolute.add(new DroneRouteBookWaypoint(wp.relX() + this.getPos().getX(), y, wp.relZ() + this.getPos().getZ(),
-						wp.speedFraction(), 0f, 1.0f, 1.0f));
+				// What the ground route has no use for (Y, roll, maneuverability) is kept from the book's own waypoint at this index - it used to be reset to the defaults, losing what the same book had recorded for an aircraft.
+				DroneRouteBookWaypoint previous = i < previousAbsolute.size() ? previousAbsolute.get(i) : null;
+				int y = previous != null ? previous.y() : this.getPos().getY();
+				// The book stores positions before its offset (A-13): the offset that tudursvehiclemod$getGroundWaypoints() added is taken back off.
+				newAbsolute.add(new DroneRouteBookWaypoint(wp.relX() + this.getPos().getX() - offset.getX(), y, wp.relZ() + this.getPos().getZ() - offset.getZ(),
+						wp.speedFraction(),
+						previous != null ? previous.rollAngle() : 0f,
+						previous != null ? previous.rollManeuverabilityMultiplier() : 1.0f,
+						previous != null ? previous.turnManeuverabilityMultiplier() : 1.0f));
 			}
 			com.example.tudursvehiclemod.item.DroneRouteBookItem.tudursvehiclemod$setWaypoints(book, newAbsolute);
 		}
@@ -254,10 +267,12 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 		java.util.List<DroneWaypoint> capped = newWaypoints;
 		ItemStack book = this.items.get(1);
 		if (book.getItem() instanceof com.example.tudursvehiclemod.item.DroneRouteBookItem) {
+			// A-13: tudursvehiclemod$getWaypoints() adds the book's offset, so it is taken back off here - every save from the config screen used to shift the whole route by the offset once more.
+			net.minecraft.util.math.Vec3i offset = com.example.tudursvehiclemod.item.DroneRouteBookItem.tudursvehiclemod$getOffset(book);
 			java.util.List<DroneRouteBookWaypoint> absolute = new java.util.ArrayList<>();
 			for (DroneWaypoint wp : capped) {
-				absolute.add(new DroneRouteBookWaypoint(wp.relX() + this.getPos().getX(), wp.relY() + this.getPos().getY(),
-						wp.relZ() + this.getPos().getZ(), wp.speedFraction(), wp.rollAngle(),
+				absolute.add(new DroneRouteBookWaypoint(wp.relX() + this.getPos().getX() - offset.getX(), wp.relY() + this.getPos().getY() - offset.getY(),
+						wp.relZ() + this.getPos().getZ() - offset.getZ(), wp.speedFraction(), wp.rollAngle(),
 						wp.rollManeuverabilityMultiplier(), wp.turnManeuverabilityMultiplier()));
 			}
 			com.example.tudursvehiclemod.item.DroneRouteBookItem.tudursvehiclemod$setWaypoints(book, absolute);
@@ -469,6 +484,10 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 
 	/** Updates this center's own configured settings, and immediately re-applies them to the currently-linked vehicle (if any is currently loaded/found) so a change takes effect right away rather than only on the next activation. */
 	public void tudursvehiclemod$setConfig(ServerWorld world, float speedFraction, double orbitAltitude, float radiusMultiplier) {
+		// The values come from a client packet - a NaN or infinity would be saved and break the route for good.
+		if (!Float.isFinite(speedFraction) || !Double.isFinite(orbitAltitude) || !Float.isFinite(radiusMultiplier)) {
+			return;
+		}
 		this.speedFraction = speedFraction;
 		this.orbitAltitude = orbitAltitude;
 		this.radiusMultiplier = radiusMultiplier;
@@ -519,10 +538,14 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 	/** Applies every formation setting from the config screen at once (see client.screen.DroneCenterConfigScreen's own formation controls). Resizes formationSlots to match the new formationSize immediately (max(0, formationSize - 1) wingman slots - the leader itself, slot 0 of the MAIN inventory, is never part of this list at all) - existing stick stacks are preserved when growing, silently dropped beyond the new size when shrinking (same convention AbstractVehicleEntity's own cargo-inventory resize already uses). */
 	public void tudursvehiclemod$setFormationConfig(int formationSize, com.example.tudursvehiclemod.asset.FormationType formationType,
 			double formationSpacing, double formationElementSpacing) {
-		this.formationSize = Math.max(1, formationSize);
+		// Bounded here because these come from a client packet: the screen allows 3 digits, but a modified client could send any size, and it was saved and re-allocated (formationSlots) on every load.
+		if (!Double.isFinite(formationSpacing) || !Double.isFinite(formationElementSpacing) || formationType == null) {
+			return;
+		}
+		this.formationSize = net.minecraft.util.math.MathHelper.clamp(formationSize, 1, MAX_FORMATION_SIZE);
 		this.formationType = formationType;
-		this.formationSpacing = Math.max(0.5, formationSpacing);
-		this.formationElementSpacing = formationElementSpacing;
+		this.formationSpacing = net.minecraft.util.math.MathHelper.clamp(formationSpacing, 0.5, MAX_FORMATION_SPACING);
+		this.formationElementSpacing = net.minecraft.util.math.MathHelper.clamp(formationElementSpacing, -MAX_FORMATION_SPACING, MAX_FORMATION_SPACING);
 		int newSlotCount = Math.max(0, this.formationSize - 1);
 		if (newSlotCount != this.formationSlots.size()) {
 			DefaultedList<ItemStack> resized = DefaultedList.ofSize(newSlotCount, ItemStack.EMPTY);
@@ -1072,7 +1095,7 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 		String returnViaPointEncoded = view.getString("ReturnViaPoint", "");
 		this.returnViaPoint = returnViaPointEncoded.isEmpty() ? null : DroneWaypoint.tudursvehiclemod$decode(returnViaPointEncoded);
 		// Per formationSize's own doc: absent in any save predating this feature, so the defaults here preserve existing (no-formation) behavior exactly.
-		this.formationSize = Math.max(1, view.getInt("FormationSize", 1));
+		this.formationSize = net.minecraft.util.math.MathHelper.clamp(view.getInt("FormationSize", 1), 1, MAX_FORMATION_SIZE);
 		String formationTypeName = view.getString("FormationType", com.example.tudursvehiclemod.asset.FormationType.LINE_ABREAST.name());
 		com.example.tudursvehiclemod.asset.FormationType parsedFormationType;
 		try {

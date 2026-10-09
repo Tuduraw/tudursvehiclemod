@@ -59,6 +59,35 @@ public class VehicleModClient implements ClientModInitializer {
 	private static KeyBinding parachuteDeployKey;
 	/** Per parachuteDeployKey's own doc: seat-based parachute-jump (enableParachuting) - its own separate key binding (default O), independent of parachuteDeployKey above. */
 	private static KeyBinding parachuteJumpKey;
+	/** See the A-11 note in onInitializeClient(): TV missile and remote control state, held-key/input caches, and every sound this mod plays through its own OpenAL sources. Client thread only. */
+	public static void tudursvehiclemod$resetSessionState() {
+		com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId = null;
+		com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedYawDelta = 0f;
+		com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedPitchDelta = 0f;
+		tvMissileMissingTicks = 0;
+		com.example.tudursvehiclemod.client.RemoteControlState.controlledEntityId = null;
+		AircraftOrientationInputState.accumulatedYawDelta = 0f;
+		AircraftOrientationInputState.accumulatedPitchDelta = 0f;
+		lastFreeLookState = false;
+		lastDescendState = false;
+		lastLevelAscendState = false;
+		lastLevelDescendState = false;
+		lastBrakeState = false;
+		lastThrottleInputState = 0f;
+		lastSidewaysInputState = 0f;
+		manualModeHeldTicks = 0;
+		manualModeToggledThisHold = false;
+		ejectHeldTicks = 0;
+		ejectTriggeredThisHold = false;
+		com.example.tudursvehiclemod.client.sound.WeaponFireSoundManager.stopAll();
+		com.example.tudursvehiclemod.client.sound.VehicleEngineSoundManager.stopAll();
+	}
+
+	/** Consecutive client ticks the TV missile being steered hasn't been in the client world - see the TV steering block in the client tick. */
+	private static int tvMissileMissingTicks;
+	/** How long the steered missile may be missing before control is dropped on the client side: long enough to ride out a tracking gap, short enough that a missile that's simply gone (its end notice lost) doesn't leave the view locked. */
+	private static final int TV_MISSILE_MISSING_RELEASE_TICKS = 100;
+
 	private static boolean lastFreeLookState = false;
 	private static boolean lastDescendState = false;
 	private static boolean lastLevelAscendState = false;
@@ -144,6 +173,10 @@ public class VehicleModClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		// A-11: every per-session client state is reset when leaving a server, joining one and changing dimension. A TV missile or remote control still active at a disconnect used to stay "active" into every later world - the view stayed locked, since the end notice never came (the server sends it only within the missile's own world).
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(() -> tudursvehiclemod$resetSessionState()));
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> tudursvehiclemod$resetSessionState());
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> tudursvehiclemod$resetSessionState());
 		config = VehicleModConfig.load();
 
 		// Lets the common (main-sourceSet) TieredVehicleSpawnerItem open this client-only screen without a compile-time dependency on client code.
@@ -851,6 +884,19 @@ public class VehicleModClient implements ClientModInitializer {
 
 			// Per Readme_Weapon.txt's own TVMissile doc - see client.TvMissileControlState's own doc for why this is a completely separate check from the vehicle-orientation one above (steering a missile has nothing to do with whatever vehicle the player still happens to be seated in). Deliberately OUTSIDE the mounted branch above: a TV missile fired without any vehicle (an addon's handheld launcher - see VehicleProjectileEntity's own tudursvehiclemod$updateTvMissileServerChecks() doc) is steered by a player on foot, whose mouse input PlayerLookRateMixin already routes into TvMissileControlState regardless of mounting. For a vehicle-fired missile nothing changes - control is released server-side the moment its shooter leaves the firing vehicle.
 			if (client.player != null && com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId != null) {
+				// A-11: the view stays locked only while the missile actually exists here. Gone for longer than a tracking gap (its end notice lost - sent to a world the player had already left, say) and control is dropped.
+				if (client.world == null || client.world.getEntityById(com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId) == null) {
+					if (++tvMissileMissingTicks >= TV_MISSILE_MISSING_RELEASE_TICKS) {
+						com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId = null;
+						com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedYawDelta = 0f;
+						com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedPitchDelta = 0f;
+						tvMissileMissingTicks = 0;
+					}
+				} else {
+					tvMissileMissingTicks = 0;
+				}
+			}
+			if (client.player != null && com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId != null) {
 				// Then snaps back up"
 				// desync pattern: a likely cause was network.TvMissileControlStartPayload's
 				// own receiver running before this missile's own spawn
@@ -1061,19 +1107,6 @@ public class VehicleModClient implements ClientModInitializer {
 								com.example.tudursvehiclemod.client.RemoteControlState.controlledEntityId = payload.entityId()));
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(
 				com.example.tudursvehiclemod.network.RemoteControlEndPayload.ID, (payload, context) ->
-						context.client().execute(() -> {
-							com.example.tudursvehiclemod.client.RemoteControlState.controlledEntityId = null;
-							com.example.tudursvehiclemod.client.RemoteControlState.transformX = Double.NaN;
-						}));
-		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(
-				com.example.tudursvehiclemod.network.RemoteControlVehicleTransformPayload.ID, (payload, context) ->
-						context.client().execute(() -> {
-							com.example.tudursvehiclemod.client.RemoteControlState.transformX = payload.x();
-							com.example.tudursvehiclemod.client.RemoteControlState.transformY = payload.y();
-							com.example.tudursvehiclemod.client.RemoteControlState.transformZ = payload.z();
-							com.example.tudursvehiclemod.client.RemoteControlState.transformYaw = payload.yaw();
-							com.example.tudursvehiclemod.client.RemoteControlState.transformPitch = payload.pitch();
-							com.example.tudursvehiclemod.client.RemoteControlState.transformRoll = payload.roll();
-					}));
+						context.client().execute(() -> com.example.tudursvehiclemod.client.RemoteControlState.controlledEntityId = null));
 	}
 }

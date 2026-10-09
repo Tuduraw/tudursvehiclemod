@@ -104,6 +104,10 @@ public class StationBlock extends BlockWithEntity {
 			serverPlayer.sendMessage(Text.translatable("block.tudursvehiclemod.station.control_ended"), true);
 			return;
 		}
+		// Ending control is allowed from anywhere (above); starting it needs the player at the station - see ModNetworking.tudursvehiclemod$canReachBlock().
+		if (!com.example.tudursvehiclemod.network.ModNetworking.tudursvehiclemod$canReachBlock(serverPlayer, pos)) {
+			return;
+		}
 
 		// Rather than only ever trying the bound
 		// vehicle's own CURRENT in-memory status once and giving up

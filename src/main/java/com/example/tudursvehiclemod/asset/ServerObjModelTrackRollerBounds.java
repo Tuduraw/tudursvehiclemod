@@ -1,6 +1,5 @@
 package com.example.tudursvehiclemod.asset;
 
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -187,25 +186,9 @@ public final class ServerObjModelTrackRollerBounds {
 		}
 	}
 
-	/** Same resolution order as ServerObjModelHitboxBounds's own doc. */
+	/** See ServerAssetFiles. */
 	private static Path tudursvehiclemod$resolveModelPath(Identifier modelId) {
-		String relativePath = "assets/" + modelId.getNamespace() + "/" + modelId.getPath();
-
-		for (Path addonDir : AddonPaths.listSubdirectories(AddonPaths.getAddonsRoot())) {
-			Path candidate = addonDir.resolve(relativePath);
-			if (Files.isRegularFile(candidate)) {
-				return candidate;
-			}
-		}
-
-		for (var mod : FabricLoader.getInstance().getAllMods()) {
-			Optional<Path> found = mod.findPath(relativePath);
-			if (found.isPresent() && Files.isRegularFile(found.get())) {
-				return found.get();
-			}
-		}
-
-		return null;
+		return ServerAssetFiles.find(modelId);
 	}
 
 	/** Same convention as ServerObjModelHitboxBounds's own resolveCachePath() - just a different cache-file suffix so the two never collide. */

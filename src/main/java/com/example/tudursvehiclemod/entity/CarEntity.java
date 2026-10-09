@@ -429,14 +429,7 @@ public class CarEntity extends AbstractVehicleEntity {
 				// doc), so this is the only thing that keeps a
 				// passenger's own view in sync with the car's own
 				// rotation at all.
-				for (Entity passenger : this.tudursvehiclemod$getRealPassengerList()) {
-					passenger.setYaw(passenger.getYaw() - this.turnRate);
-					if (passenger instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
-						serverPlayer.networkHandler.requestTeleport(
-								serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
-								serverPlayer.getYaw(), serverPlayer.getPitch());
-					}
-				}
+				this.tudursvehiclemod$turnPassengerViews(this.turnRate);
 			} else {
 				this.turnRate = 0f;
 			}
@@ -507,9 +500,7 @@ public class CarEntity extends AbstractVehicleEntity {
 			// not just clamping upward from below) since this vehicle's
 			// own throttle can be negative (reverse), unlike aircraft.
 			float currentThrottle = this.getThrottle();
-			float decayedThrottle = currentThrottle > 0f
-					? Math.max(0f, currentThrottle - UNMANNED_THROTTLE_DECAY)
-					: Math.min(0f, currentThrottle + UNMANNED_THROTTLE_DECAY);
+			float decayedThrottle = tudursvehiclemod$decayTowardZero(currentThrottle, UNMANNED_THROTTLE_DECAY);
 			this.setThrottleDirect(decayedThrottle);
 			Vec3d throttledVelocity = approachThrottledVelocity(def, decayedThrottle, false);
 			this.setVelocity(throttledVelocity.x, this.getVelocity().y, throttledVelocity.z);

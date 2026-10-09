@@ -146,7 +146,15 @@ public class VehicleMod implements ModInitializer {
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_UNLOAD.register(com.example.tudursvehiclemod.entity.LoadedProjectiles::onUnload);
 		// Nothing scheduled by a previous session (singleplayer: the same JVM) may run against the new one.
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTING.register(server -> ServerTickTasks.clear());
+		// See AbstractVehicleEntity.tudursvehiclemod$isRemoteControlling()'s own doc.
+		net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) ->
+				!(entity instanceof net.minecraft.server.network.ServerPlayerEntity player
+						&& com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$isRemoteControlling(player)));
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			// A stop saves every player (saveAllPlayerData()) before disconnecting them, so remote control is ended first - see mixin.RemoteControlLogoutMixin's own doc.
+			for (net.minecraft.server.network.ServerPlayerEntity player : java.util.List.copyOf(server.getPlayerManager().getPlayerList())) {
+				com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$endRemoteControlOf(player);
+			}
 			// First, while everything is still loaded and before the world is saved: projectiles in flight can't be restored from a save, so their force-loaded chunks are released now, before force-loading is saved with the world - see VehicleProjectileEntity.tudursvehiclemod$releaseChunksForServerStop()'s own doc.
 			for (net.minecraft.server.world.ServerWorld world : server.getWorlds()) {
 				com.example.tudursvehiclemod.entity.projectile.VehicleProjectileEntity.tudursvehiclemod$releaseChunksForServerStop(world);

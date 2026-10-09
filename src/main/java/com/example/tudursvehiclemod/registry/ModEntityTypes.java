@@ -91,11 +91,6 @@ public class ModEntityTypes {
 				com.example.tudursvehiclemod.entity.CarrierRunwayPlatformEntity::new, 6.0f, 1.0f, carrierRunwayTilePlatformTrackingInterval);
 	}
 
-	private static <T extends net.minecraft.entity.Entity> EntityType<T> register(
-			String path, EntityType.EntityFactory<T> factory, float width, float height) {
-		return register(path, factory, width, height, null);
-	}
-
 	/** Registers a vehicle entity type for an ADDON mod, under that addon's own namespace, with the same tracking setup every built-in vehicle type here uses.
 	 *
 	 * An addon's own AbstractVehicleEntity subclass is spawned through exactly the same path a built-in one is: a vehicle JSON's own "entity_type" is resolved against the entity registry at spawn time, so any type registered here works without this class needing to know about it.

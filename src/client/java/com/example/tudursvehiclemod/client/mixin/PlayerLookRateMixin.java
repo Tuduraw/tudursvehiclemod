@@ -81,19 +81,6 @@ public abstract class PlayerLookRateMixin {
 					AircraftOrientationInputState.accumulatedYawDelta += (float) (cursorDeltaX * DEGREES_PER_RAW_UNIT);
 					AircraftOrientationInputState.accumulatedPitchDelta += (float) (cursorDeltaY * DEGREES_PER_RAW_UNIT);
 				}
-			} else if (com.example.tudursvehiclemod.client.RemoteControlState.controlledEntityId != null
-					&& com.example.tudursvehiclemod.client.RemoteControlState.usesAircraftStyleOrientation) {
-				// The vehicle being remote-controlled
-				// (see client.RemoteControlState's own doc) very often
-				// can't actually be resolved as a real, loaded client-side
-				// Entity at all - getClientEffectiveVehicle() above then
-				// returns null, so this input was previously silently
-				// dropped entirely instead of ever reaching the vehicle.
-				// Free-look isn't supported for remote control yet (no
-				// real vehicle object to check tudursvehiclemod$isEffectiveFreeLook()
-				// against at all) - always accumulates as if not in it.
-				AircraftOrientationInputState.accumulatedYawDelta += (float) (cursorDeltaX * DEGREES_PER_RAW_UNIT);
-				AircraftOrientationInputState.accumulatedPitchDelta += (float) (cursorDeltaY * DEGREES_PER_RAW_UNIT);
 			}
 		}
 	}

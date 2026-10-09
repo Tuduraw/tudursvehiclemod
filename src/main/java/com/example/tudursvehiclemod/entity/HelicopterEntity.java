@@ -107,7 +107,6 @@ public class HelicopterEntity extends AbstractVehicleEntity implements FreeCamer
 	/** Eased (not applied-instantly) per-tick yaw/pitch deltas for manual mode - same smoothing approach as AircraftEntity's own smoothedYawDelta/smoothedPitchDelta/smoothedRollDelta. */
 	private float manualSmoothedYawDelta;
 	private float manualSmoothedPitchDelta;
-	private float manualSmoothedRollDelta;
 
 	/** Current horizontal (forward + strafe combined) cruise velocity. */
 	protected Vec3d horizontalCruise = Vec3d.ZERO;

@@ -54,10 +54,14 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 	private double midgetMountX, midgetMountZ, midgetForwardX, midgetForwardZ;
 	/** The world position the ROUTE waypoints are relative to (the shooter's own marked point) - separate from the mount position since a route is typically marked far from the mothership. */
 	private double midgetRouteOriginX, midgetRouteOriginZ;
+	/** The heading the main route (MidgetWaypoint) is laid out along: the shooter's view turned by MidgetYawOffset/MidgetTargetYawOffset, as for a Carrier route. The launch route keeps the mount's heading (midgetForwardX/Z). These used to be one and the same - the mount's heading - so both yaw-offset keys did nothing, and a side- or rear-facing tube laid its route out away from where the shooter aimed. */
+	private double midgetRouteForwardX, midgetRouteForwardZ;
 	private int midgetAttackWeaponIndex;
 	private int midgetAgeTicks, midgetTimeoutTicks, midgetStuckTicks, midgetStuckTimeoutTicks;
 	private boolean midgetRecoveryEnabled;
 	private MidgetNavigator midgetNavigator;
+	/** Whether a player was piloting this midget last tick - see updateVehicleMovement()'s own note on MidgetNavigator.reset(). */
+	private boolean midgetWasPlayerPiloted;
 	/** Set once, the first tick this submarine's own autopilot runs, so the hatch is closed (and physics switches to diving) without repeating tudursvehiclemod$tryToggleHatch()'s own level-attitude gate every tick. */
 	private boolean midgetHatchClosedOnce;
 
@@ -167,6 +171,22 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 			double routeOriginX, double routeOriginZ, int attackWeaponIndex,
 			int timeoutTicks, int stuckTimeoutTicks, boolean recoveryEnabled,
 			double detectRange, int detectIntervalTicks, double avoidStep) {
+		this.tudursvehiclemod$initializeMidgetLaunch(launchWaypoints, routeWaypoints, mountX, mountZ, forwardX, forwardZ,
+				forwardX, forwardZ, routeOriginX, routeOriginZ, attackWeaponIndex, timeoutTicks, stuckTimeoutTicks, recoveryEnabled,
+				detectRange, detectIntervalTicks, avoidStep);
+	}
+
+	/** The above, with the main route's own heading (routeForwardX/Z - see midgetRouteForwardX's own doc) given separately from the mount's (forwardX/Z, used for the launch route and the fallback recovery). */
+	public void tudursvehiclemod$initializeMidgetLaunch(
+			java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> launchWaypoints,
+			java.util.List<com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint> routeWaypoints,
+			double mountX, double mountZ, double forwardX, double forwardZ,
+			double routeForwardX, double routeForwardZ,
+			double routeOriginX, double routeOriginZ, int attackWeaponIndex,
+			int timeoutTicks, int stuckTimeoutTicks, boolean recoveryEnabled,
+			double detectRange, int detectIntervalTicks, double avoidStep) {
+		this.midgetRouteForwardX = routeForwardX;
+		this.midgetRouteForwardZ = routeForwardZ;
 		this.midgetLaunchWaypoints = launchWaypoints;
 		this.midgetRouteWaypoints = routeWaypoints;
 		this.midgetWaypointIndex = 0;
@@ -246,6 +266,8 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		view.putString("MidgetForwardZ", Double.toString(this.midgetForwardZ));
 		view.putString("MidgetRouteOriginX", Double.toString(this.midgetRouteOriginX));
 		view.putString("MidgetRouteOriginZ", Double.toString(this.midgetRouteOriginZ));
+		view.putString("MidgetRouteForwardX", Double.toString(this.midgetRouteForwardX));
+		view.putString("MidgetRouteForwardZ", Double.toString(this.midgetRouteForwardZ));
 		view.putInt("MidgetAttackWeaponIndex", this.midgetAttackWeaponIndex);
 		view.putInt("MidgetAgeTicks", this.midgetAgeTicks);
 		view.putInt("MidgetTimeoutTicks", this.midgetTimeoutTicks);
@@ -289,6 +311,11 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 				view.getInt("MidgetAttackWeaponIndex", 0),
 				view.getInt("MidgetTimeoutTicks", 12000), view.getInt("MidgetStuckTimeoutTicks", 1200), view.getBoolean("MidgetRecoveryEnabled", true),
 				tudursvehiclemod$readDouble(view, "MidgetDetectRange"), view.getInt("MidgetDetectIntervalTicks", 10), tudursvehiclemod$readDouble(view, "MidgetAvoidStep"));
+		// An older save has no route heading: the mount's heading, which is what its route was laid out along.
+		if (!view.getString("MidgetRouteForwardX", "").isEmpty()) {
+			this.midgetRouteForwardX = tudursvehiclemod$readDouble(view, "MidgetRouteForwardX");
+			this.midgetRouteForwardZ = tudursvehiclemod$readDouble(view, "MidgetRouteForwardZ");
+		}
 		this.midgetWaypointIndex = view.getInt("MidgetWaypointIndex", 0);
 		this.midgetAgeTicks = view.getInt("MidgetAgeTicks", 0);
 		this.midgetStuckTicks = view.getInt("MidgetStuckTicks", 0);
@@ -525,11 +552,7 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 			}
 		} else {
 			// Unpiloted: eases towards 0 from either side - never crosses zero, so the switch-hold above never applies here.
-			if (current > 0) {
-				next = Math.max(0f, current - UNMANNED_THROTTLE_DECAY);
-			} else if (current < 0) {
-				next = Math.min(0f, current + UNMANNED_THROTTLE_DECAY);
-			}
+			next = tudursvehiclemod$decayTowardZero(current, UNMANNED_THROTTLE_DECAY);
 		}
 
 		this.setThrottleDirect(next);
@@ -727,7 +750,7 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		if (index < routeCount) {
 			com.example.tudursvehiclemod.asset.MidgetConfig.MidgetWaypoint wp = this.midgetRouteWaypoints.get(index);
 			return this.tudursvehiclemod$midgetWaypointToTarget(wp, this.midgetRouteOriginX, this.midgetRouteOriginZ,
-					this.midgetForwardX, this.midgetForwardZ, wp.attack());
+					this.midgetRouteForwardX, this.midgetRouteForwardZ, wp.attack());
 		}
 		if (!this.midgetRecoveryEnabled) {
 			return null;
@@ -815,10 +838,18 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 	protected void updateVehicleMovement(VehicleDefinition def) {
 		// A Midget's own autonomous route takes over movement ENTIRELY, bypassing every bit of the ordinary surfaced/diving physics below (hatch-state switching, the ascend/descend keys, roll lean, wake, broaching correction and all): it drives yaw/pitch/velocity directly from entity.MidgetNavigator's own decisions rather than threading autonomous control through the player-input plumbing those branches are built around.
 		// Not while a player is piloting it (switched in from the mothership): ordinary piloting below, and the autopilot picks up from where it was once they leave.
-		if (this.tudursvehiclemod$isMidgetAutopilotActive() && !(this.getControllingPassenger() instanceof net.minecraft.entity.player.PlayerEntity)) {
+		// Not once sunk either: a destroyed midget used to keep sailing its route - and was recovered at the end, its round going back to the mothership - while the client showed it sinking. It sinks like any other wreck (the sinking branch below).
+		boolean playerPiloting = this.getControllingPassenger() instanceof net.minecraft.entity.player.PlayerEntity;
+		if (this.tudursvehiclemod$isMidgetAutopilotActive() && !this.tudursvehiclemod$isDestroyed() && !playerPiloting) {
+			// D-2: picking up again after a player handed it back - the obstacle-avoidance state (a held depth ceiling, an avoidance in progress) belongs to wherever it was when they took over, not to where they left it.
+			if (this.midgetWasPlayerPiloted && this.midgetNavigator != null) {
+				this.midgetNavigator.reset();
+			}
+			this.midgetWasPlayerPiloted = false;
 			this.tudursvehiclemod$updateMidgetAutopilot(def);
 			return;
 		}
+		this.midgetWasPlayerPiloted = playerPiloting;
 		// If this vehicle is currently following a Drone Center's own GROUND route, this sets this tick's own steering/throttle inputs from that route and then falls straight through into the ordinary physics below with those inputs already in place - deliberately NOT a separate movement path of its own (see AbstractVehicleEntity's own tudursvehiclemod$updateGroundWaypointAutopilot() doc for why driving inputs, rather than velocity, is what keeps this vehicle type's own part animation/roll/sound behavior working unchanged).
 		this.tudursvehiclemod$applyGroundWaypointAutopilotInputs(def);
 		// A sinking wreck's attitude and descent are driven entirely by AbstractVehicleEntity's own tudursvehiclemod$applySinkingMotion(), which already ran this tick. Returning here leaves that untouched - this vehicle's own buoyancy would otherwise spring it straight back to the surface and the wreck would never go under. move() is still applied so the descent actually happens.
@@ -898,14 +929,7 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 			// its own YAW still turns independently of the pilot's view
 			// via plain A/D input, same as Car/Ship - nothing otherwise
 			// keeps a passenger's own view in sync with that.
-			for (Entity passenger : this.tudursvehiclemod$getRealPassengerList()) {
-				passenger.setYaw(passenger.getYaw() - yawDelta);
-				if (passenger instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
-					serverPlayer.networkHandler.requestTeleport(
-							serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
-							serverPlayer.getYaw(), serverPlayer.getPitch());
-				}
-			}
+			this.tudursvehiclemod$turnPassengerViews(yawDelta);
 		}
 
 		// Everything below computes into this ONE local variable, with a
@@ -1075,21 +1099,6 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 			}
 		}
 		return false;
-	}
-
-	/** Topmost water block near this vehicle, or empty if none nearby - callers should fall back to plain gravity (not current Y) when empty. */
-	protected java.util.OptionalDouble tudursvehiclemod$findWaterSurfaceY() {
-		BlockPos basePos = BlockPos.ofFloored(this.getX(), this.getY(), this.getZ());
-		double surfaceY = this.getY();
-		boolean foundWater = false;
-		for (int dy = -2; dy <= 3; dy++) {
-			BlockPos checkPos = basePos.add(0, dy, 0);
-			if (this.getEntityWorld().getFluidState(checkPos).isIn(FluidTags.WATER)) {
-				surfaceY = checkPos.getY() + 1.0;
-				foundWater = true;
-			}
-		}
-		return foundWater ? java.util.OptionalDouble.of(surfaceY) : java.util.OptionalDouble.empty();
 	}
 
 	/** findWaterSurfaceY() searches only a narrow window centered on this vehicle's own position - fine near the surface, but wrong when deeply submerged (reports a "surface" near this vehicle's own current Y instead of the true, distant one, making the wake trail appear to follow it down). This searches upward instead for the true water-to-air transition, up to WAKE_SURFACE_SEARCH_MAX_BLOCKS above (empty if not found - too deep for wake generation). Falls back to a downward search when this vehicle's own current position is just above the true surface (e.g. Used only for the wake trail while diving; findWaterSurfaceY() itself is unchanged for its own buoyancy callers. */

@@ -184,7 +184,8 @@ with no resource pack needed.
 Picking a vehicle spawns it and consumes one item (not consumed in
 creative). **Packing a vehicle away** (sneak + right-click while empty)
 returns one matching spawner item; in creative it simply vanishes without
-handing an item back, to prevent duplication.
+handing an item back, to prevent duplication. Its cargo is dropped where
+it stood, and packing away a destroyed wreck gives no item back.
 
 - All the vehicle sets is `spawn_item.tier` (1-5, default 1) and
   `display_name`

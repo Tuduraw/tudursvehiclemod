@@ -91,34 +91,6 @@ public abstract class CameraMixin {
 			Integer remoteControlledId = com.example.tudursvehiclemod.client.RemoteControlState.controlledEntityId;
 			if (remoteControlledId != null && area.getEntityById(remoteControlledId) instanceof AbstractVehicleEntity remoteVehicle) {
 				vehicle = remoteVehicle;
-			} else if (remoteControlledId != null && !Double.isNaN(com.example.tudursvehiclemod.client.RemoteControlState.transformX)) {
-				// The controlled vehicle very
-				// often can't actually be resolved as a real client-side
-				// Entity at all (see network.RemoteControlVehicleTransformPayload's
-				// own doc for why) - falls back to this vehicle's own
-				// synced transform directly instead of returning/showing
-				// nothing at all. Doesn't reuse this whole method's own
-				// seat-offset eye-position logic below at all (that needs
-				// a real Entity/VehicleDefinition to read from) - just a
-				// simple, fixed eye-height approximation instead, which
-				// is close enough for aiming/orientation purposes even
-				// if not pixel-perfect against the real seat position.
-				double eyeX = com.example.tudursvehiclemod.client.RemoteControlState.transformX;
-				double eyeY = com.example.tudursvehiclemod.client.RemoteControlState.transformY + 1.2;
-				double eyeZ = com.example.tudursvehiclemod.client.RemoteControlState.transformZ;
-				float syncedYaw = com.example.tudursvehiclemod.client.RemoteControlState.transformYaw;
-				float syncedPitch = com.example.tudursvehiclemod.client.RemoteControlState.transformPitch;
-				float syncedRoll = com.example.tudursvehiclemod.client.RemoteControlState.transformRoll;
-				Quaternionf fresh = new Quaternionf();
-				fresh.rotateY((float) Math.toRadians(180.0 - syncedYaw));
-				fresh.rotateX((float) Math.toRadians(-syncedPitch));
-				fresh.rotateZ((float) Math.toRadians(-syncedRoll));
-				if (inverseView) {
-					fresh.rotateY((float) Math.PI);
-				}
-				self.getRotation().set(fresh);
-				this.tudursvehiclemod$setPos(new Vec3d(eyeX, eyeY, eyeZ));
-				return;
 			} else {
 				return;
 			}
