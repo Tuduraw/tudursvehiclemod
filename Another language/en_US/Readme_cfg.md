@@ -280,6 +280,22 @@ screen, so changing them requires editing the file directly.
   adds a chunk-count cap on top of that time limit, smoothing the
   per-tick load at the cost of taking even longer to finish overall.
 
+
+### `hitMeshBuildMaxConcurrent` (server settings)
+
+- Default: `-1` (no limit)
+- The hit-detection meshes (the hit data built from each vehicle's model)
+  are built in the background as soon as a vehicle is loaded into the
+  world (they used to be built on the server thread on the first hit, so
+  a high-poly vehicle could stall the server the moment it was hit). This
+  is how many vehicle definitions may be built at the same time. -1 means
+  no limit (built in parallel, one per CPU core); a positive value (1,
+  say) caps it at that many, on low-priority threads. Lower it to keep the
+  server load down. Takes effect after a server restart.
+- `/reload` drops the in-memory model caches (the hit-detection meshes and
+  so on) and reads the OBJ files again. The track roller disk cache
+  (`.track-roller-bounds.txt`) doesn't notice a changed OBJ - delete it by
+  hand after editing a model.
 ---
 
 ## 5. Resetting force-loaded chunks (`/tvm unloadchunks`)

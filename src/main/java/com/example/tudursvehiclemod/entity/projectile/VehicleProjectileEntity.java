@@ -1389,6 +1389,15 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 	}
 
 	public void tudursvehiclemod$setTvControlled(net.minecraft.server.network.ServerPlayerEntity player) {
+		// Only the missile fired last is steered. One still under this player's control goes unguided now (as it would on release, minus the "control ended" notice - the player's view moves straight on to this one), and from here on nothing it does - hitting, straying out of range - touches the new missile's control.
+		Integer previousMissileId = ACTIVE_TV_CONTROL.get(player.getId());
+		if (previousMissileId != null && previousMissileId != this.getId()
+				&& player.getEntityWorld().getEntityById(previousMissileId) instanceof VehicleProjectileEntity previous
+				&& previous.tvControllingPlayerId != null && previous.tvControllingPlayerId == player.getId()) {
+			previous.tvControllingPlayerId = null;
+			previous.tvSteeringActive = false;
+			previous.tvPostControlDescentActive = true;
+		}
 		this.tvControllingPlayerId = player.getId();
 		this.tvLaunchPos = this.getEntityPos();
 		this.tudursvehiclemod$initTvClientTracking();
@@ -1408,8 +1417,9 @@ public class VehicleProjectileEntity extends ThrownItemEntity {
 		// then somehow called again) shouldn't accidentally erase a
 		// DIFFERENT, newer missile the same player has since started
 		// controlling instead.
-		ACTIVE_TV_CONTROL.remove(this.tvControllingPlayerId, this.getId());
-		if (this.getEntityWorld() instanceof ServerWorld serverWorld) {
+		// The "control ended" notice only goes out while this is the player's current missile: an older one that is no longer steered (a newer one was fired - see tudursvehiclemod$setTvControlled()) used to send it too, and cut the control of the missile the player was flying.
+		boolean wasCurrent = ACTIVE_TV_CONTROL.remove(this.tvControllingPlayerId, this.getId());
+		if (wasCurrent && this.getEntityWorld() instanceof ServerWorld serverWorld) {
 			// Looked up across every world, not just this missile's own: a controller who changed dimension never got the end notice, and their view stayed locked.
 			for (net.minecraft.server.network.ServerPlayerEntity player : serverWorld.getServer().getPlayerManager().getPlayerList()) {
 				if (player.getId() == this.tvControllingPlayerId) {

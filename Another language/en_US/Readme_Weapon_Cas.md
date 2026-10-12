@@ -618,8 +618,10 @@ launched when nothing is highlighted, are the same as for `Carrier`).
 
 ### `MidgetTimeout` / `MidgetStuckTimeout`
 - **Format**: seconds (default `600` / `60`)
-- **Description**: the same idea as `CasTimeout`/`CasStuckTimeout`. `MidgetStuckTimeout` also
-  applies to time spent stopped at the surface, blocked.
+- **Description**: the same idea as `CasTimeout`/`CasStuckTimeout`. `MidgetStuckTimeout` is the time
+  spent without reaching the next waypoint (including time spent stopped at the surface, blocked).
+  It doesn't count while chasing a target.
+- A midget on its sortie keeps the 3x3 chunks around it force-loaded (released once it is sunk or recovered).
 - **Example**: `MidgetTimeout = 600`
 
 ### `MidgetYawOffset` / `MidgetTargetYawOffset`

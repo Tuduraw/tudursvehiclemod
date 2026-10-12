@@ -30,9 +30,12 @@ public class CarEntity extends AbstractVehicleEntity {
 		return Identifier.of(VehicleMod.MOD_ID, "car");
 	}
 
-	/** Dedicated block-collision hitbox, separate from the visual model. */
+	/** Dedicated block-collision hitbox, separate from the visual model: a fixed 1.6 x 1.0, unless force_bounding_box asks for a hand-specified size (AbstractVehicleEntity.getDimensions(), as every other type already did). */
 	@Override
 	public net.minecraft.entity.EntityDimensions getDimensions(net.minecraft.entity.EntityPose pose) {
+		if (this.getDefinition().forceBoundingBox()) {
+			return super.getDimensions(pose);
+		}
 		return net.minecraft.entity.EntityDimensions.changing(1.6f, 1.0f);
 	}
 
@@ -276,7 +279,7 @@ public class CarEntity extends AbstractVehicleEntity {
 			boolean pivotTurnRestricted = def.pivotTurnThrottle() > 0f && sidewaysInput != 0.0
 					&& currentSpeedAbs < pivotTurnThreshold;
 			double effectiveThrottleInput = throttleOutput;
-			if (pivotTurnRestricted && !this.tudursvehiclemod$isOutOfFuel()) {
+			if (pivotTurnRestricted && !this.tudursvehiclemod$isOutOfFuel() && !this.tudursvehiclemod$isDestroyed()) {
 				// Even after accounting for both the
 				// turn-speed penalty AND the uphill penalty in an
 				// analytically "exact" required-throttle calculation (see
@@ -392,7 +395,7 @@ public class CarEntity extends AbstractVehicleEntity {
 			// updateVehicleMovement() already does this in the correct
 			// order (yaw, then approachThrottledVelocity) - this matches
 			// that.
-			if (!pivotTurnRestricted && !this.tudursvehiclemod$isOutOfFuel()) {
+			if (!pivotTurnRestricted && !this.tudursvehiclemod$isOutOfFuel() && !this.tudursvehiclemod$isDestroyed()) {
 				float targetTurnRate = (float) sidewaysInput * this.tudursvehiclemod$getEffectiveTurnSpeed();
 				// A real vehicle steers about its own front wheels, so backing up with the wheel held right swings the BODY left - the yaw response genuinely inverts with travel direction. This was previously applied identically regardless of which way the vehicle was actually moving, which is exactly what reads as inverted controls in reverse.
 				//

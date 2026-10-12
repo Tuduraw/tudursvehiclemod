@@ -59,7 +59,7 @@ public class FuelRefinerScreenHandler extends ScreenHandler {
 
 	/** 0.0-1.0, for the screen's own stored-burn-time progress bar. */
 	public float getStoredBurnTimeRatio() {
-		return MathHelper.clamp(this.propertyDelegate.get(0) / (float) FuelRefinerBlockEntity.MAX_STORED_BURN_TIME, 0f, 1f);
+		return MathHelper.clamp(this.propertyDelegate.get(0) / (float) FuelRefinerBlockEntity.STORED_BURN_TIME_GAUGE_SCALE, 0f, 1f);
 	}
 
 	@Override

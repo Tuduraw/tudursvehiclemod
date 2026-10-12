@@ -59,6 +59,29 @@ public class VehicleModClient implements ClientModInitializer {
 	private static KeyBinding parachuteDeployKey;
 	/** Per parachuteDeployKey's own doc: seat-based parachute-jump (enableParachuting) - its own separate key binding (default O), independent of parachuteDeployKey above. */
 	private static KeyBinding parachuteJumpKey;
+	/** The vehicle the "last sent" input states below were last sent for - see where they're reset in the tick handler. */
+	private static Integer lastInputVehicleId;
+
+	/** Forgets every held-key state last sent to the server (free look, descend, level hold, brake, throttle/steering), so the next tick sends what is held now. */
+	private static void tudursvehiclemod$resetSentInputStates() {
+		lastFreeLookState = false;
+		lastDescendState = false;
+		lastLevelAscendState = false;
+		lastLevelDescendState = false;
+		lastBrakeState = false;
+		lastThrottleInputState = 0f;
+		lastSidewaysInputState = 0f;
+	}
+
+	/** Whether key was pressed since it was last read - taking every press off its counter, not just one. KeyBinding counts each press until wasPressed() reads it, so a key read only some of the time (only on foot, only in lock mode) used to collect presses the rest of the time and fire them all at once later. */
+	private static boolean tudursvehiclemod$consumePresses(net.minecraft.client.option.KeyBinding key) {
+		boolean pressed = false;
+		while (key.wasPressed()) {
+			pressed = true;
+		}
+		return pressed;
+	}
+
 	/** See the A-11 note in onInitializeClient(): TV missile and remote control state, held-key/input caches, and every sound this mod plays through its own OpenAL sources. Client thread only. */
 	public static void tudursvehiclemod$resetSessionState() {
 		com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId = null;
@@ -68,13 +91,8 @@ public class VehicleModClient implements ClientModInitializer {
 		com.example.tudursvehiclemod.client.RemoteControlState.controlledEntityId = null;
 		AircraftOrientationInputState.accumulatedYawDelta = 0f;
 		AircraftOrientationInputState.accumulatedPitchDelta = 0f;
-		lastFreeLookState = false;
-		lastDescendState = false;
-		lastLevelAscendState = false;
-		lastLevelDescendState = false;
-		lastBrakeState = false;
-		lastThrottleInputState = 0f;
-		lastSidewaysInputState = 0f;
+		tudursvehiclemod$resetSentInputStates();
+		lastInputVehicleId = null;
 		manualModeHeldTicks = 0;
 		manualModeToggledThisHold = false;
 		ejectHeldTicks = 0;
@@ -451,8 +469,10 @@ public class VehicleModClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			// ParachuteDeployKey, a dedicated, independently rebindable key binding (default Space, matching this feature's own original convenience) - deploys an equipped parachute while genuinely falling. Not riding any vehicle at all is deliberately part of this check - a parachute is an on-foot feature, and client.player.getVehicle() == null also means this can never fire spuriously while, say, riding out of an aircraft's own seat mid-ejection.
+			// Every press is taken off the key's counter, riding or not: a key's presses pile up for as long as nobody reads them, and this one (Space by default) used to collect them while riding - the eject hold, the jump key - and deploy the moment the player was on foot.
+			boolean parachuteDeployKeyPressed = tudursvehiclemod$consumePresses(parachuteDeployKey);
 			if (client.player != null && client.player.getVehicle() == null
-					&& parachuteDeployKey.wasPressed()
+					&& parachuteDeployKeyPressed
 					&& client.player.getEquippedStack(net.minecraft.entity.EquipmentSlot.CHEST).getItem() instanceof com.example.tudursvehiclemod.item.ParachuteItem
 					&& com.example.tudursvehiclemod.entity.ParachuteManager.tudursvehiclemod$isDeployable(client.player)) {
 				ClientPlayNetworking.send(new com.example.tudursvehiclemod.network.DeployParachutePayload());
@@ -474,7 +494,7 @@ public class VehicleModClient implements ClientModInitializer {
 			}
 
 			// The pilot (seat 0) pressing parachuteJumpKey alone now triggers a mass dismount of every mob passenger, with each one's own outcome (parachute vs. plain dismount) decided per-seat server-side - see AbstractVehicleEntity's own updated tudursvehiclemod$tryDismountAllMobs() doc. Per a further direct request for a separate, unconditional variant ("パラシュート対応座席がある機体での非対応の座席の降車について、検討する必要があります。ctrlキーと組み合わせた場合にパイロット以外のすべての座席に対して強制降車させるようにできますか"): holding sneak (Ctrl by default) while pressing the same key sends ForceDismountAllSeatsPayload instead - every non-pilot passenger, mob or player alike, forced off with no parachute at all, regardless of any seat's own enableParachuting.
-			boolean parachuteJumpKeyPressed = parachuteJumpKey.wasPressed();
+			boolean parachuteJumpKeyPressed = tudursvehiclemod$consumePresses(parachuteJumpKey);
 			boolean pilotOnVehicle = client.player != null
 					&& client.player.getVehicle() instanceof com.example.tudursvehiclemod.entity.AbstractVehicleEntity pilotedVehicle
 					&& pilotedVehicle.tudursvehiclemod$getAssignedSeatIndex(client.player) == 0;
@@ -504,7 +524,9 @@ public class VehicleModClient implements ClientModInitializer {
 			}
 
 			// Supports MC Heli's own MobDropOption feature.
-			if (client.player != null && client.player.getVehicle() != null && mobDropTriggerKey.wasPressed()) {
+			// Presses taken off on foot as well - see parachuteDeployKey above.
+			boolean mobDropTriggerKeyPressed = tudursvehiclemod$consumePresses(mobDropTriggerKey);
+			if (client.player != null && client.player.getVehicle() != null && mobDropTriggerKeyPressed) {
 				ClientPlayNetworking.send(new com.example.tudursvehiclemod.network.MobDropTriggerPayload());
 			}
 
@@ -568,11 +590,13 @@ public class VehicleModClient implements ClientModInitializer {
 							|| (selectedForLock.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.TORPEDO && selectedForLock.guidedTorpedo()));
 			if (effectiveVehicleForFire != null && effectiveVehicleForFire.tudursvehiclemod$isCarrierLockModeActive() && !carrierWeaponSelected) {
 				// Lock mode replaces the fire key's own normal action entirely - locking is instantaneous, so wasPressed() (once per press) rather than isPressed() (every tick while held, matching normal fire's own auto-fire-while-held behavior).
-				if (fireWeaponKey.wasPressed()) {
+				if (tudursvehiclemod$consumePresses(fireWeaponKey)) {
 					ClientPlayNetworking.send(new com.example.tudursvehiclemod.network.LockCarrierTargetPayload());
 				}
-			} else if (fireWeaponKey.isPressed()) {
-				if (effectiveVehicleForFire != null) {
+			} else {
+				// Normal fire reads the key's held state, so its presses were never taken off the counter: every click of a whole fight piled up there and went off as that many lock commands the moment lock mode came on. Cleared every tick here.
+				tudursvehiclemod$consumePresses(fireWeaponKey);
+				if (fireWeaponKey.isPressed() && effectiveVehicleForFire != null) {
 					ClientPlayNetworking.send(new FireWeaponPayload(selectedWeaponIndex));
 				}
 			}
@@ -739,7 +763,15 @@ public class VehicleModClient implements ClientModInitializer {
 				manualModeToggledThisHold = false;
 			}
 
-			boolean mounted = client.player != null && tudursvehiclemod$getClientEffectiveVehicle(client.player) != null;
+			com.example.tudursvehiclemod.entity.AbstractVehicleEntity inputVehicle =
+					client.player != null ? tudursvehiclemod$getClientEffectiveVehicle(client.player) : null;
+			boolean mounted = inputVehicle != null;
+			// The "last sent" input states belong to one vehicle. Changed vehicle (dismounted, or moved straight to another - the Carrier seat switch, remote control) or none: they start over, so whatever is held now is sent to the new vehicle - a key still held from the old one used to compare equal and never be sent, until it was released and pressed again.
+			Integer inputVehicleId = inputVehicle != null ? inputVehicle.getId() : null;
+			if (!java.util.Objects.equals(inputVehicleId, lastInputVehicleId)) {
+				lastInputVehicleId = inputVehicleId;
+				tudursvehiclemod$resetSentInputStates();
+			}
 
 			// Free-look and descend are held states, not one-shot presses.
 			if (mounted) {
@@ -876,8 +908,7 @@ public class VehicleModClient implements ClientModInitializer {
 				}
 			} else {
 				// Dismounted while a key was held.
-				lastFreeLookState = false;
-				lastDescendState = false;
+				tudursvehiclemod$resetSentInputStates();
 				AircraftOrientationInputState.accumulatedYawDelta = 0f;
 				AircraftOrientationInputState.accumulatedPitchDelta = 0f;
 			}
@@ -1047,6 +1078,13 @@ public class VehicleModClient implements ClientModInitializer {
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(
 				com.example.tudursvehiclemod.network.TvMissileControlStartPayload.ID, (payload, context) ->
 						context.client().execute(() -> {
+							// A newer missile takes over: the one being flown until now goes unguided here too (the server already let it go - see VehicleProjectileEntity.tudursvehiclemod$setTvControlled()).
+							Integer previousId = com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId;
+							if (previousId != null && previousId != payload.entityId() && context.client().world != null
+									&& context.client().world.getEntityById(previousId)
+									instanceof com.example.tudursvehiclemod.entity.projectile.VehicleProjectileEntity previousMissile) {
+								previousMissile.tudursvehiclemod$clearTvClientTracking();
+							}
 							com.example.tudursvehiclemod.client.TvMissileControlState.controlledEntityId = payload.entityId();
 							com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedYawDelta = 0f;
 							com.example.tudursvehiclemod.client.TvMissileControlState.accumulatedPitchDelta = 0f;

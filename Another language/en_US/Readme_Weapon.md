@@ -35,7 +35,7 @@ listed below. For every other field, see MC Heli's own documentation
   implementations differ from MC Heli, and some weapon types are unique
   to this mod, so see each `Readme_Weapon_<Type>.md` for the accepted
   values and details:
-  `MachineGun`/`Rocket` (no dedicated document - see MC Heli's own documentation), `Bomb`/`Depth`
+  `MachineGun`/`Rocket` (no dedicated document - see MC Heli's own documentation; MC Heli's `MachineGun1`/`MachineGun2` are read as `MachineGun`), `Bomb`/`Depth`
   (`Readme_Weapon_Bomb.md`), `Torpedo` (`Readme_Weapon_Torpedo.md`),
   `ASMissile`/`MkRocket`/`AAMissile`/`ATMissile`/`Missile`/`ASWeapon`/`TVMissile`
   (`Readme_Weapon_Missile.md`), `Dispenser`/`Smoke`/`Dummy`/`TargetingPod`

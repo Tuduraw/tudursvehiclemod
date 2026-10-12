@@ -38,6 +38,11 @@ public final class ServerObjModelTrackRollerBounds {
 	private static final Logger LOGGER = LoggerFactory.getLogger("VehicleMod/ServerObjModelTrackRollerBounds");
 	private static final Map<Identifier, Map<String, Float>> CACHE = new ConcurrentHashMap<>();
 
+	/** Drops the in-memory copy on a resource reload (VehicleRegistry.setAll()). The cache files on disk stay - they don't notice a changed OBJ; delete them by hand after editing a model. */
+	public static void clearCache() {
+		CACHE.clear();
+	}
+
 	private static final int CACHE_FORMAT_VERSION = 1;
 
 	private ServerObjModelTrackRollerBounds() {

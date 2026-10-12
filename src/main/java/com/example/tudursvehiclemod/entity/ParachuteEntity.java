@@ -18,6 +18,9 @@ public class ParachuteEntity extends AbstractVehicleEntity {
 	private static final double MAX_DESCENT_SPEED = 0.2;
 	/** How quickly vertical velocity eases toward -MAX_DESCENT_SPEED each tick - large enough that a parachute deployed mid-fall (already moving fast downward) visibly, promptly slows to the controlled descent speed rather than taking a long time to "catch up". */
 	private static final double DESCENT_EASE_RATE = 0.15;
+	/** A destroyed parachute's free fall - the same gravity and drag as an ordinary falling entity. */
+	private static final double FREE_FALL_GRAVITY = 0.08;
+	private static final double FREE_FALL_DRAG = 0.98;
 	/** Horizontal momentum retained per tick - a parachute drifts gently rather than either freezing horizontal motion outright or continuing to carry a launch's own full horizontal speed indefinitely. */
 	private static final double HORIZONTAL_DRAG_RETENTION = 0.96;
 
@@ -98,6 +101,26 @@ public class ParachuteEntity extends AbstractVehicleEntity {
 
 	@Override
 	protected void updateVehicleMovement(VehicleDefinition def) {
+		// A destroyed (shot-through) canopy no longer works: the rider is dropped to fall on their own, at the normal speed and with the normal fall damage (a vehicle doesn't pass its fall damage on - see AbstractVehicleEntity.handleFallDamage()), and the wreck falls like any loose object and is gone once it lands - no item back.
+		if (this.tudursvehiclemod$isDestroyed()) {
+			if (!this.getEntityWorld().isClient()) {
+				for (Entity passenger : this.tudursvehiclemod$getRealPassengerList()) {
+					passenger.stopRiding();
+				}
+			}
+			if (this.tudursvehiclemod$isSinking()) {
+				// Came down on water: the ordinary wreck sinking (AbstractVehicleEntity.tudursvehiclemod$applySinkingMotion()) takes over.
+				this.move(MovementType.SELF, this.getVelocity());
+				return;
+			}
+			Vec3d velocity = this.getVelocity();
+			this.setVelocity(velocity.x * FREE_FALL_DRAG, (velocity.y - FREE_FALL_GRAVITY) * FREE_FALL_DRAG, velocity.z * FREE_FALL_DRAG);
+			this.move(MovementType.SELF, this.getVelocity());
+			if (this.isOnGround() && !this.getEntityWorld().isClient()) {
+				this.discard();
+			}
+			return;
+		}
 		// Per LANDED_DISMOUNT_DELAY_TICKS' own doc: once this entity has fully finished its own landing sequence, it's an inert, vacant leftover - no descent physics run at all any more, it just sits exactly where it settled until someone actually interacts with it (recovery), it auto-itemizes/discards after VACANT_AUTO_ITEMIZE_TICKS, or it happens to be destroyed by ordinary vehicle damage.
 		if (this.tudursvehiclemod$isLandedAndVacant()) {
 			if (!this.getEntityWorld().isClient()) {

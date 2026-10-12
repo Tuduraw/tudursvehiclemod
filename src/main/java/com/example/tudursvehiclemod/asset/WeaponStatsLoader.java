@@ -522,16 +522,9 @@ public final class WeaponStatsLoader {
 				: Optional.empty();
 		float dispenseRange = Math.max(0.0f, toFloat(entries.get("dispenserange"), 4.0f));
 
-		// SmokeColor = Alpha, Red, Green, Blue (0-255 each) - Type=Smoke only. Packed into 0xAARRGGBB; any component missing/unparseable falls back to that channel's own share of the same default (230, 200, 20, 80) WeaponStats's own doc documents.
-		int smokeColor = 0xE6C81450;
-		if (entries.containsKey("smokecolor")) {
-			String[] smokeColorParts = entries.get("smokecolor").split(",");
-			int alpha = smokeColorParts.length > 0 ? (int) toFloat(smokeColorParts[0], 230f) : 230;
-			int red = smokeColorParts.length > 1 ? (int) toFloat(smokeColorParts[1], 200f) : 200;
-			int green = smokeColorParts.length > 2 ? (int) toFloat(smokeColorParts[2], 20f) : 20;
-			int blue = smokeColorParts.length > 3 ? (int) toFloat(smokeColorParts[3], 80f) : 80;
-			smokeColor = ((clampByte(alpha)) << 24) | (clampByte(red) << 16) | (clampByte(green) << 8) | clampByte(blue);
-		}
+		// SmokeColor - Type=Smoke only, packed into 0xAARRGGBB. A missing or unreadable channel keeps SMOKE_COLOR_DEFAULT's value for that channel.
+		// "0xAARRGGBB" is accepted as well as "A, R, G, B" (see parseArgbColor()) - as the documentation says; the hex form used to be read as a single, unreadable alpha value.
+		int smokeColor = parseArgbColor(entries.get("smokecolor"), SMOKE_COLOR_DEFAULT);
 		float smokeSize = Math.max(0.0f, toFloat(entries.get("smokesize"), 2.0f));
 		int smokeMaxAge = Math.max(1, (int) toFloat(entries.get("smokemaxage"), 500f));
 
@@ -739,17 +732,37 @@ public final class WeaponStatsLoader {
 	 * logic again. rawValue is the raw entries.get(..) result (null if
 	 * the key was absent from the file at all), fallback is used
 	 * wholesale in that case. */
+	/** An ARGB colour, written either as "A, R, G, B" (each 0-255) or as hex - "0xAARRGGBB" (or "#AARRGGBB"; six digits, "0xRRGGBB", is opaque). A channel that's missing or unreadable keeps the fallback's value for that channel; an unreadable hex value is the fallback outright. */
 	private static int parseArgbColor(String rawValue, int fallback) {
 		if (rawValue == null) {
 			return fallback;
 		}
-		String[] parts = rawValue.split(",");
-		int alpha = parts.length > 0 ? (int) toFloat(parts[0], 255f) : 255;
-		int red = parts.length > 1 ? (int) toFloat(parts[1], 255f) : 255;
-		int green = parts.length > 2 ? (int) toFloat(parts[2], 255f) : 255;
-		int blue = parts.length > 3 ? (int) toFloat(parts[3], 255f) : 255;
+		String value = rawValue.strip();
+		String hex = value.startsWith("0x") || value.startsWith("0X") ? value.substring(2)
+				: value.startsWith("#") ? value.substring(1) : null;
+		if (hex != null) {
+			try {
+				if (hex.length() == 6) {
+					return 0xFF000000 | Integer.parseUnsignedInt(hex, 16);
+				}
+				if (hex.length() == 8) {
+					return Integer.parseUnsignedInt(hex, 16);
+				}
+			} catch (NumberFormatException e) {
+				// Falls through to the fallback below.
+			}
+			return fallback;
+		}
+		String[] parts = value.split(",");
+		int alpha = parts.length > 0 ? (int) toFloat(parts[0], (fallback >>> 24) & 0xFF) : (fallback >>> 24) & 0xFF;
+		int red = parts.length > 1 ? (int) toFloat(parts[1], (fallback >>> 16) & 0xFF) : (fallback >>> 16) & 0xFF;
+		int green = parts.length > 2 ? (int) toFloat(parts[2], (fallback >>> 8) & 0xFF) : (fallback >>> 8) & 0xFF;
+		int blue = parts.length > 3 ? (int) toFloat(parts[3], fallback & 0xFF) : fallback & 0xFF;
 		return (clampByte(alpha) << 24) | (clampByte(red) << 16) | (clampByte(green) << 8) | clampByte(blue);
 	}
+
+	/** SmokeColor's default - the semi-transparent tan the documentation describes (A 230, R 200, G 170, B 110). It used to be 230, 200, 20, 80 - a crimson. */
+	private static final int SMOKE_COLOR_DEFAULT = 0xE6C8AA6E;
 
 	/** Maps MC Heli's own Type directive (see Readme_Weapon.txt's own documented list) down to WeaponType. */
 	/** Maps a CasFormationType/CarrierFormationType directive down to FormationType - see that enum's own doc. LINE_ABREAST (the default) if absent/unrecognized. */
@@ -772,7 +785,8 @@ public final class WeaponStatsLoader {
 			return WeaponType.OTHER;
 		}
 		return switch (rawType.strip().toLowerCase(Locale.ROOT)) {
-			case "machinegun1", "machinegun2" -> WeaponType.MACHINE_GUN;
+			// "MachineGun" is the documented name; MC Heli's own MachineGun1/MachineGun2 are read as the same type.
+			case "machinegun", "machinegun1", "machinegun2" -> WeaponType.MACHINE_GUN;
 			case "rocket" -> WeaponType.ROCKET;
 			case "bomb" -> WeaponType.BOMB;
 			// A new, project-specific type (not from MC Heli's own format) - behaves like BOMB except it doesn't explode on water contact (see WeaponType.DEPTH's own doc).

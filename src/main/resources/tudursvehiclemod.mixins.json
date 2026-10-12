@@ -8,7 +8,8 @@
     "VehicleMoveIgnoreMixin",
     "ProjectileVehicleHitMixin",
     "ExplosionKnockbackMixin",
-    "RemoteControlLogoutMixin"
+    "RemoteControlLogoutMixin",
+    "ProjectileFinalSegmentMixin"
   ],
   "injectors": {
     "defaultRequire": 1

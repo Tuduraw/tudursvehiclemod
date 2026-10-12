@@ -21,6 +21,8 @@ public class FuelRefinerBlockEntity extends BlockEntity implements Inventory, Na
 
 	/** A generous cap - a stack of 64 coal (1600 ticks each) is 102,400, so this comfortably holds a full stack's worth without needing to be emptied constantly. */
 	public static final int MAX_STORED_BURN_TIME = 128_000;
+	/** The full-gauge value of the screen property (see the PropertyDelegate below) - fits in a short. */
+	public static final int STORED_BURN_TIME_GAUGE_SCALE = 10_000;
 	/** How much stored burn time converts to 1 unit of can fuel per tick. */
 	private static final int BURN_TIME_PER_FUEL_UNIT = 4;
 	/** Multiplies the fuel units actually produced per unit of burn time consumed, without changing how much burn time gets consumed for that output. */
@@ -168,14 +170,15 @@ public class FuelRefinerBlockEntity extends BlockEntity implements Inventory, Na
 		return new PropertyDelegate() {
 			@Override
 			public int get(int index) {
-				return index == 0 ? FuelRefinerBlockEntity.this.storedBurnTime : 0;
+				// Screen properties travel as shorts (-32768 to 32767), but the store holds up to MAX_STORED_BURN_TIME (128000): past 32767 the gauge wrapped round - a lava bucket and a coal block showed it empty. What the screen gets is the fill level in hundredths of a percent (0 to STORED_BURN_TIME_GAUGE_SCALE) instead - all it ever draws.
+				return index == 0
+						? (int) ((long) FuelRefinerBlockEntity.this.storedBurnTime * STORED_BURN_TIME_GAUGE_SCALE / MAX_STORED_BURN_TIME)
+						: 0;
 			}
 
 			@Override
 			public void set(int index, int value) {
-				if (index == 0) {
-					FuelRefinerBlockEntity.this.storedBurnTime = value;
-				}
+				// Read-only from the screen's side: only the server's copy is ever set, and that from the block entity itself.
 			}
 
 			@Override

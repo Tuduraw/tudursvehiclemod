@@ -87,6 +87,8 @@ public final class WeaponTargeting {
 				e -> (e instanceof LivingEntity living && living.isAlive()
 						|| e instanceof AbstractVehicleEntity vehicleCandidate && !vehicleCandidate.tudursvehiclemod$isDestroyed())
 						&& !(e instanceof CarrierRunwayPlatformEntity)
+						// Never a vehicle's crew - the shooter's own back-seater or dummy pilot, or anyone aboard another vehicle (lock the vehicle itself instead): a missile sent after a passenger chases the seat, not the thing that can be hit.
+						&& !(e.getVehicle() instanceof AbstractVehicleEntity)
 						&& (excluded == null || !excluded.test(e)))) {
 			// Per Readme_Weapon.txt's own documented distinction ("AAMissile 空中にいるモブを追跡するミサイル" / "ATMissile 地上にいるモブを追跡するミサイル" - based on the TARGET's own current physical state, not its entity/vehicle type): a single shared classification (tudursvehiclemod$classifyTargetPosition()) determines whether a candidate is currently AIRBORNE, on the SURFACE (ground, or floating/standing on top of water), or SUBMERGED (underwater) - AA_MISSILE requires AIRBORNE, AT_MISSILE requires SURFACE; SUBMERGED is excluded from both (a submerged target is its own distinct category now, reserved for WeaponType.ASWeapon - see that enum's own doc). MISSILE (this project's own type, see that enum's own doc) and everything else stays unrestricted.
 			if (weaponType == WeaponType.AA_MISSILE || weaponType == WeaponType.AT_MISSILE) {

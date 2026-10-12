@@ -76,7 +76,7 @@ Delay = 1
 
 ### `SmokeColor`
 - **Format**: `A, R, G, B` (each 0-255), or `0xAARRGGBB` form (default: a
-  semi-transparent tan)
+  semi-transparent tan, `230, 200, 170, 110`)
 - **Description**: The smoke's own color.
 - **Example**: `SmokeColor = 230, 200, 20, 80`
 
@@ -112,7 +112,8 @@ MarkTime = 10
   `monsters/others`)
 - **Description**: What kind of target can be spotted. Choose from:
   - `planes` / `helicopters` / `vehicles`: this mod's own various
-    vehicles
+    vehicles (`planes`: fixed-wing aircraft and VTOLs, `helicopters`:
+    helicopters, `vehicles`: everything else)
   - `players`: other players
   - `monsters`: hostile mobs
   - `others`: other mobs

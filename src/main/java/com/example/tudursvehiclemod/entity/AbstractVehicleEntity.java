@@ -616,7 +616,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			return throttleOutput;
 		}
 		// setThrottleDirect() below already zeroes the tracked/displayed throttle while out of fuel, but this method's own RETURN value (what the caller actually uses to drive movement) wasn't gated the same way - letting a fuel-empty vehicle creep slightly while turning left/right despite the HUD correctly showing 0 throttle the whole time.
-		if (this.tudursvehiclemod$isOutOfFuel()) {
+		if (this.tudursvehiclemod$isOutOfFuel() || this.tudursvehiclemod$isDestroyed()) {
 			return throttleOutput;
 		}
 		double currentSpeedAbs = Math.abs(this.cruiseSpeed);
@@ -1298,8 +1298,14 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				continue;
 			}
 			int magazineSize = weapon.magazineSize();
-			int[] ammoState = this.getWeaponAmmoState(i);
-			int ammoRemaining = ammoState[0] >= 0 ? ammoState[0] : magazineSize;
+			// The server reads its own live count: the synced copy (getWeaponAmmoState()) is only rebuilt by tudursvehiclemod$syncWeaponAmmo(), so right after a tank was dropped - exactly when tudursvehiclemod$clampFuelToMaxFuel() asks - it still counted the dropped tank, and the excess fuel was kept.
+			int ammoRemaining;
+			if (!this.getEntityWorld().isClient() && i < this.weaponAmmo.length) {
+				ammoRemaining = this.weaponAmmo[i];
+			} else {
+				int[] ammoState = this.getWeaponAmmoState(i);
+				ammoRemaining = ammoState[0] >= 0 ? ammoState[0] : magazineSize;
+			}
 			maxFuel += Math.max(0, ammoRemaining) * weapon.fuelPerAmmo();
 		}
 		return maxFuel;
@@ -1706,21 +1712,21 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			return false;
 		}
 		if (!this.tudursvehiclemod$isDroneActive()) {
-			this.dataTracker.set(GROUND_ROUTE_ACTIVE, false);
+			this.tudursvehiclemod$endGroundRoute();
 			return false;
 		}
 		net.minecraft.util.math.BlockPos center = this.tudursvehiclemod$getDroneCenterPos();
 		if (center == null) {
-			this.dataTracker.set(GROUND_ROUTE_ACTIVE, false);
+			this.tudursvehiclemod$endGroundRoute();
 			return false;
 		}
 		if (!(this.getEntityWorld().getBlockEntity(center) instanceof com.example.tudursvehiclemod.block.DroneCenterBlockEntity droneCenter)) {
-			this.dataTracker.set(GROUND_ROUTE_ACTIVE, false);
+			this.tudursvehiclemod$endGroundRoute();
 			return false;
 		}
 		java.util.List<com.example.tudursvehiclemod.block.GroundWaypoint> route = droneCenter.tudursvehiclemod$getGroundWaypoints();
 		if (route.isEmpty()) {
-			this.dataTracker.set(GROUND_ROUTE_ACTIVE, false);
+			this.tudursvehiclemod$endGroundRoute();
 			return false;
 		}
 		this.dataTracker.set(GROUND_ROUTE_ACTIVE, true);
@@ -1728,6 +1734,19 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		this.dataTracker.set(GROUND_AUTOPILOT_THROTTLE_INPUT, this.syncedThrottleInput);
 		this.dataTracker.set(GROUND_AUTOPILOT_STEER_INPUT, this.syncedSidewaysInput);
 		return true;
+	}
+
+	/** Clears the route flag - and, on the tick a route actually ends, the inputs it left behind. The route writes the same synced throttle/steer fields a player's keys do, so without this the last waypoint's throttle stayed set and the vehicle drove off by itself the next time someone boarded. */
+	private void tudursvehiclemod$endGroundRoute() {
+		if (!this.dataTracker.get(GROUND_ROUTE_ACTIVE)) {
+			return;
+		}
+		this.dataTracker.set(GROUND_ROUTE_ACTIVE, false);
+		this.setThrottleDirect(0f);
+		this.setSyncedThrottleInput(0f);
+		this.setSyncedSidewaysInput(0f);
+		this.dataTracker.set(GROUND_AUTOPILOT_THROTTLE_INPUT, 0f);
+		this.dataTracker.set(GROUND_AUTOPILOT_STEER_INPUT, 0f);
 	}
 
 	/** The client-side engine sound manager reads tudursvehiclemod$getDroneSpeedFraction() as its own "throttle" input whenever isDroneActive() is true, but that field only applies to the GENERIC Drone Center orbital-patrol autopilot - it's never touched at all by AircraftEntity's own separate CAS/Carrier waypoint-following autopilot, which drives its own speed from each individual DroneWaypoint's own speedFraction instead. False by default (only AircraftEntity overrides this to true while actually following such a route) - lets the sound manager tell the two drone-style autopilot modes apart and read the correct speed source for each, rather than reading a stale/unrelated value the whole time a CAS/Carrier route is being flown. */
@@ -1899,6 +1918,10 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		this.calculateDimensions();
 	}
 
+	/** The definition whose hit meshes this vehicle last asked HitMeshPreloader for (server only). */
+	private VehicleDefinition hitMeshPreloadRequestedFor;
+	private int hitMeshPreloadGeneration;
+
 	/** Tracks whether there was a controlling passenger last tick, to detect the exact tick someone (re)takes the controls. */
 	private boolean hadController;
 
@@ -2035,6 +2058,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		this.hadController = hasController;
 
 		if (!this.getEntityWorld().isClient()) {
+			// The hit meshes are built in the background as soon as a vehicle of this definition is around, not on its first hit (see HitMeshPreloader). Asked again only when the definition changes, or the meshes were dropped (/reload).
+			VehicleDefinition hitMeshDefinition = this.getDefinition();
+			if (hitMeshDefinition != this.hitMeshPreloadRequestedFor || this.hitMeshPreloadGeneration != HitMeshPreloader.generation()) {
+				this.hitMeshPreloadRequestedFor = hitMeshDefinition;
+				this.hitMeshPreloadGeneration = HitMeshPreloader.generation();
+				HitMeshPreloader.request(hitMeshDefinition);
+			}
 			tudursvehiclemod$clearExpiredFiringBits();
 			tudursvehiclemod$clearExpiredActualFireBits();
 		}
@@ -3720,6 +3750,10 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (this.tudursvehiclemod$getAssignedSeatIndex(passenger) < 0) {
 			return;
 		}
+		// A remote controller's body only sits in the drone's seat - ejecting would throw it out at the drone, far from its station. Ending control (tudursvehiclemod$tryExitRemoteControl()) is the only way out.
+		if (this.remoteControllerId != null && this.remoteControllerId.equals(passenger.getUuid())) {
+			return;
+		}
 		Vec3d launchOrigin = passenger.getEntityPos();
 		passenger.stopRiding();
 		// stopRiding() just above (via removePassenger()) unconditionally scheduled a deferred dismount-position correction for THIS SAME passenger, fired on this vehicle's own NEXT tick() call - which would teleport them straight back to their old seat position moments later, completely undoing the explosion's own velocity impulse below. Canceled here (only if it still actually targets this passenger) since the ejection itself already fully handles repositioning/launching - that later correction would otherwise defeat the whole feature.
@@ -3762,6 +3796,9 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 		SeatDefinition seat = this.getDefinition().seats().get(seatIndex);
 		if (seat.driver() || !seat.enableParachuting()) {
+			return;
+		}
+		if (this.remoteControllerId != null && this.remoteControllerId.equals(passenger.getUuid())) {
 			return;
 		}
 		Vec3d jumpOrigin = passenger.getEntityPos();
@@ -4250,6 +4287,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 					&& this.tudursvehiclemod$tryReturnCarrierPilotToMothership(world, aircraft, player)) {
 				continue;
 			}
+			if (passenger instanceof ServerPlayerEntity player && this.tudursvehiclemod$tryReturnPlayerOnDestroyed(world, player)) {
+				continue;
+			}
+			// The remote controller goes back to their station below (tudursvehiclemod$tryExitRemoteControl()) rather than being ejected at the wreck.
+			if (this.remoteControllerId != null && this.remoteControllerId.equals(passenger.getUuid())) {
+				continue;
+			}
 			if (hasEjectionSeat) {
 				this.tudursvehiclemod$tryEjectSeat(passenger);
 			}
@@ -4264,6 +4308,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		this.tudursvehiclemod$tryExitRemoteControl();
 		// A destroyed vehicle should no longer be flying its own autonomous target-drone routine - releases the Drone Center link the same way remote control is already released just above.
 		this.tudursvehiclemod$setDroneLink(null);
+	}
+
+	/** Hook for a subtype that launched from a mothership (a Midget, see SubmarineEntity) to put a player aboard back on it when this vehicle is destroyed, instead of ejecting them or leaving them on the wreck. Returns whether the player was returned. */
+	protected boolean tudursvehiclemod$tryReturnPlayerOnDestroyed(ServerWorld world, ServerPlayerEntity player) {
+		return false;
 	}
 
 	/** Rather than ejected into open air and damaged like any other passenger - called from tudursvehiclemod$onDestroyed() before the normal damage/eject loop reaches them. Mirrors tudursvehiclemod$toggleCarrierSeat()'s own "returning to mothership" branch (same pre-check-before-stopRiding() order). Returns whether the return actually succeeded - false (mothership gone, seat already occupied by someone else, or the mount itself failing for any other reason) means the caller should fall back to the normal damage/eject handling instead, since a player left with no vehicle at all is worse than one merely ejected and damaged as usual. */
@@ -5334,8 +5383,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		switch (flareType) {
 			case 2 -> {
 				// Large-aircraft flare - same forward/rear scatter as the plain flare (case 1, the default branch below) but a noticeably bigger burst, per FlareType's own doc distinguishing "大型機向け" (for large aircraft) from the plain "有り" (present) case.
-				tudursvehiclemod$spawnFlareBurst(serverWorld, center, bodyOrientation, new Vector3f(0, 0, 1), 24);
 				tudursvehiclemod$spawnFlareBurst(serverWorld, center, bodyOrientation, new Vector3f(0, 0, -1), 24);
+				tudursvehiclemod$spawnFlareBurst(serverWorld, center, bodyOrientation, new Vector3f(0, 0, 1), 24);
 			}
 			case 3 -> {
 				// Lateral - scattered to both sides.
@@ -5343,8 +5392,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				tudursvehiclemod$spawnFlareBurst(serverWorld, center, bodyOrientation, new Vector3f(-1, 0, 0), 12);
 			}
 			case 4 ->
-				// Frontal - scattered forward only.
-					tudursvehiclemod$spawnFlareBurst(serverWorld, center, bodyOrientation, new Vector3f(0, 0, -1), 16);
+				// Frontal - scattered forward only (body-local +Z is forward, as Vec3d.fromPolar(0, 0) is for a weapon mount).
+					tudursvehiclemod$spawnFlareBurst(serverWorld, center, bodyOrientation, new Vector3f(0, 0, 1), 16);
 			case 5 ->
 				// Downward - scattered below.
 					tudursvehiclemod$spawnFlareBurst(serverWorld, center, bodyOrientation, new Vector3f(0, -1, 0), 16);
@@ -5360,7 +5409,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			}
 			default ->
 				// Plain flare (FlareType=1, or any other unlisted 1-10 value) - scattered to the rear, the classic countermeasure-dispenser look.
-					tudursvehiclemod$spawnFlareBurst(serverWorld, center, bodyOrientation, new Vector3f(0, 0, 1), 16);
+					tudursvehiclemod$spawnFlareBurst(serverWorld, center, bodyOrientation, new Vector3f(0, 0, -1), 16);
 		}
 	}
 
@@ -5373,9 +5422,10 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 					localDirection.z + (serverWorld.random.nextFloat() - 0.5f) * 0.8f);
 			bodyOrientation.transform(spread);
 			double speed = 0.3 + serverWorld.random.nextDouble() * 0.3;
+			// count 0: the deltas are then the particle's velocity (times speed). With count 1 they were only a random position spread and every flame flew off in a random direction at 0.05 - which is why no FlareType's direction showed. The forward/rear axes were also swapped (body-local +Z is forward).
 			serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.FLAME, true, true,
-					center.x, center.y, center.z, 1,
-					spread.x * speed, spread.y * speed, spread.z * speed, 0.05);
+					center.x, center.y, center.z, 0,
+					spread.x, spread.y, spread.z, speed);
 		}
 	}
 
@@ -7026,8 +7076,10 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				break;
 			}
 		}
+		// Its own requester: an aircraft that is a Carrier aircraft AND carries Carriers of its own forces its CAS/Carrier grid as "this" too (AircraftEntity), and the releaseAll() below used to drop that grid along with this one.
+		Object mothershipGridRequester = new com.example.tudursvehiclemod.ChunkForceTracker.Purpose(this, "carrier_mothership_grid");
 		if (!hasActiveLink) {
-			com.example.tudursvehiclemod.ChunkForceTracker.releaseAll(serverWorld, this);
+			com.example.tudursvehiclemod.ChunkForceTracker.releaseAll(serverWorld, mothershipGridRequester);
 			this.carrierMothershipForcedChunks = java.util.Set.of();
 			return;
 		}
@@ -7041,12 +7093,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (!newGrid.equals(this.carrierMothershipForcedChunks)) {
 			for (net.minecraft.util.math.ChunkPos chunk : this.carrierMothershipForcedChunks) {
 				if (!newGrid.contains(chunk)) {
-					com.example.tudursvehiclemod.ChunkForceTracker.release(serverWorld, chunk, this);
+					com.example.tudursvehiclemod.ChunkForceTracker.release(serverWorld, chunk, mothershipGridRequester);
 				}
 			}
 			for (net.minecraft.util.math.ChunkPos chunk : newGrid) {
 				if (!this.carrierMothershipForcedChunks.contains(chunk)) {
-					com.example.tudursvehiclemod.ChunkForceTracker.request(serverWorld, chunk, this);
+					com.example.tudursvehiclemod.ChunkForceTracker.request(serverWorld, chunk, mothershipGridRequester);
 				}
 			}
 			this.carrierMothershipForcedChunks = newGrid;
@@ -7239,6 +7291,10 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 		spawned.refreshPositionAndAngles(spawnX, spawnY, spawnZ, spawnYaw, 0f);
 		serverWorld.spawnEntity(spawned);
+		// A midget that comes back brings its round back (SubmarineEntity's recoverMidget()), so - like a Carrier aircraft - it counts against the weapon's MaxAmmo while it's out; otherwise resupply could fill the weapon up and the returning round push it past.
+		if (config.recovery()) {
+			this.tudursvehiclemod$incrementCarrierInFlightCount(mothershipWeaponIndex, spawned.getUuid());
+		}
 		// The same per-seat roster a Carrier launch keeps, so the seat switch (toggleCarrierSeat) can take the shooter into this midget and back.
 		if (shooter != null) {
 			int shooterSeatIndex = this.tudursvehiclemod$getAssignedSeatIndex(shooter);
@@ -7706,8 +7762,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		if (candidate instanceof net.minecraft.entity.player.PlayerEntity) {
 			return categories.contains("players");
 		}
+		// HelicopterEntity isn't an AircraftEntity subclass, so it used to fall through to "vehicles" - and "helicopters" picked up planes instead. Each now matches its own name (a VTOL is an AircraftEntity: "planes", as in MC Heli).
+		if (candidate instanceof HelicopterEntity) {
+			return categories.contains("helicopters");
+		}
 		if (candidate instanceof AircraftEntity) {
-			return categories.contains("planes") || categories.contains("helicopters");
+			return categories.contains("planes");
 		}
 		if (candidate instanceof AbstractVehicleEntity) {
 			return categories.contains("vehicles");
@@ -7755,8 +7815,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	/** CAS/Carrier's own default ballistic stats (see tudursvehiclemod$computeBallisticTargetPoint()'s own doc) land at approximately 1000 blocks when fired at a 45-degree elevation - both chosen as integers, confirmed numerically against THIS project's own drag-aware trajectory physics (0.99x/tick air resistance - see client.hud.MortarMarkerRenderer's own PROJECTILE_AIR_DRAG_PER_TICK doc for why that specific value matters here), not the simpler drag-free "v^2/g" formula alone (velocity=197/gravity=32 gives ~839 blocks drag-free at 45 degrees, but ~1000 with this project's own real, drag-aware physics - the pair actually used here). */
 	private static final float CAS_CARRIER_DEFAULT_VELOCITY = 197f;
 	private static final float CAS_CARRIER_DEFAULT_GRAVITY = 32f;
-	/** Vanilla's own ThrownItemEntity air drag (see that class's own applyDrag()) - matches client.hud.MortarMarkerRenderer's own identical constant, kept as a separate definition here since src/main (this file, shared client+server) can't reference a src/client-only class at all (that source set doesn't exist on a dedicated server). */
-	private static final double CAS_CARRIER_BALLISTIC_AIR_DRAG_PER_TICK = 0.99;
 	/** This weapon TYPE's own appropriate raycast range - unlike tudursvehiclemod$raycastGroundPoint() (AS_MISSILE's own use, MISSILE_TARGET_SEARCH_RANGE = 128 blocks, tuned for a much shorter-range weapon), a CAS/Carrier strike is meant to reach roughly as far as BALLISTIC's own default stats already do (see CAS_CARRIER_DEFAULT_VELOCITY/GRAVITY's own doc, ~1000 blocks at a 45-degree aim) - a mere 128-block raycast range meant RAYCAST mode simply couldn't reach anywhere near that far regardless of aim, which is almost certainly why it "wasn't working well" in practice. */
 	private static final double CAS_CARRIER_RAYCAST_RANGE = 1000.0;
 	/** COLLISION mode uses ONLY the actual block collision to determine the target (never substituting BALLISTIC's own same-height-return point) - generous enough ticks for the simulated trajectory to keep falling well below launch height (e.g. firing from a cliff down into a valley) until it actually hits terrain, rather than an arbitrary early cutoff. 3000 ticks (150 simulated seconds) comfortably covers any realistic fall even from near the build height limit down to the world's own bottom. */
@@ -7768,10 +7826,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		float gravity = weapon.gravity() > 0f ? weapon.gravity() : CAS_CARRIER_DEFAULT_GRAVITY;
 		Vec3d start = shooter.getEyePos();
 		Vec3d aimDir = shooter.getRotationVec(1.0f);
-		double horizontalSpeed = Math.sqrt(aimDir.x * aimDir.x + aimDir.z * aimDir.z) * velocity;
+		double horizontalAimLength = Math.sqrt(aimDir.x * aimDir.x + aimDir.z * aimDir.z);
 		double verticalSpeed = aimDir.y * velocity;
-		if (verticalSpeed <= 0.0 || gravity <= 0f) {
-			// Aiming level or downward (or a pathologically zero/negative gravity, impossible via the fallback above but defensive regardless) - no meaningful "returns to launch height" point exists, so the point is where the line of sight actually meets the water or ground. This used to be the raw aim direction CAS_CARRIER_DEFAULT_VELOCITY * 20 (3940 blocks) out, height included: aiming only a few degrees down put the strike's own reference point hundreds of blocks underground - and every route waypoint's height is relative to it. Lock mode (looking down at the designated ship) all but always lands here, so a Carrier/CAS aircraft that went back to its route after the attack (or after a reload dropped its lock) dived for a waypoint far below the sea (a diagnostic log showed a route target height of -204). Water counts as a hit (SOURCE_ONLY), so aiming at the sea gives the sea surface, not the seabed.
+		double distance = com.example.tudursvehiclemod.entity.projectile.Ballistics.levelReturnDistance(horizontalAimLength * velocity, verticalSpeed,
+				gravity, com.example.tudursvehiclemod.entity.projectile.Ballistics.levelReturnTickCap(verticalSpeed, gravity));
+		if (distance < 0.0) {
+			// The shot never rises above the launch height - aimed level or down, or too shallow to climb against gravity even for one tick (the latter used to give a range of 0: the target point on the shooter himself) - so there's no "back at launch height" point. The point is where the line of sight meets the water or ground instead.
 			Vec3d sightEnd = start.add(aimDir.multiply(CAS_CARRIER_RAYCAST_RANGE));
 			net.minecraft.util.hit.HitResult sightHit = this.getEntityWorld().raycast(new net.minecraft.world.RaycastContext(start, sightEnd,
 					net.minecraft.world.RaycastContext.ShapeType.COLLIDER, net.minecraft.world.RaycastContext.FluidHandling.SOURCE_ONLY, shooter));
@@ -7779,36 +7839,15 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				return sightHit.getPos();
 			}
 			// Nothing within range (looking at the horizon): that far out horizontally, at the launch height - the same height every other case of this method returns.
-			double levelAimLength = Math.sqrt(aimDir.x * aimDir.x + aimDir.z * aimDir.z);
-			if (levelAimLength < 1.0e-4) {
+			if (horizontalAimLength < 1.0e-4) {
 				return start;
 			}
-			return start.add(aimDir.x / levelAimLength * CAS_CARRIER_RAYCAST_RANGE, 0.0, aimDir.z / levelAimLength * CAS_CARRIER_RAYCAST_RANGE);
+			return start.add(aimDir.x / horizontalAimLength * CAS_CARRIER_RAYCAST_RANGE, 0.0, aimDir.z / horizontalAimLength * CAS_CARRIER_RAYCAST_RANGE);
 		}
-		double stepHorizontalVelocity = horizontalSpeed;
-		double stepVerticalVelocity = verticalSpeed;
-		double horizontalDistance = 0.0;
-		double heightAboveLaunch = 0.0;
-		double dragFreeEstimateTicks = 2.0 * verticalSpeed / gravity;
-		int tickCap = (int) Math.max(1200.0, dragFreeEstimateTicks * 3.0);
-		for (int tick = 0; tick < tickCap; tick++) {
-			stepHorizontalVelocity *= CAS_CARRIER_BALLISTIC_AIR_DRAG_PER_TICK;
-			stepVerticalVelocity = stepVerticalVelocity * CAS_CARRIER_BALLISTIC_AIR_DRAG_PER_TICK - gravity;
-			double nextHeightAboveLaunch = heightAboveLaunch + stepVerticalVelocity;
-			if (nextHeightAboveLaunch <= 0.0) {
-				double fraction = heightAboveLaunch / (heightAboveLaunch - nextHeightAboveLaunch);
-				horizontalDistance += stepHorizontalVelocity * fraction;
-				break;
-			}
-			horizontalDistance += stepHorizontalVelocity;
-			heightAboveLaunch = nextHeightAboveLaunch;
-		}
-		double horizontalAimLength = Math.sqrt(aimDir.x * aimDir.x + aimDir.z * aimDir.z);
 		if (horizontalAimLength < 1.0e-4) {
 			return start;
 		}
-		Vec3d horizontalAimDir = new Vec3d(aimDir.x / horizontalAimLength, 0.0, aimDir.z / horizontalAimLength);
-		return start.add(horizontalAimDir.multiply(horizontalDistance));
+		return start.add(aimDir.x / horizontalAimLength * distance, 0.0, aimDir.z / horizontalAimLength * distance);
 	}
 
 	/** The same trajectory physics tudursvehiclemod$computeBallisticTargetPoint() itself uses, but the target is determined SOLELY by an actual block collision - the simulation keeps running (raycasting between each consecutive simulated position, well past the height BALLISTIC itself would already stop at if needed) until something is actually hit, or CAS_CARRIER_COLLISION_MAX_TICKS/falling below the world's own bottom is reached (both extremely unlikely in practice - would require firing out over open air/void for an absurdly long unobstructed fall), in which case wherever the simulation currently stands is used as a last-resort fallback rather than leaving the target undefined. */
@@ -7817,39 +7856,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		float gravity = weapon.gravity() > 0f ? weapon.gravity() : CAS_CARRIER_DEFAULT_GRAVITY;
 		Vec3d start = shooter.getEyePos();
 		Vec3d aimDir = shooter.getRotationVec(1.0f);
-		if (gravity <= 0f) {
-			// A pathologically zero/negative gravity (impossible via the fallback above but defensive regardless) - no meaningful arc at all; falls back to a straight-line raycast along the aim direction instead, matching the general shape of the other modes' own fallback for this same degenerate case.
-			Vec3d fallbackEnd = start.add(aimDir.multiply(CAS_CARRIER_DEFAULT_VELOCITY * 20.0));
-			net.minecraft.util.hit.BlockHitResult fallbackHit = tudursvehiclemod$raycastBlocksBetween(start, fallbackEnd, shooter);
-			return fallbackHit != null ? fallbackHit.getPos() : fallbackEnd;
-		}
-		double horizontalAimLength = Math.sqrt(aimDir.x * aimDir.x + aimDir.z * aimDir.z);
-		Vec3d horizontalAimDir = horizontalAimLength < 1.0e-4 ? Vec3d.ZERO
-				: new Vec3d(aimDir.x / horizontalAimLength, 0.0, aimDir.z / horizontalAimLength);
-		double stepHorizontalVelocity = horizontalAimLength * velocity;
-		double stepVerticalVelocity = aimDir.y * velocity;
-		double horizontalDistance = 0.0;
-		double heightAboveLaunch = 0.0;
-		Vec3d previousPos = start;
-		double worldBottomMargin = this.getEntityWorld().getBottomY() - 8;
-		for (int tick = 0; tick < CAS_CARRIER_COLLISION_MAX_TICKS; tick++) {
-			stepHorizontalVelocity *= CAS_CARRIER_BALLISTIC_AIR_DRAG_PER_TICK;
-			stepVerticalVelocity = stepVerticalVelocity * CAS_CARRIER_BALLISTIC_AIR_DRAG_PER_TICK - gravity;
-			horizontalDistance += stepHorizontalVelocity;
-			heightAboveLaunch += stepVerticalVelocity;
-			Vec3d nextPos = start.add(horizontalAimDir.multiply(horizontalDistance)).add(0.0, heightAboveLaunch, 0.0);
-			net.minecraft.util.hit.BlockHitResult stepHit = tudursvehiclemod$raycastBlocksBetween(previousPos, nextPos, shooter);
-			if (stepHit != null) {
-				return stepHit.getPos();
-			}
-			if (nextPos.y < worldBottomMargin) {
-				// Fell below the world - no terrain will ever be hit at all; stops simulating here rather than looping needlessly, using wherever it currently stands as a last-resort fallback.
-				return nextPos;
-			}
-			previousPos = nextPos;
-		}
-		// Exhausted the tick cap without ever hitting anything - extremely unlikely in practice, but a defensive fallback regardless.
-		return previousPos;
+		// Runs on until it really hits something, even well below the launch height (firing from a cliff down into a valley); falling out of the world, it stops there.
+		return com.example.tudursvehiclemod.entity.projectile.Ballistics.flyUntilBlocked(start, aimDir.multiply(velocity), gravity,
+				this.getEntityWorld().getBottomY() - 8, Double.MAX_VALUE, CAS_CARRIER_COLLISION_MAX_TICKS,
+				(from, to) -> {
+					net.minecraft.util.hit.BlockHitResult hit = tudursvehiclemod$raycastBlocksBetween(from, to, shooter);
+					return hit != null ? hit.getPos() : null;
+				}).pos();
 	}
 
 	/** Shared block-collision check for tudursvehiclemod$computeCasCarrierCollisionPoint()'s own per-step raycast - a single simulated-trajectory-step raycast between two consecutive positions, returning the hit (or null if that step passed through open air/fluid entirely). */
@@ -8513,7 +8526,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		// Restocks the reserve by suppliedNum, then tops the magazine back up from that reserve - one action doing both.
 		if (this.weaponReserveAmmo[weaponIndex] >= 0) {
 			// Reserve cap is maxAmmo minus current magazine ammo, not maxAmmo alone (- otherwise repeated resupply could exceed maxAmmo's combined total).
-			int reserveCap = Math.max(0, weapon.maxAmmo() - this.weaponAmmo[weaponIndex]);
+			// Launched craft still out (Carrier aircraft, midgets) count against it too - each brings its round back on recovery, which could otherwise push the total past MaxAmmo.
+			int reserveCap = Math.max(0, weapon.maxAmmo() - this.weaponAmmo[weaponIndex] - inFlight);
 			this.weaponReserveAmmo[weaponIndex] = Math.min(reserveCap, this.weaponReserveAmmo[weaponIndex] + weapon.suppliedNum());
 			int wanted = weapon.magazineSize() - this.weaponAmmo[weaponIndex];
 			int actuallyAdded = Math.min(wanted, this.weaponReserveAmmo[weaponIndex]);
@@ -8686,14 +8700,15 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 	}
 
-	/** Turns every passenger's view by the same yawDelta the vehicle just turned by, so it stays fixed relative to the hull (Car, Ship and Submarine steer their yaw from A/D, independently of anyone's view). Shared by those three; each used to carry its own copy. */
+	/** Turns every passenger's view by the same yawDelta the vehicle just turned by, so it stays fixed relative to the hull (Car, Ship and Submarine steer their yaw from A/D, independently of anyone's view). Shared by those three; each used to carry its own copy.
+	 *
+	 * <p>This runs on both sides: a piloted vehicle's movement is also simulated on the clients, so the pilot's own client turns its own view here from its own input. The other passengers' clients can't (they don't have the pilot's input), so the server tells them - with a relative rotation packet. This used to be a full requestTeleport() to every player aboard, every tick of a turn: it re-sent the position, overwrote the pilot's own (already turned) view with a server copy one round trip old, and while each teleport waited for its confirmation the server dropped that player's movement/look packets - the server's idea of where they were looking lagged for as long as the turn lasted. */
 	protected void tudursvehiclemod$turnPassengerViews(float yawDelta) {
+		Entity controller = this.getControllingPassenger();
 		for (Entity passenger : this.tudursvehiclemod$getRealPassengerList()) {
 			passenger.setYaw(passenger.getYaw() - yawDelta);
-			if (passenger instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
-				serverPlayer.networkHandler.requestTeleport(
-						serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
-						serverPlayer.getYaw(), serverPlayer.getPitch());
+			if (passenger != controller && passenger instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
+				serverPlayer.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.PlayerRotationS2CPacket(-yawDelta, true, 0f, true));
 			}
 		}
 	}
@@ -8752,6 +8767,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	/** The resolved static body mesh, cached per definition. tudursvehiclemod$isWorldPointNearVehicleSurface() previously called asset.ServerObjModelHitboxes's own getMeshExcludingGroups() directly on EVERY point test, and while that method caches the mesh itself, reaching that cache still required building its key first - modelId concatenated with the excluded group names sorted and joined via a Stream pipeline and a string reduce. A string reduce allocates a new string at every step, so that cost grows quadratically with part count, and it was paid on every single point of every projectile check. Resolving the mesh once per definition skips that entire lookup on the hot path. Same IdentityHashMap reasoning as ANIMATED_PART_NAMES_CACHE above. */
 	private static final java.util.Map<VehicleDefinition, java.util.Optional<com.example.tudursvehiclemod.asset.ServerObjModelHitboxes.Mesh>> STATIC_BODY_MESH_CACHE =
 			java.util.Collections.synchronizedMap(new java.util.IdentityHashMap<>());
+
+	/** Drops the per-definition caches (static body meshes, animated part names) and HitMeshPreloader's queue on a resource reload (VehicleRegistry.setAll()): the old definitions are gone, and the meshes are read again from the OBJ files. */
+	public static void tudursvehiclemod$clearDefinitionCaches() {
+		STATIC_BODY_MESH_CACHE.clear();
+		ANIMATED_PART_NAMES_CACHE.clear();
+		HitMeshPreloader.clear();
+	}
 
 	/** This definition's own static body mesh (animated parts excluded), resolved once and reused. */
 	public static java.util.Optional<com.example.tudursvehiclemod.asset.ServerObjModelHitboxes.Mesh> tudursvehiclemod$getStaticBodyMesh(VehicleDefinition def) {
@@ -9342,11 +9364,14 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		// counts this mod's own, so vanilla arrows and tridents - which can't hit a vehicle
 		// any other way (see mixin.ProjectileVehicleHitMixin) - went straight through
 		// whenever none of this mod's own were in flight.
+		this.tudursvehiclemod$diagLastCheckTime = serverWorld.getTime(); // HITDIAG
 		if (!LoadedProjectiles.any(serverWorld)) {
+			this.tudursvehiclemod$diagLastCheckReason = "noProjectilesInWorld"; // HITDIAG
 			return;
 		}
 		var wholeMeshOpt = com.example.tudursvehiclemod.asset.ServerObjModelHitboxes.getMesh(def.model());
 		if (wholeMeshOpt.isEmpty()) {
+			this.tudursvehiclemod$diagLastCheckReason = "noMesh"; // HITDIAG
 			return;
 		}
 		// This used to derive the search
@@ -9371,15 +9396,24 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 						+ Math.pow(wholeMesh.maxY() - wholeMesh.minY(), 2)
 						+ Math.pow(wholeMesh.maxZ() - wholeMesh.minZ(), 2))
 				* scale;
-		net.minecraft.util.math.Box searchBox = new net.minecraft.util.math.Box(
-				this.getX(), this.getY(), this.getZ(), this.getX(), this.getY(), this.getZ())
-				.expand(meshDiagonal);
-		List<net.minecraft.entity.projectile.ProjectileEntity> candidates = this.getEntityWorld().getEntitiesByClass(
-				net.minecraft.entity.projectile.ProjectileEntity.class, searchBox,
-				projectile -> !projectile.isRemoved() && !tudursvehiclemod$wasFiredByThisVehicle(projectile));
+		// Candidates by the path each projectile flew on its last move (tudursvehiclemod$lastMove()), not by where it is now: a fast shell is outside a box around the vehicle both before and after the tick it passes through. See LoadedProjectiles's doc. The move is taken HERE and carried with the candidate, and that very move is what gets checked - see HitCandidate's doc.
+		Vec3d vehiclePos = this.getEntityPos();
+		List<HitCandidate> candidates = new java.util.ArrayList<>();
+		for (net.minecraft.entity.projectile.ProjectileEntity projectile : LoadedProjectiles.in(serverWorld)) {
+			if (projectile.isRemoved() || tudursvehiclemod$wasFiredByThisVehicle(projectile)) {
+				continue;
+			}
+			Vec3d[] move = tudursvehiclemod$lastMove(projectile);
+			Vec3d segment = move[1].subtract(move[0]);
+			if (tudursvehiclemod$distanceToSegment(vehiclePos, move[0], segment, segment.length()) <= meshDiagonal) {
+				candidates.add(new HitCandidate(projectile, move[0], move[1]));
+			}
+		}
 		if (candidates.isEmpty()) {
+			this.tudursvehiclemod$diagLastCheckReason = "noCandidates"; // HITDIAG
 			return;
 		}
+		this.tudursvehiclemod$diagLastCheckReason = "checked" + candidates.size(); // HITDIAG
 
 		// When the opt-in cross-vehicle parallel
 		// path is enabled (see VehicleModServerConfig's own
@@ -9404,16 +9438,73 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		// parallelStream()'s own fork/join dispatch overhead exceeds
 		// whatever it could possibly save - a plain sequential stream is
 		// both simpler and actually cheaper at this scale.
-		List<net.minecraft.entity.projectile.ProjectileEntity> hits = candidates.stream()
-				.filter(projectile -> tudursvehiclemod$checkProjectileHit(projectile, inverseRotation, scale, def))
-				.collect(java.util.stream.Collectors.toList());
+		List<ProjectileHit> hits = new java.util.ArrayList<>();
+		for (HitCandidate candidate : candidates) {
+			ProjectileHit hit = tudursvehiclemod$checkCandidate(candidate, inverseRotation, scale, def);
+			if (hit != null) {
+				hits.add(hit);
+			}
+		}
 		tudursvehiclemod$applyProjectileHits(serverWorld, hits);
 	}
 
+	/** A projectile found to have hit this vehicle, and where along its move it first touched the mesh. */
+	record ProjectileHit(net.minecraft.entity.projectile.ProjectileEntity projectile, Vec3d contact) {
+	}
+
+	/** The candidate's move checked against this vehicle (tudursvehiclemod$segmentHitFraction()): the hit with its contact point, or null. */
+	private ProjectileHit tudursvehiclemod$checkCandidate(HitCandidate candidate, org.joml.Quaternionf inverseRotation, float scale, VehicleDefinition def) {
+		double along = tudursvehiclemod$segmentHitFraction(candidate.from(), candidate.to(), inverseRotation, scale, def, false);
+		return along < 0.0 ? null : new ProjectileHit(candidate.projectile(), candidate.from().lerp(candidate.to(), along));
+	}
+
+	/** A projectile to check against this vehicle, with the move to check it along - taken when the candidate is gathered (during this vehicle's tick), not when it's checked.
+	 *
+	 * <p>Why the move is captured: HitDetectionCoordinator (the parallel path, VehicleModServerConfig.parallelHitDetectionAcrossVehicles) checks at the END of the tick, and used to re-read the projectile's position and velocity then. A projectile fired during the fight is newer than the vehicles around it, so it ticks after them: by the end of the tick it had already made its next move. The candidate was chosen because its previous move came near this vehicle, but what got checked was the move after - already past the vehicle. A shell crossing the hull was caught only when the following move happened to pass near the mesh as well (along a long barrel, say), so hits came and went with the exact line of fire. */
+	record HitCandidate(net.minecraft.entity.projectile.ProjectileEntity projectile, Vec3d from, Vec3d to) {
+	}
+
+	/** The projectile's latest move, {from, to}: from where it was when its last tick began (lastX/Y/Z - ServerWorld.tickEntity() resets them right before tick()) to where it is now - what it actually flew, whatever changed its velocity afterwards (a guided missile steers after moving, a bounce reflects it). Falls back to one velocity back from its position where lastX/Y/Z can't be that (a projectile that hasn't ticked yet, whose lastX/Y/Z may still be the origin, or a teleport). */
+	public static Vec3d[] tudursvehiclemod$lastMove(net.minecraft.entity.projectile.ProjectileEntity projectile) {
+		Vec3d to = projectile.getEntityPos();
+		Vec3d from = new Vec3d(projectile.lastX, projectile.lastY, projectile.lastZ);
+		Vec3d velocity = projectile.getVelocity();
+		if (from.squaredDistanceTo(to) > Math.pow(velocity.length() * 2.0 + 4.0, 2)) {
+			from = to.subtract(velocity);
+		}
+		return new Vec3d[]{from, to};
+	}
+
 	/** The actual side effects (damage + discard) for a resolved set of hits - extracted so HitDetectionCoordinator (see that class's own doc) can apply its own batch's results through the exact same path, rather than duplicating this logic. ALWAYS called on the server thread, never from inside a parallel phase. */
-	void tudursvehiclemod$applyProjectileHits(net.minecraft.server.world.ServerWorld serverWorld,
-			List<net.minecraft.entity.projectile.ProjectileEntity> hits) {
-		for (net.minecraft.entity.projectile.ProjectileEntity projectile : hits) {
+	// HITDIAG: temporary diagnostics state - see HitDiagnostics.
+	public long tudursvehiclemod$diagLastCheckTime = -1; // HITDIAG
+	public String tudursvehiclemod$diagLastCheckReason = "none"; // HITDIAG
+	boolean tudursvehiclemod$diagWasFiredBy(net.minecraft.entity.projectile.ProjectileEntity projectile) { // HITDIAG
+		return this.tudursvehiclemod$wasFiredByThisVehicle(projectile); // HITDIAG
+	} // HITDIAG
+	String tudursvehiclemod$diagDefinitionId() { // HITDIAG
+		return this.dataTracker.get(VEHICLE_ID); // HITDIAG
+	} // HITDIAG
+	/** HITDIAG: {distance in blocks to the nearest static-body triangle, body-local x, y, z} for a world point, or null without a mesh. */
+	double[] tudursvehiclemod$diagNearestBodySurface(Vec3d worldPoint) { // HITDIAG
+		VehicleDefinition def = this.getDefinition(); // HITDIAG
+		var staticMeshOpt = tudursvehiclemod$getStaticBodyMesh(def); // HITDIAG
+		if (staticMeshOpt.isEmpty()) return null; // HITDIAG
+		org.joml.Vector3f local = new org.joml.Vector3f((float) (worldPoint.x - this.getX()), (float) (worldPoint.y - this.getY()), (float) (worldPoint.z - this.getZ())); // HITDIAG
+		this.getSeatRotationCurrent().conjugate().transform(local); // HITDIAG
+		if (def.scale() > 0f) local.div(def.scale()); // HITDIAG
+		double distance = com.example.tudursvehiclemod.asset.ServerObjModelHitboxes.nearestSurfaceDistance(staticMeshOpt.get(), local.x, local.y, local.z) * def.scale(); // HITDIAG
+		return new double[]{distance, local.x, local.y, local.z}; // HITDIAG
+	} // HITDIAG
+
+	void tudursvehiclemod$applyProjectileHits(net.minecraft.server.world.ServerWorld serverWorld, List<ProjectileHit> hits) {
+		HitDiagnostics.countTickHits(hits.size()); // HITDIAG
+		for (ProjectileHit hit : hits) {
+			net.minecraft.entity.projectile.ProjectileEntity projectile = hit.projectile();
+			// Back to where it touched the mesh. The checks look at a move the projectile has already made, so by now it is at the far end of it - a fast shell up to its whole tick's travel (30-40 blocks) beyond the vehicle - and its explosion, and the client's last sight of it, used to be out there instead of on the hull.
+			projectile.setPosition(hit.contact());
+			// Before the discard below: its removal is when LoadedProjectiles looks back over its path for a hull it went through unnoticed (see LoadedProjectiles.onUnload()), and this one has been dealt with.
+			LoadedProjectiles.markVehicleHit(projectile);
 			float damageAmount = tudursvehiclemod$estimateProjectileDamage(projectile);
 			net.minecraft.entity.damage.DamageSource damageSource = tudursvehiclemod$estimateProjectileDamageSource(projectile, serverWorld);
 			this.damage(serverWorld, damageSource, damageAmount);
@@ -9432,32 +9523,162 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	/** Pure, read-only geometry check for one candidate, resolving this vehicle's own current rotation/scale/definition itself rather than taking them as parameters - so HitDetectionCoordinator's own parallel phase (see that class's own doc) can call this directly without having to capture and carry that state around per submission. Safe to call from a worker thread: touches only immutable mesh data plus this entity's own already-settled per-tick state. */
-	boolean tudursvehiclemod$checkProjectileHitForCoordinator(net.minecraft.entity.projectile.ProjectileEntity projectile) {
+	ProjectileHit tudursvehiclemod$checkProjectileHitForCoordinator(HitCandidate candidate) {
 		VehicleDefinition def = this.getDefinition();
-		return tudursvehiclemod$checkProjectileHit(projectile, this.getSeatRotationCurrent().conjugate(), def.scale(), def);
+		return tudursvehiclemod$checkCandidate(candidate, this.getSeatRotationCurrent().conjugate(), def.scale(), def);
+	}
+
+	/** How far (blocks, horizontally) from a projectile's last move to look for vehicles whose mesh it may have passed through - see tudursvehiclemod$tryHitOnFinalSegment(). Each vehicle found is then kept only if the move comes within its own mesh's reach. */
+	private static final double FINAL_SEGMENT_VEHICLE_SEARCH_RANGE = 96.0;
+
+	/** The last move of a projectile that has just struck a block or an entity (and the move before it) - checked against nearby vehicles' meshes before the hit is handled (mixin.ProjectileFinalSegmentMixin). Returns whether a vehicle took the hit (the projectile is then spent, as for any vehicle hit, and the block hit is skipped).
+	 *
+	 * <p>Why this is needed: the per-tick check (tudursvehiclemod$updateCustomHitDetection() / HitDetectionCoordinator) only ever looks at a projectile that is still in the world, and a projectile that runs into a block is removed within its own tick. So the one move in which a shell passes through a hull AND strikes what is behind or under it - the ground beneath a vehicle, the wall it is parked against, its own deck - was never checked at all. Whether a given shot ended that way depended only on where the tick boundaries happened to fall along its flight, so the same shot from the same spot could miss every time and then hit after the shooter or target moved a little. */
+	public static boolean tudursvehiclemod$tryHitOnFinalSegment(ServerWorld world, net.minecraft.entity.projectile.ProjectileEntity projectile, Vec3d from, Vec3d to) {
+		if (projectile.isRemoved()) {
+			return false;
+		}
+		// The move before this one too, where it's known: with the parallel check (HitDetectionCoordinator), the previous move is checked only at the end of this tick - too late, if the projectile ends here.
+		List<Vec3d> path = new java.util.ArrayList<>(3);
+		Vec3d previous = LoadedProjectiles.positionBefore(projectile, from);
+		if (previous != null) {
+			path.add(previous);
+		}
+		path.add(from);
+		path.add(to);
+		PathHit firstHit = tudursvehiclemod$findFirstVehicleOnPath(world, projectile, path, true);
+		if (firstHit == null) {
+			return false;
+		}
+		firstHit.vehicle().tudursvehiclemod$applyProjectileHits(world, java.util.List.of(new ProjectileHit(projectile, firstHit.contact())));
+		return true;
+	}
+
+	/** The first vehicle (in order along the path) whose mesh the polyline path passes through, or null. Every vehicle within FINAL_SEGMENT_VEHICLE_SEARCH_RANGE of the path whose mesh could reach it is checked, segment by segment, with tudursvehiclemod$segmentHitFraction(); vehicles that fired the projectile are skipped. Server thread.
+	 *
+	 * <p>pointAgeTicks: if true, the path's points are that many ticks old counting back from the last (the last 0, the one before 1, ...), and each is moved along with each vehicle by how far that vehicle went in its last tick, times its age - so a point is tested where it was relative to the vehicle at the time, not relative to where the vehicle has got to since (a fast aircraft would otherwise "catch" a shell that passed well behind it a tick or two earlier). */
+	static PathHit tudursvehiclemod$findFirstVehicleOnPath(ServerWorld world, net.minecraft.entity.projectile.ProjectileEntity projectile, List<Vec3d> path) {
+		return tudursvehiclemod$findFirstVehicleOnPath(world, projectile, path, false);
+	}
+
+	/** tudursvehiclemod$findFirstVehicleOnPath()'s result: the vehicle, and the point where the path first touched its mesh (where it is relative to the vehicle now). */
+	record PathHit(AbstractVehicleEntity vehicle, Vec3d contact) {
+	}
+
+	static PathHit tudursvehiclemod$findFirstVehicleOnPath(ServerWorld world, net.minecraft.entity.projectile.ProjectileEntity projectile, List<Vec3d> path, boolean pointAgeTicks) {
+		if (path.size() < 2) {
+			return null;
+		}
+		net.minecraft.util.math.Box searchBox = null;
+		for (Vec3d point : path) {
+			net.minecraft.util.math.Box pointBox = new net.minecraft.util.math.Box(point, point);
+			searchBox = searchBox == null ? pointBox : searchBox.union(pointBox);
+		}
+		searchBox = searchBox.expand(FINAL_SEGMENT_VEHICLE_SEARCH_RANGE, FINAL_SEGMENT_VEHICLE_SEARCH_RANGE * 0.5, FINAL_SEGMENT_VEHICLE_SEARCH_RANGE);
+		List<AbstractVehicleEntity> vehicles = world.getEntitiesByClass(AbstractVehicleEntity.class, searchBox,
+				candidate -> !candidate.isRemoved() && !candidate.tudursvehiclemod$wasFiredByThisVehicle(projectile));
+		if (vehicles.isEmpty()) {
+			return null;
+		}
+		// Segment by segment from the start, so the vehicle hit first along the flight wins.
+		int last = path.size() - 1;
+		for (int i = 0; i < last; i++) {
+			AbstractVehicleEntity firstHit = null;
+			double firstHitAlong = Double.MAX_VALUE;
+			Vec3d firstHitContact = null;
+			for (AbstractVehicleEntity vehicle : vehicles) {
+				Vec3d from = path.get(i);
+				Vec3d to = path.get(i + 1);
+				if (pointAgeTicks) {
+					Vec3d vehicleStep = vehicle.getEntityPos().subtract(vehicle.lastX, vehicle.lastY, vehicle.lastZ);
+					from = from.add(vehicleStep.multiply(last - i));
+					to = to.add(vehicleStep.multiply(last - i - 1));
+				}
+				Vec3d segment = to.subtract(from);
+				double length = segment.length();
+				VehicleDefinition def = vehicle.getDefinition();
+				var wholeMeshOpt = com.example.tudursvehiclemod.asset.ServerObjModelHitboxes.getMesh(def.model());
+				if (wholeMeshOpt.isEmpty()) {
+					continue;
+				}
+				var wholeMesh = wholeMeshOpt.get();
+				float scale = def.scale();
+				double reach = Math.sqrt(Math.pow(wholeMesh.maxX() - wholeMesh.minX(), 2) + Math.pow(wholeMesh.maxY() - wholeMesh.minY(), 2)
+						+ Math.pow(wholeMesh.maxZ() - wholeMesh.minZ(), 2)) * scale;
+				if (tudursvehiclemod$distanceToSegment(vehicle.getEntityPos(), from, segment, length) > reach) {
+					continue;
+				}
+				double along = vehicle.tudursvehiclemod$segmentHitFraction(from, to, vehicle.getSeatRotationCurrent().conjugate(), scale, def, i == last - 1);
+				if (along >= 0.0 && along < firstHitAlong) {
+					firstHit = vehicle;
+					firstHitAlong = along;
+					firstHitContact = from.lerp(to, along);
+				}
+			}
+			if (firstHit != null) {
+				return new PathHit(firstHit, firstHitContact);
+			}
+		}
+		return null;
+	}
+
+	private static double tudursvehiclemod$distanceToSegment(Vec3d point, Vec3d from, Vec3d segment, double length) {
+		if (length < 1.0e-6) {
+			return point.distanceTo(from);
+		}
+		double t = net.minecraft.util.math.MathHelper.clamp(point.subtract(from).dotProduct(segment) / (length * length), 0.0, 1.0);
+		return point.distanceTo(from.add(segment.multiply(t)));
 	}
 
 	/** How many points to sample along a fast projectile's own recent movement segment (see this method's own doc) - deliberately fine-grained (every ~0.25 blocks of travel) since a rocket/bomb's own much higher per-tick speed compared to a machine-gun bullet was, tunneling clean through the thin surface-distance threshold checking only its own single current-tick position. */
 	private static final float HIT_CHECK_SAMPLE_SPACING = 0.25f;
 
-	/** Samples several points along the segment from this tick's start position to current (not just the current position alone), so a fast-moving projectile can't skip over the thin detection shell between ticks. */
-	private boolean tudursvehiclemod$checkProjectileHit(net.minecraft.entity.projectile.ProjectileEntity projectile,
-			org.joml.Quaternionf inverseRotation, float scale, VehicleDefinition def) {
-		Vec3d currentPos = projectile.getEntityPos();
-		Vec3d velocity = projectile.getVelocity();
-		Vec3d previousPos = currentPos.subtract(velocity);
-		double segmentLength = velocity.length();
+	/** How far along the move from -> to (0..1) it first touches this vehicle's mesh, or -1 if it doesn't: points every HIT_CHECK_SAMPLE_SPACING along it are tested against the surface (static body and every animated part at its current transform), so a fast projectile can't step over the thin detection shell between ticks.
+	 *
+	 * <p>checkEnclosedEnd: the point where the move ends is also tested for lying INSIDE the body (tudursvehiclemod$isWorldPointEnclosedByBody()) - a projectile that ends its flight within the hull without having come near its skin (a vehicle that moved onto a slow projectile, say) hit it too. Only for the end of a flight (the final-move and after-the-fact checks): one that flies on through the hull crosses the skin on its way out, and the inside test costs much more than the surface test. */
+	private double tudursvehiclemod$segmentHitFraction(Vec3d from, Vec3d to, org.joml.Quaternionf inverseRotation, float scale, VehicleDefinition def, boolean checkEnclosedEnd) {
+		double segmentLength = from.distanceTo(to);
 		int steps = Math.max(1, (int) Math.ceil(segmentLength / HIT_CHECK_SAMPLE_SPACING));
 		for (int step = 0; step <= steps; step++) {
 			double t = (double) step / steps;
-			double sampleX = previousPos.x + (currentPos.x - previousPos.x) * t;
-			double sampleY = previousPos.y + (currentPos.y - previousPos.y) * t;
-			double sampleZ = previousPos.z + (currentPos.z - previousPos.z) * t;
+			double sampleX = from.x + (to.x - from.x) * t;
+			double sampleY = from.y + (to.y - from.y) * t;
+			double sampleZ = from.z + (to.z - from.z) * t;
 			if (tudursvehiclemod$isWorldPointNearVehicleSurface(sampleX, sampleY, sampleZ, inverseRotation, scale, def)) {
-				return true;
+				return t;
 			}
 		}
-		return false;
+		if (checkEnclosedEnd && tudursvehiclemod$isWorldPointEnclosedByBody(to.x, to.y, to.z, inverseRotation, scale, def)) {
+			return 1.0;
+		}
+		return -1.0;
+	}
+
+	/** Whether the world point lies inside the volume the static body mesh encloses (ServerObjModelHitboxes.isEnclosed()) - deep inside the hull, beyond the reach of the surface test. */
+	private boolean tudursvehiclemod$isWorldPointEnclosedByBody(double worldX, double worldY, double worldZ,
+			org.joml.Quaternionf inverseRotation, float scale, VehicleDefinition def) {
+		var staticMeshOpt = tudursvehiclemod$getStaticBodyMesh(def);
+		if (staticMeshOpt.isEmpty()) {
+			return false;
+		}
+		org.joml.Vector3f bodyLocal = new org.joml.Vector3f(
+				(float) (worldX - this.getX()), (float) (worldY - this.getY()), (float) (worldZ - this.getZ()));
+		inverseRotation.transform(bodyLocal);
+		if (scale > 0f) {
+			bodyLocal.div(scale);
+		}
+		return com.example.tudursvehiclemod.asset.ServerObjModelHitboxes.isEnclosed(staticMeshOpt.get(), bodyLocal.x, bodyLocal.y, bodyLocal.z);
+	}
+
+	/** After a projectile has gone (LoadedProjectiles.processLateChecks()): its last moves, from the positions LoadedProjectiles recorded, checked once more against the vehicles around them. Anything that ended it - a block, an entity, a fuse, water - happens inside its own tick, and the checks made while it flew can only see moves already finished; this looks back over the whole of the end of its flight, whichever way it ended. A vehicle found on the path takes the hit's damage (the projectile's own explosion has already gone off where it ended). Returns the vehicle hit, or null. */
+	static AbstractVehicleEntity tudursvehiclemod$tryLateHitOnPath(ServerWorld world, net.minecraft.entity.projectile.ProjectileEntity projectile, List<Vec3d> path) {
+		PathHit hit = tudursvehiclemod$findFirstVehicleOnPath(world, projectile, path, true);
+		if (hit == null) {
+			return null;
+		}
+		AbstractVehicleEntity vehicle = hit.vehicle();
+		vehicle.damage(world, tudursvehiclemod$estimateProjectileDamageSource(projectile, world), tudursvehiclemod$estimateProjectileDamage(projectile));
+		return vehicle;
 	}
 
 	/** Excludes this vehicle's own fire from self-damage - getOwner() alone is always the shooting player, never the vehicle, so this checks the recorded firing vehicle (VehicleProjectileEntity) or falls back to current-passenger status otherwise. */

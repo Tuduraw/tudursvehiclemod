@@ -32,6 +32,11 @@ public final class ServerObjModelZExtent {
 
 	private static final Map<Identifier, Extents> CACHE = new ConcurrentHashMap<>();
 
+	/** Drops the cache on a resource reload (VehicleRegistry.setAll()), so an edited OBJ is read again. */
+	public static void clearCache() {
+		CACHE.clear();
+	}
+
 	private ServerObjModelZExtent() {
 	}
 

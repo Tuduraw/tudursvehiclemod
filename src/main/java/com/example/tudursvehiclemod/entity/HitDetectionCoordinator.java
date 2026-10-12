@@ -52,19 +52,19 @@ public final class HitDetectionCoordinator {
 	}
 
 	/** One vehicle's own pending hit-detection work for this tick - its own candidates were already gathered on the server thread (world entity queries are NOT safe to run off-thread), leaving only the pure geometry math for the parallel phase. */
-	private record PendingCheck(AbstractVehicleEntity vehicle, ServerWorld world, List<ProjectileEntity> candidates) {
+	private record PendingCheck(AbstractVehicleEntity vehicle, ServerWorld world, List<AbstractVehicleEntity.HitCandidate> candidates) {
 	}
 
 	/** Concurrent purely as a defensive measure - submissions all come from the server thread during entity ticking in practice, but this costs essentially nothing and removes any doubt. */
 	private static final Queue<PendingCheck> PENDING = new ConcurrentLinkedQueue<>();
 
 	/** Called from AbstractVehicleEntity's own tudursvehiclemod$updateCustomHitDetection() (server thread, during that vehicle's own tick) INSTEAD of doing the check inline, whenever the parallel path is enabled - see this class's own doc. */
-	static void tudursvehiclemod$submit(AbstractVehicleEntity vehicle, ServerWorld world, List<ProjectileEntity> candidates) {
+	static void tudursvehiclemod$submit(AbstractVehicleEntity vehicle, ServerWorld world, List<AbstractVehicleEntity.HitCandidate> candidates) {
 		PENDING.add(new PendingCheck(vehicle, world, candidates));
 	}
 
 	/** One vehicle's own resolved hits, ready for sequential side effects. */
-	private record ResolvedHits(PendingCheck check, List<ProjectileEntity> hits) {
+	private record ResolvedHits(PendingCheck check, List<AbstractVehicleEntity.ProjectileHit> hits) {
 	}
 
 	/** Called once per server tick, at END_SERVER_TICK (see VehicleMod's own registration) - drains everything submitted during this tick, runs all of it as ONE parallel pass, then applies every resulting side effect sequentially. A complete no-op when nothing was submitted (the overwhelmingly common case, and also always the case when the parallel path is disabled entirely). */
@@ -91,13 +91,15 @@ public final class HitDetectionCoordinator {
 		try {
 			resolved = stream
 				.map(check -> {
-					List<ProjectileEntity> hits = new ArrayList<>();
-					for (ProjectileEntity projectile : check.candidates()) {
-						if (projectile.isRemoved()) {
+					List<AbstractVehicleEntity.ProjectileHit> hits = new ArrayList<>();
+					// Each candidate is checked along the move it was gathered by (see AbstractVehicleEntity.HitCandidate's doc) - not wherever it has got to by now.
+					for (AbstractVehicleEntity.HitCandidate candidate : check.candidates()) {
+						if (candidate.projectile().isRemoved()) {
 							continue;
 						}
-						if (check.vehicle().tudursvehiclemod$checkProjectileHitForCoordinator(projectile)) {
-							hits.add(projectile);
+						AbstractVehicleEntity.ProjectileHit hit = check.vehicle().tudursvehiclemod$checkProjectileHitForCoordinator(candidate);
+						if (hit != null) {
+							hits.add(hit);
 						}
 					}
 					return new ResolvedHits(check, hits);
@@ -112,8 +114,18 @@ public final class HitDetectionCoordinator {
 			}
 		}
 
+		// One projectile, one hit. Vehicles close together (a formation, an aircraft on a carrier's deck) can all find the same projectile inside their meshes in this pass - and every one of them used to take its damage, the explosion going off once per vehicle. Inline, the first vehicle to tick discards it, so the others never see it: the same here, the first in tick order (the batch keeps submission order - collect() preserves the encounter order even in parallel) takes it.
+		java.util.Set<ProjectileEntity> applied = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
 		for (ResolvedHits result : resolved) {
-			result.check().vehicle().tudursvehiclemod$applyProjectileHits(result.check().world(), result.hits());
+			List<AbstractVehicleEntity.ProjectileHit> hits = new ArrayList<>(result.hits().size());
+			for (AbstractVehicleEntity.ProjectileHit hit : result.hits()) {
+				if (!hit.projectile().isRemoved() && applied.add(hit.projectile())) {
+					hits.add(hit);
+				}
+			}
+			if (!hits.isEmpty()) {
+				result.check().vehicle().tudursvehiclemod$applyProjectileHits(result.check().world(), hits);
+			}
 		}
 	}
 

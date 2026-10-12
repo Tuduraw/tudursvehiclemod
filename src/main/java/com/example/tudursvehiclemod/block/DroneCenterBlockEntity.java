@@ -629,6 +629,32 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 		this.currentlyFollowingWingmen.addAll(stillFollowing);
 	}
 
+	/** Lets every wingman go: each drops its formation-follow and carries on as an ordinary unmanned aircraft. For when the leader is let go - deactivation once the leader has fully landed (the wingmen follow it down until then), its stick taken out, or the leader lost. Wingmen used to keep chasing the landed leader, down at its height, for good. */
+	private void tudursvehiclemod$releaseFormationWingmen(ServerWorld serverWorld) {
+		for (UUID wingmanId : this.currentlyFollowingWingmen) {
+			if (serverWorld.getEntity(wingmanId) instanceof com.example.tudursvehiclemod.entity.AircraftEntity wingman) {
+				wingman.tudursvehiclemod$clearDroneFormationFollow();
+			}
+		}
+		this.currentlyFollowingWingmen.clear();
+	}
+
+	/** Slot 0's stick changed (taken out - by hand or a hopper - or swapped for another): this center lets go of the vehicle it was bound to at once - the vehicle's link, the formation's wingmen and every chunk forced for it - and turns off. The let-go vehicles carry on as ordinary unmanned ones. Before, tick() and toggleActive() simply found nothing bound any more: the chunks stayed forced, the old vehicle kept flying its route, and the screen could no longer switch it off. */
+	private void tudursvehiclemod$onBoundStickChanged(UUID previousBoundId) {
+		UUID newBoundId = this.tudursvehiclemod$getBoundVehicleId();
+		if (previousBoundId == null || previousBoundId.equals(newBoundId) || !(this.getWorld() instanceof ServerWorld serverWorld)) {
+			return;
+		}
+		if (tudursvehiclemod$findBoundVehicle(serverWorld, previousBoundId) instanceof com.example.tudursvehiclemod.entity.AbstractVehicleEntity previousVehicle) {
+			previousVehicle.tudursvehiclemod$setDroneLink(null);
+		}
+		this.tudursvehiclemod$releaseFormationWingmen(serverWorld);
+		this.tudursvehiclemod$releaseCurrentlyForcedChunk(serverWorld);
+		this.active = false;
+		this.pendingDeactivation = false;
+		this.markDirty();
+	}
+
 	/** Externally-visible active state (e.g. what the config screen's own toggle button shows) - reflects the user's own last request immediately (shows "off" the instant they ask, even if the vehicle itself is still landing internally) rather than the internal active field, which deliberately lags behind until landing actually finishes (see that field's own doc). */
 	public boolean tudursvehiclemod$isActive() {
 		return this.active && !this.pendingDeactivation;
@@ -679,6 +705,7 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 			this.pendingDeactivation = false;
 			this.markDirty();
 			this.tudursvehiclemod$releaseCurrentlyForcedChunk(world);
+			this.tudursvehiclemod$releaseFormationWingmen(world);
 			if (vehicle != null) {
 				vehicle.tudursvehiclemod$setDroneLink(null, this.speedFraction, this.orbitAltitude, this.radiusMultiplier);
 			}
@@ -847,6 +874,7 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 			blockEntity.pendingDeactivation = false;
 			blockEntity.markDirty();
 			blockEntity.tudursvehiclemod$releaseCurrentlyForcedChunk(serverWorld);
+			blockEntity.tudursvehiclemod$releaseFormationWingmen(serverWorld);
 			return;
 		}
 		// While waiting on that, checks whether the vehicle's own landing sequence has actually finished (it clears its own state and releases the link itself upon touchdown) - checked BEFORE the normal "re-apply every tick" logic below, so a just-landed vehicle doesn't get its drone link immediately re-enabled again.
@@ -856,6 +884,8 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 			blockEntity.pendingDeactivation = false;
 			blockEntity.markDirty();
 			blockEntity.tudursvehiclemod$releaseCurrentlyForcedChunk(serverWorld);
+			// The leader is home and let go: the wingmen, which followed it down, are let go now too.
+			blockEntity.tudursvehiclemod$releaseFormationWingmen(serverWorld);
 			return;
 		}
 		if (vehicle != null) {
@@ -870,6 +900,15 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 			vehicle.tudursvehiclemod$setDroneLink(pos, blockEntity.speedFraction, blockEntity.orbitAltitude, blockEntity.radiusMultiplier);
 			blockEntity.tudursvehiclemod$updateFormationWingmen(serverWorld, vehicle);
 			return;
+		}
+		// The vehicle isn't in this world any more (killed outright, or gone through a portal) - the 3x3 grid kept it loaded, so it didn't just unload. Holding the grid around where it was is no use: let it go and look with the search window below, as for a vehicle that isn't loaded. Its wingmen have nothing to follow either.
+		if (!blockEntity.currentlyForcedChunks.isEmpty()) {
+			Object gridRequester = blockEntity.tudursvehiclemod$gridRequester();
+			for (ChunkPos chunk : blockEntity.currentlyForcedChunks) {
+				com.example.tudursvehiclemod.ChunkForceTracker.release(serverWorld, chunk, gridRequester);
+			}
+			blockEntity.currentlyForcedChunks = java.util.Set.of();
+			blockEntity.tudursvehiclemod$releaseFormationWingmen(serverWorld);
 		}
 		if (blockEntity.lastKnownVehicleChunk == null) {
 			return;
@@ -977,16 +1016,21 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 
 	@Override
 	public ItemStack removeStack(int slot, int amount) {
+		UUID previousBoundId = slot == 0 ? this.tudursvehiclemod$getBoundVehicleId() : null;
 		ItemStack result = net.minecraft.inventory.Inventories.splitStack(this.items, slot, amount);
 		if (!result.isEmpty()) {
 			this.markDirty();
+			this.tudursvehiclemod$onBoundStickChanged(previousBoundId);
 		}
 		return result;
 	}
 
 	@Override
 	public ItemStack removeStack(int slot) {
-		return net.minecraft.inventory.Inventories.removeStack(this.items, slot);
+		UUID previousBoundId = slot == 0 ? this.tudursvehiclemod$getBoundVehicleId() : null;
+		ItemStack result = net.minecraft.inventory.Inventories.removeStack(this.items, slot);
+		this.tudursvehiclemod$onBoundStickChanged(previousBoundId);
+		return result;
 	}
 
 	@Override
@@ -995,6 +1039,7 @@ public class DroneCenterBlockEntity extends BlockEntity implements NamedScreenHa
 		if (slot == 0) {
 			UUID previousBoundId = this.tudursvehiclemod$getBoundVehicleId();
 			this.items.set(slot, stack);
+			this.tudursvehiclemod$onBoundStickChanged(previousBoundId);
 			UUID newBoundId = this.tudursvehiclemod$getBoundVehicleId();
 			if (newBoundId != null && !newBoundId.equals(previousBoundId) && this.getWorld() instanceof ServerWorld serverWorld
 					&& tudursvehiclemod$findBoundVehicle(serverWorld, newBoundId) instanceof com.example.tudursvehiclemod.entity.AbstractVehicleEntity vehicle) {

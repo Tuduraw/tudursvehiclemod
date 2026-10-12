@@ -111,7 +111,7 @@ public class ShipEntity extends AbstractVehicleEntity {
 			// ship genuinely can't turn at all until it's actually reached
 			// pivot_turn_throttle's own minimum speed (matching CarEntity's
 			// own turnRate=0 while restricted).
-			if (!isPivotTurnRestricted(def, this.getSyncedSidewaysInput())) {
+			if (!isPivotTurnRestricted(def, this.getSyncedSidewaysInput()) && !this.tudursvehiclemod$isDestroyed()) {
 				float yawDelta = this.getSyncedSidewaysInput() * this.tudursvehiclemod$getEffectiveTurnSpeed();
 				// A real ship's own rudder response similarly inverts with travel direction while genuinely moving backwards. Keyed off cruiseSpeed (this vehicle's own signed forward speed, set below by approachThrottledVelocity() on the PREVIOUS tick) rather than throttle input, so it follows ACTUAL motion - a ship still coasting forward while the player has just selected reverse steers as though moving forward, flipping only once genuinely travelling backwards. Exactly zero leaves steering unflipped, so a stationary ship turning in place is unaffected.
 				if (this.cruiseSpeed < 0f) {

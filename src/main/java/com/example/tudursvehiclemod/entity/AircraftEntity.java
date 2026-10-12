@@ -1554,6 +1554,8 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 						|| e instanceof AbstractVehicleEntity vehicleCandidate && !vehicleCandidate.tudursvehiclemod$isDestroyed())
 						&& !(e instanceof com.example.tudursvehiclemod.entity.CarrierRunwayPlatformEntity)
 						&& (roster == null || !roster.contains(e.getUuid()))
+						// No vehicle's crew (see WeaponTargeting.findLockOnTarget()).
+						&& !(e.getVehicle() instanceof AbstractVehicleEntity)
 						&& e != shooter.getVehicle())) {
 			Vec3d toCandidate = candidate.getEntityPos().subtract(eyePos);
 			double distance = toCandidate.length();
@@ -2699,6 +2701,11 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		this.carrierLockedTargetUuid = null;
 	}
 
+	/** True during the level flight that follows a torpedo's release (TorpedoRunPlanner's HOLD) on a locked target. The torpedo has just left, so there's nothing left to fire - but the run isn't over until the break that follows; the pursuit itself ends the lock then (tudursvehiclemod$updateCarrierLockPursuit()). */
+	public boolean tudursvehiclemod$isTorpedoHoldInProgress() {
+		return this.carrierLockedTargetUuid != null && this.torpedoRunPlanner.phase() == TorpedoRunPlanner.Phase.HOLD;
+	}
+
 	/** The torpedo attack's own state across ticks - see TorpedoRunPlanner's own doc and tudursvehiclemod$updateCarrierLockPursuit(). Reset whenever a new lock is assigned. */
 	private final TorpedoRunPlanner torpedoRunPlanner = new TorpedoRunPlanner();
 	/** How close to dead level (degrees) the aircraft's own pitch must be for a torpedo to be released. */
@@ -3055,30 +3062,9 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 	/** A falling weapon (BOMB/DEPTH) releases at the point where it would actually hit the target, using the SAME calculation already established for the player-facing HUD guide (see client.hud.MortarMarkerRenderer's own PROJECTILE_AIR_DRAG_PER_TICK doc for why this exact drag factor matters): simulates this weapon's own drag-aware ballistic fall from origin/initialVelocity under gravity, stepping forward one tick at a time (0.99x/tick air drag on every velocity component, matching the actual real projectile's own vanilla ThrownItemEntity physics) until height reaches targetY, then returns the horizontal position at that exact point (interpolated within the final tick, not snapped to a whole-tick position, for a precise result) - this method has no block-collision awareness at all (a pure "falls to this specific Y" calculation, not "falls until it hits something"), which is exactly right here since the caller already knows the target's own actual Y directly, unlike the HUD's own version (which has to raycast for the first block hit instead, since the player could be aiming at anything). Falls back to the origin's own horizontal position at targetY (no meaningful travel at all) if MAX_FALLING_WEAPON_SIMULATION_TICKS is somehow exceeded (a needlessly high initial altitude combined with near-zero fall speed) rather than returning null/throwing - this is an AI release-timing decision, not a player-facing display, so a degenerate "release now" fallback is safer than leaving the caller with nothing to act on at all. */
 	private static final int MAX_FALLING_WEAPON_SIMULATION_TICKS = 3000;
 
-	/** Vanilla's own ThrownItemEntity air drag per tick - the ACTUAL projectile (VehicleProjectileEntity extends ThrownItemEntity) decelerates by this factor every tick. Matches client.hud.MortarMarkerRenderer's own identical PROJECTILE_AIR_DRAG_PER_TICK constant exactly (same physical reality, just duplicated here rather than referenced directly - that class lives in the client-only package and can't be referenced from this server-side class at all, since a dedicated server has no client classes loaded). */
-	private static final double FALLING_WEAPON_AIR_DRAG_PER_TICK = 0.99;
 
 	private Vec3d tudursvehiclemod$simulateFallingWeaponImpact(Vec3d origin, Vec3d initialVelocity, float gravity, double targetY) {
-		double stepVelocityX = initialVelocity.x;
-		double stepVelocityY = initialVelocity.y;
-		double stepVelocityZ = initialVelocity.z;
-		double x = origin.x;
-		double y = origin.y;
-		double z = origin.z;
-		for (int tick = 0; tick < MAX_FALLING_WEAPON_SIMULATION_TICKS; tick++) {
-			stepVelocityX *= FALLING_WEAPON_AIR_DRAG_PER_TICK;
-			stepVelocityZ *= FALLING_WEAPON_AIR_DRAG_PER_TICK;
-			stepVelocityY = stepVelocityY * FALLING_WEAPON_AIR_DRAG_PER_TICK - gravity;
-			double nextY = y + stepVelocityY;
-			if (nextY <= targetY) {
-				double fraction = (y - targetY) / Math.max(y - nextY, 1.0e-6);
-				return new Vec3d(x + stepVelocityX * fraction, targetY, z + stepVelocityZ * fraction);
-			}
-			x += stepVelocityX;
-			z += stepVelocityZ;
-			y = nextY;
-		}
-		return new Vec3d(x, targetY, z);
+		return com.example.tudursvehiclemod.entity.projectile.Ballistics.fallTo(origin, initialVelocity, gravity, targetY, MAX_FALLING_WEAPON_SIMULATION_TICKS);
 	}
 
 

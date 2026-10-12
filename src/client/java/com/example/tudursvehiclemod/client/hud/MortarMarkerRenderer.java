@@ -21,23 +21,9 @@ public final class MortarMarkerRenderer {
 	private MortarMarkerRenderer() {
 	}
 
-	/** Vanilla's own ThrownItemEntity air drag (see that class's own applyDrag()) - the ACTUAL projectile (VehicleProjectileEntity extends ThrownItemEntity) decelerates by this factor every tick, which both this class's own trajectory simulation below AND tudursvehiclemod$computeMachineGunDistance()'s own numerical simulation must match, or their own predicted range/impact point systematically diverges from where the real projectile actually lands. Not applied in water at all (that variant uses 0.8x/tick instead) - neither simulation has water-crossing detection of its own, so this only ever models the (by far most common) all-air case correctly. */
-	static final double PROJECTILE_AIR_DRAG_PER_TICK = 0.99;
-
 	/** This vehicle's own getVelocity() (used for the vehicle's own momentum contribution in tudursvehiclemod$computeMachineGunDistance()) is the raw, client-synced value - not smoothly interpolated the way position/rotation are for rendering - so it can occasionally report a brief, non-interpolated noise spike/dip between network updates even while nothing the player controls is actually changing. Eased towards the newly-computed value each frame instead of snapping to it outright, so a single noisy frame doesn't visibly flicker the display - still tracks a genuine, sustained change (actually re-aiming) within a few frames. Reset to -1 immediately (no easing INTO an invalid state) the moment the value stops being computable at all, rather than visibly decaying towards an increasingly wrong number while the player is no longer aiming upward. */
 	private static double smoothedMachineGunMortarDistance = -1.0;
 	private static final double MORTAR_DISTANCE_SMOOTHING = 0.3;
-	/** Safety cap (60 seconds) for tudursvehiclemod$computeMachineGunDistance()'s own numerical simulation - drag ensures the vertical velocity always eventually turns negative and height returns to 0, so this should never actually be reached in practice, but guards against an unexpected infinite loop regardless. tudursvehiclemod$estimateMortarSimulationTickCap() sizes the ACTUAL cap used dynamically above this floor - see that method's own doc for why a fixed cap alone (this value used directly) isn't sufficient for a low-gravity weapon fired at higher elevation. */
-	private static final int MORTAR_DISTANCE_MAX_SIMULATION_TICKS = 1200;
-
-	/** Sizes tudursvehiclemod$computeMachineGunDistance()'s own numerical simulation's actual iteration cap dynamically, from the cheap drag-free estimate (2*verticalVelocity/gravity, the classic no-drag same-height-return time) times a generous safety margin - a fixed cap alone previously left the predicted range silently stuck at -1.0/uncomputed for a low-gravity weapon fired at higher elevation (e.g. verticalVelocity=5.0 with gravity=0.007 needs ~1429 ticks to return to launch height, exceeding a 1200-tick fixed cap entirely). Drag only ever makes the REAL (with-drag) time roughly comparable to or somewhat longer than this drag-free estimate (never dramatically longer, since drag also reduces how high it climbs in the first place), so 3x that estimate reliably covers every weapon/elevation combination regardless of its own specific gravity/velocity values, while MORTAR_DISTANCE_MAX_SIMULATION_TICKS itself still serves as a floor for a nearly-zero verticalVelocity/gravity edge case. */
-	private static int tudursvehiclemod$estimateMortarSimulationTickCap(double verticalVelocity, float gravity) {
-		if (gravity <= 0f) {
-			return MORTAR_DISTANCE_MAX_SIMULATION_TICKS;
-		}
-		double dragFreeEstimateTicks = 2.0 * verticalVelocity / gravity;
-		return (int) Math.max(MORTAR_DISTANCE_MAX_SIMULATION_TICKS, dragFreeEstimateTicks * 3.0);
-	}
 
 	/** Computes the same-height-return range for a MACHINE_GUN weapon (HudVariables' own "mortar_distance" number), moved here unchanged from that class's own former inline MACHINE_GUN case - see this whole class's own doc for why an in-world marker isn't used for this weapon type (a plain HUD number instead, since a machine-gun-style flat/direct shot has no single meaningful "impact point" the way a lobbed Bomb/Rocket does). */
 	public static double tudursvehiclemod$computeMachineGunDistance(MinecraftClient client, PlayerEntity player,
@@ -78,27 +64,8 @@ public final class MortarMarkerRenderer {
 		}
 		double horizontalVelocity = Math.sqrt(launchVelocity.x * launchVelocity.x + launchVelocity.z * launchVelocity.z);
 		double verticalVelocity = launchVelocity.y;
-		double rawDistance = -1.0;
-		if (verticalVelocity > 0.0 && gravity > 0f) {
-			double stepHorizontalVelocity = horizontalVelocity;
-			double stepVerticalVelocity = verticalVelocity;
-			double horizontalDistance = 0.0;
-			double heightAboveLaunch = 0.0;
-			int tickCap = tudursvehiclemod$estimateMortarSimulationTickCap(verticalVelocity, gravity);
-			for (int tick = 0; tick < tickCap; tick++) {
-				stepHorizontalVelocity *= PROJECTILE_AIR_DRAG_PER_TICK;
-				stepVerticalVelocity = stepVerticalVelocity * PROJECTILE_AIR_DRAG_PER_TICK - gravity;
-				double nextHeightAboveLaunch = heightAboveLaunch + stepVerticalVelocity;
-				if (nextHeightAboveLaunch <= 0.0) {
-					// Interpolates within this final tick, rather than snapping to the whole-tick position, for a smoother/more precise displayed number.
-					double fraction = heightAboveLaunch / (heightAboveLaunch - nextHeightAboveLaunch);
-					rawDistance = horizontalDistance + stepHorizontalVelocity * fraction;
-					break;
-				}
-				horizontalDistance += stepHorizontalVelocity;
-				heightAboveLaunch = nextHeightAboveLaunch;
-			}
-		}
+		double rawDistance = com.example.tudursvehiclemod.entity.projectile.Ballistics.levelReturnDistance(horizontalVelocity, verticalVelocity, gravity,
+				com.example.tudursvehiclemod.entity.projectile.Ballistics.levelReturnTickCap(verticalVelocity, gravity));
 		// Smoothing - see smoothedMachineGunMortarDistance's own doc for why this exists.
 		if (rawDistance < 0.0) {
 			smoothedMachineGunMortarDistance = -1.0;
@@ -114,8 +81,6 @@ public final class MortarMarkerRenderer {
 	private static final int MARKER_COLOR = 0xFFFFA500;
 	/** The marker now covers a fixed ~5 block radius area (matching the actual blast/impact zone at a glance), rather than a single point. */
 	private static final float MARKER_RADIUS = 5.0f;
-	/** How far apart (blocks) each simulated trajectory step is - smaller is more accurate but costs more raycasts per tick. */
-	private static final double SIMULATION_STEP_DISTANCE = 1.0;
 	/** Hard cap on simulated distance, so an unobstructed shot (fired at the sky, or Gravity=0) doesn't simulate forever. */
 	private static final double MAX_SIMULATION_DISTANCE = 300.0;
 	/** The raycast-stepping simulation itself (the actual per-block cost) still only re-runs every Nth tick - several times a second, indistinguishable to the eye for a marker that isn't meant to track split-second changes - but the gizmo itself (a cheap, already-computed circle) is re-added every tick in between so the marker never visibly flickers or goes stale-looking. */
@@ -159,7 +124,7 @@ public final class MortarMarkerRenderer {
 		}
 	}
 
-	/** Drag-free ballistic trajectory simulation (same simplified model as HudVariables' own MachineGun distance formula) - steps forward by SIMULATION_STEP_DISTANCE each iteration, raycasting each step for a block hit, applying gravity to the vertical velocity component in between. Returns null if nothing was hit within MAX_SIMULATION_DISTANCE. */
+	/** Where the selected weapon's shell would land: its real flight (entity.projectile.Ballistics - gravity and air drag, tick by tick, as the projectile itself moves), with a block raycast along each tick, out to MAX_SIMULATION_DISTANCE. */
 	private static Vec3d tudursvehiclemod$simulateImpactPos(MinecraftClient client, PlayerEntity player,
 			AbstractVehicleEntity vehicle, WeaponDefinition selectedWeapon) {
 		// Uses the vehicle's own Y (hitbox height), not the player's own (often notably higher, while seated) eye position, as the simulation's own starting height - the actual projectile launches from roughly hull height, not headroom height.
@@ -188,26 +153,19 @@ public final class MortarMarkerRenderer {
 			velocity = new Vec3d(0.0, -0.01, 0.0);
 		}
 
-		Vec3d position = muzzlePos;
-		double simulatedDistance = 0.0;
-		while (simulatedDistance < MAX_SIMULATION_DISTANCE) {
-			double speed = velocity.length();
-			if (speed < 1.0E-6) {
-				return null; // stalled out entirely (shouldn't normally happen with a real muzzle velocity) - nothing meaningful to show
-			}
-			Vec3d stepVelocity = velocity.multiply(SIMULATION_STEP_DISTANCE / speed);
-			Vec3d nextPosition = position.add(stepVelocity);
-			RaycastContext context = new RaycastContext(position, nextPosition,
-					RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, player);
-			BlockHitResult hit = client.world.raycast(context);
-			if (hit.getType() != HitResult.Type.MISS) {
-				return hit.getPos();
-			}
-			position = nextPosition;
-			simulatedDistance += SIMULATION_STEP_DISTANCE;
-			velocity = new Vec3d(velocity.x, velocity.y - gravity * (SIMULATION_STEP_DISTANCE / Math.max(speed, 1.0E-6)), velocity.z);
-		}
-		return null; // Never actually hit anything within MAX_SIMULATION_DISTANCE - nothing to mark.
+		// The same tick-by-tick flight as the real projectile (Ballistics) - this used to step a fixed distance at a time with no drag at all, so the marker landed further out than the shell did.
+		com.example.tudursvehiclemod.entity.projectile.Ballistics.Impact impact = com.example.tudursvehiclemod.entity.projectile.Ballistics.flyUntilBlocked(muzzlePos, velocity, gravity, client.world.getBottomY() - 8,
+				MAX_SIMULATION_DISTANCE, MARKER_SIMULATION_MAX_TICKS, (from, to) -> tudursvehiclemod$raycastBlock(client, from, to, player));
+		return impact.hitBlock() ? impact.pos() : null; // Nothing hit within MAX_SIMULATION_DISTANCE - nothing to mark.
+	}
+
+	/** Tick cap for the impact marker's flight - far more than a shell needs to come down within MAX_SIMULATION_DISTANCE. */
+	private static final int MARKER_SIMULATION_MAX_TICKS = 1200;
+
+	/** One tick of flight's block raycast, as Ballistics.flyUntilBlocked() wants it: the hit point, or null. */
+	private static Vec3d tudursvehiclemod$raycastBlock(MinecraftClient client, Vec3d from, Vec3d to, net.minecraft.entity.Entity exclude) {
+		BlockHitResult hit = client.world.raycast(new RaycastContext(from, to, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, exclude));
+		return hit.getType() == HitResult.Type.MISS ? null : hit.getPos();
 	}
 
 	/** Other weapon types (MachineGun/AS_MISSILE/MK_ROCKET/Bomb/Rocket) also support CasTargetMode.COLLISION for their own DisplayMortarDistance - see this method's own doc for the full reasoning. Generous enough ticks (matching AbstractVehicleEntity's own identical CAS_CARRIER_COLLISION_MAX_TICKS) for the simulated trajectory to keep falling well below launch height until it actually hits terrain, rather than an arbitrary early cutoff - the SAME semantics as CasTargetMode.COLLISION's own CAS/Carrier implementation, just parameterized here so every weapon type can share this one calculation. */
@@ -228,33 +186,9 @@ public final class MortarMarkerRenderer {
 			Vec3d fallbackPos = fallbackHit.getType() == HitResult.Type.MISS ? fallbackEnd : fallbackHit.getPos();
 			return origin.distanceTo(fallbackPos);
 		}
-		double horizontalLength = Math.sqrt(launchVelocity.x * launchVelocity.x + launchVelocity.z * launchVelocity.z);
-		Vec3d horizontalDir = horizontalLength < 1.0e-4 ? Vec3d.ZERO
-				: new Vec3d(launchVelocity.x / horizontalLength, 0.0, launchVelocity.z / horizontalLength);
-		double stepHorizontalVelocity = horizontalLength;
-		double stepVerticalVelocity = launchVelocity.y;
-		double horizontalDistance = 0.0;
-		double heightAboveLaunch = 0.0;
-		Vec3d previousPos = origin;
-		double worldBottomMargin = client.world.getBottomY() - 8;
-		for (int tick = 0; tick < GENERIC_COLLISION_MAX_TICKS; tick++) {
-			stepHorizontalVelocity *= PROJECTILE_AIR_DRAG_PER_TICK;
-			stepVerticalVelocity = stepVerticalVelocity * PROJECTILE_AIR_DRAG_PER_TICK - gravity;
-			horizontalDistance += stepHorizontalVelocity;
-			heightAboveLaunch += stepVerticalVelocity;
-			Vec3d nextPos = origin.add(horizontalDir.multiply(horizontalDistance)).add(0.0, heightAboveLaunch, 0.0);
-			RaycastContext context = new RaycastContext(previousPos, nextPos,
-					RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, excludeEntity);
-			BlockHitResult stepHit = client.world.raycast(context);
-			if (stepHit.getType() != HitResult.Type.MISS) {
-				return origin.distanceTo(stepHit.getPos());
-			}
-			if (nextPos.y < worldBottomMargin) {
-				return origin.distanceTo(nextPos);
-			}
-			previousPos = nextPos;
-		}
-		return origin.distanceTo(previousPos);
+		Vec3d impact = com.example.tudursvehiclemod.entity.projectile.Ballistics.flyUntilBlocked(origin, launchVelocity, gravity, client.world.getBottomY() - 8,
+				Double.MAX_VALUE, GENERIC_COLLISION_MAX_TICKS, (from, to) -> tudursvehiclemod$raycastBlock(client, from, to, excludeEntity)).pos();
+		return origin.distanceTo(impact);
 	}
 
 	/** Bomb/Rocket (which previously showed only the in-world marker, no HUD distance number at all - see this whole class's own doc) also show a distance number specifically when CasTargetMode.COLLISION is selected: reuses tudursvehiclemod$simulateImpactPos()'s own existing result (the SAME point the marker itself is drawn at, not a separate/potentially-inconsistent calculation), so the displayed number always matches precisely where the marker is shown. Returns -1.0 (this whole feature's own existing "nothing meaningful to show" sentinel) whenever COLLISION isn't selected at all (this weapon's own default marker-only behavior is left completely unchanged - "現在のデフォルト値に加え", per the direct request this whole feature came from) or the underlying simulation itself found nothing to hit. */
@@ -295,30 +229,26 @@ public final class MortarMarkerRenderer {
 		float velocity = selectedWeapon.velocity() > 0f ? selectedWeapon.velocity() : CAS_CARRIER_DEFAULT_VELOCITY;
 		float gravity = selectedWeapon.gravity() > 0f ? selectedWeapon.gravity() : CAS_CARRIER_DEFAULT_GRAVITY;
 		Vec3d aimDir = player.getRotationVec(1.0f);
-		double horizontalSpeed = Math.sqrt(aimDir.x * aimDir.x + aimDir.z * aimDir.z) * velocity;
+		double horizontalAimLength = Math.sqrt(aimDir.x * aimDir.x + aimDir.z * aimDir.z);
 		double verticalSpeed = aimDir.y * velocity;
-		if (verticalSpeed <= 0.0 || gravity <= 0f) {
+		double distance = com.example.tudursvehiclemod.entity.projectile.Ballistics.levelReturnDistance(horizontalAimLength * velocity, verticalSpeed, gravity,
+				com.example.tudursvehiclemod.entity.projectile.Ballistics.levelReturnTickCap(verticalSpeed, gravity));
+		if (distance >= 0.0) {
+			return distance;
+		}
+		// Never rises above the launch height: the server takes the point where the line of sight meets the water or ground (AbstractVehicleEntity's tudursvehiclemod$computeBallisticTargetPoint()), or the range itself out at the horizon - shown the same way here.
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (client.world == null) {
 			return -1.0;
 		}
-		double stepHorizontalVelocity = horizontalSpeed;
-		double stepVerticalVelocity = verticalSpeed;
-		double horizontalDistance = 0.0;
-		double heightAboveLaunch = 0.0;
-		double dragFreeEstimateTicks = 2.0 * verticalSpeed / gravity;
-		int tickCap = (int) Math.max(1200.0, dragFreeEstimateTicks * 3.0);
-		for (int tick = 0; tick < tickCap; tick++) {
-			stepHorizontalVelocity *= PROJECTILE_AIR_DRAG_PER_TICK;
-			stepVerticalVelocity = stepVerticalVelocity * PROJECTILE_AIR_DRAG_PER_TICK - gravity;
-			double nextHeightAboveLaunch = heightAboveLaunch + stepVerticalVelocity;
-			if (nextHeightAboveLaunch <= 0.0) {
-				double fraction = heightAboveLaunch / (heightAboveLaunch - nextHeightAboveLaunch);
-				horizontalDistance += stepHorizontalVelocity * fraction;
-				return horizontalDistance;
-			}
-			horizontalDistance += stepHorizontalVelocity;
-			heightAboveLaunch = nextHeightAboveLaunch;
+		Vec3d start = player.getEyePos();
+		Vec3d sightEnd = start.add(aimDir.multiply(CAS_CARRIER_RAYCAST_RANGE));
+		BlockHitResult sightHit = client.world.raycast(new RaycastContext(start, sightEnd,
+				RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.SOURCE_ONLY, player));
+		if (sightHit.getType() == HitResult.Type.BLOCK) {
+			return start.distanceTo(sightHit.getPos());
 		}
-		return -1.0;
+		return CAS_CARRIER_RAYCAST_RANGE;
 	}
 
 	/** CasTargetMode.RAYCAST's own HUD distance - mirrors AbstractVehicleEntity's own tudursvehiclemod$computeCasCarrierRaycastPoint() exactly (same range, same "nothing hit -> the range itself" fallback). */
@@ -355,32 +285,8 @@ public final class MortarMarkerRenderer {
 			Vec3d fallbackPos = fallbackHit.getType() == HitResult.Type.MISS ? fallbackEnd : fallbackHit.getPos();
 			return start.distanceTo(fallbackPos);
 		}
-		double horizontalAimLength = Math.sqrt(aimDir.x * aimDir.x + aimDir.z * aimDir.z);
-		Vec3d horizontalAimDir = horizontalAimLength < 1.0e-4 ? Vec3d.ZERO
-				: new Vec3d(aimDir.x / horizontalAimLength, 0.0, aimDir.z / horizontalAimLength);
-		double stepHorizontalVelocity = horizontalAimLength * velocity;
-		double stepVerticalVelocity = aimDir.y * velocity;
-		double horizontalDistance = 0.0;
-		double heightAboveLaunch = 0.0;
-		Vec3d previousPos = start;
-		double worldBottomMargin = client.world.getBottomY() - 8;
-		for (int tick = 0; tick < CAS_CARRIER_COLLISION_MAX_TICKS; tick++) {
-			stepHorizontalVelocity *= PROJECTILE_AIR_DRAG_PER_TICK;
-			stepVerticalVelocity = stepVerticalVelocity * PROJECTILE_AIR_DRAG_PER_TICK - gravity;
-			horizontalDistance += stepHorizontalVelocity;
-			heightAboveLaunch += stepVerticalVelocity;
-			Vec3d nextPos = start.add(horizontalAimDir.multiply(horizontalDistance)).add(0.0, heightAboveLaunch, 0.0);
-			RaycastContext context = new RaycastContext(previousPos, nextPos,
-					RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, player);
-			BlockHitResult stepHit = client.world.raycast(context);
-			if (stepHit.getType() != HitResult.Type.MISS) {
-				return start.distanceTo(stepHit.getPos());
-			}
-			if (nextPos.y < worldBottomMargin) {
-				return start.distanceTo(nextPos);
-			}
-			previousPos = nextPos;
-		}
-		return start.distanceTo(previousPos);
+		Vec3d impact = com.example.tudursvehiclemod.entity.projectile.Ballistics.flyUntilBlocked(start, aimDir.multiply(velocity), gravity, client.world.getBottomY() - 8,
+				Double.MAX_VALUE, CAS_CARRIER_COLLISION_MAX_TICKS, (from, to) -> tudursvehiclemod$raycastBlock(client, from, to, player)).pos();
+		return start.distanceTo(impact);
 	}
 }

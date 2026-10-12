@@ -537,6 +537,14 @@ public final class ServerObjModelHitboxes {
 
 	private static final Map<String, Optional<Mesh>> PART_MESH_CACHE = new ConcurrentHashMap<>();
 
+	/** Drops every in-memory mesh on a resource reload (VehicleRegistry.setAll()), so an edited OBJ is read again - they used to be kept until the game was restarted. */
+	public static void clearCaches() {
+		GROUPED_CACHE.clear();
+		WHOLE_MESH_CACHE.clear();
+		EXCLUDING_MESH_CACHE.clear();
+		PART_MESH_CACHE.clear();
+	}
+
 	/** An independently-animated part (a
 	 * PartAnimation/TogglePart/WeaponPart) with a genuinely large number
 	 * of its own triangles (a wing with 1000+ triangles was the specific
@@ -602,6 +610,109 @@ public final class ServerObjModelHitboxes {
 		}
 		return false;
 	}
+
+	/** Ray directions for isEnclosed(): roughly +X, +Y and +Z, each tilted slightly off the axis so a ray doesn't run exactly along the edges and faces of axis-aligned geometry (a box-shaped hull), where a crossing could be counted twice or not at all. */
+	private static final float[][] ENCLOSED_RAY_DIRECTIONS = {
+			{1f, 0.000173f, 0.000311f},
+			{0.000227f, 1f, 0.000137f},
+			{0.000191f, 0.000263f, 1f}};
+
+	/** True if (x, y, z) - model-local, like isInside() - lies within the space the mesh encloses: a ray cast from it crosses the surface an odd number of times, along all three directions of ENCLOSED_RAY_DIRECTIONS. A vehicle model is rarely watertight (an open cockpit, a hatch, parts that don't quite meet), so one ray can leave through a gap and miss the surface it should have crossed; requiring all three to agree keeps such a gap from turning the outside into "inside". Cheap to reject (outside the bounds); otherwise only the triangles in the spatial-grid cells along each ray are tested. */
+	public static boolean isEnclosed(Mesh mesh, float x, float y, float z) {
+		if (x <= mesh.minX() || x >= mesh.maxX() || y <= mesh.minY() || y >= mesh.maxY() || z <= mesh.minZ() || z >= mesh.maxZ()) {
+			return false;
+		}
+		float[] hits = new float[16];
+		List<float[]> triangles = mesh.triangles();
+		java.util.BitSet seen = new java.util.BitSet(triangles.size());
+		float cellSize = mesh.cellSize();
+		float extent = Math.max(mesh.maxX() - mesh.minX(), Math.max(mesh.maxY() - mesh.minY(), mesh.maxZ() - mesh.minZ())) + cellSize * 2f;
+		for (float[] direction : ENCLOSED_RAY_DIRECTIONS) {
+			// Only the triangles bucketed in the grid cells the ray passes through: a triangle the ray crosses at a point is in that point's cell (each triangle is bucketed into every cell its bounds, grown by SURFACE_HIT_DISTANCE, touch). Walked in half-cell steps to the far side of the mesh's bounds.
+			seen.clear();
+			int hitCount = 0;
+			long lastKey = Long.MIN_VALUE;
+			for (float along = 0f; along <= extent; along += cellSize * 0.5f) {
+				long key = tudursvehiclemod$packSpatialGridCellKey(
+						(int) Math.floor((x + direction[0] * along) / cellSize),
+						(int) Math.floor((y + direction[1] * along) / cellSize),
+						(int) Math.floor((z + direction[2] * along) / cellSize));
+				if (key == lastKey) {
+					continue;
+				}
+				lastKey = key;
+				int[] cellTriangles = mesh.spatialGrid().get(key);
+				if (cellTriangles == null) {
+					continue;
+				}
+				for (int index : cellTriangles) {
+					if (seen.get(index)) {
+						continue;
+					}
+					seen.set(index);
+					float[] tri = triangles.get(index);
+					float t = tudursvehiclemod$rayTriangleDistance(x, y, z, direction, tri);
+					if (t > 0f) {
+						if (hitCount == hits.length) {
+							hits = java.util.Arrays.copyOf(hits, hitCount * 2);
+						}
+						hits[hitCount++] = t;
+					}
+				}
+			}
+			// Crossings at the same distance are one crossing: a double-sided face (the same triangle twice, facing both ways) or a ray through the shared edge of two triangles.
+			java.util.Arrays.sort(hits, 0, hitCount);
+			int crossings = 0;
+			float last = -1f;
+			for (int i = 0; i < hitCount; i++) {
+				if (crossings == 0 || hits[i] - last > 1.0e-4f) {
+					crossings++;
+				}
+				last = hits[i];
+			}
+			if ((crossings & 1) == 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** Moller-Trumbore: how far along dir the ray from (ox, oy, oz) crosses tri ({ax,ay,az, bx,by,bz, cx,cy,cz}), or -1 if it doesn't cross it ahead of its origin. */
+	private static float tudursvehiclemod$rayTriangleDistance(float ox, float oy, float oz, float[] dir, float[] tri) {
+		float e1x = tri[3] - tri[0], e1y = tri[4] - tri[1], e1z = tri[5] - tri[2];
+		float e2x = tri[6] - tri[0], e2y = tri[7] - tri[1], e2z = tri[8] - tri[2];
+		float px = dir[1] * e2z - dir[2] * e2y;
+		float py = dir[2] * e2x - dir[0] * e2z;
+		float pz = dir[0] * e2y - dir[1] * e2x;
+		float det = e1x * px + e1y * py + e1z * pz;
+		if (Math.abs(det) < 1.0e-9f) {
+			return -1f;
+		}
+		float invDet = 1f / det;
+		float tx = ox - tri[0], ty = oy - tri[1], tz = oz - tri[2];
+		float u = (tx * px + ty * py + tz * pz) * invDet;
+		if (u < 0f || u > 1f) {
+			return -1f;
+		}
+		float qx = ty * e1z - tz * e1y;
+		float qy = tz * e1x - tx * e1z;
+		float qz = tx * e1y - ty * e1x;
+		float v = (dir[0] * qx + dir[1] * qy + dir[2] * qz) * invDet;
+		if (v < 0f || u + v > 1f) {
+			return -1f;
+		}
+		float t = (e2x * qx + e2y * qy + e2z * qz) * invDet;
+		return t > 0f ? t : -1f;
+	}
+
+	/** HITDIAG: distance (model units) from (x, y, z) to the nearest triangle of the mesh, by testing every triangle - for diagnostics only. */
+	public static double nearestSurfaceDistance(Mesh mesh, float x, float y, float z) { // HITDIAG
+		float best = Float.MAX_VALUE; // HITDIAG
+		for (float[] tri : mesh.triangles()) { // HITDIAG
+			best = Math.min(best, tudursvehiclemod$distanceSquaredToTriangle(x, y, z, tri)); // HITDIAG
+		} // HITDIAG
+		return Math.sqrt(best); // HITDIAG
+	} // HITDIAG
 
 	/** Closest-point-on-triangle (standard Voronoi-region algorithm - see e.g. Ericson's "Real-Time Collision Detection"), returning the SQUARED distance from (px,py,pz) to that closest point, for a plain surface-proximity test rather than any kind of inside/outside volumetric test. tri is {ax,ay,az, bx,by,bz, cx,cy,cz}. */
 	private static float tudursvehiclemod$distanceSquaredToTriangle(float px, float py, float pz, float[] tri) {
@@ -887,6 +998,11 @@ public final class ServerObjModelHitboxes {
 	 * WHY THESE HAVE TO BE SEPARATE FILES: the offline optimiser (tools/optimize_model.py) merges adjacent coplanar quads, and that is fundamentally incompatible with an atlas-mapped model. Every face in a converted model maps to exactly one 16x16 tile of its own atlas (verified on the sample: all 108,509 faces, across 355 distinct tiles). Merging two such quads - even two using the SAME tile - produces one larger quad that would need its own UVs to REPEAT across that tile, and an atlas cannot repeat: anything past a tile's own bounds samples whichever neighbouring tile happens to sit there. So an optimised mesh can never be rendered correctly, no matter how the UVs are assigned.
 	 *
 	 * THE CONVENTION: a display model's own path normally contains a "models" directory segment somewhere along it (mcheli_convert.py's own output convention is "…/models/obj/{type}/{name}.obj" - see that module's own doc). If it does, hit detection first looks for the SAME relative path with that ONE segment swapped for HIT_DETECTION_MODEL_DIR ("models_hitbox") - so "…/models/obj/aircraft/foo.obj" maps to "…/models_hitbox/obj/aircraft/foo.obj", mirroring the same subtree one level over rather than mixing hitbox files in among the display models. Nothing else changes - the vehicle still RENDERS from the original file with its own atlas UVs completely intact, because rendering never comes through this class at all. Deliberately convention-based rather than a new definition field, so an optimised mesh is adopted by simply dropping it into that mirrored folder: no JSON edit, no definition change, and no effect at all on any pack that doesn't have one. A model whose own path has no "models" segment at all (a non-standard layout) has no established mirror location, so this simply falls through to the display file as before. */
+	/** HITDIAG: the file the hit mesh for modelId is read from. */
+	public static Path diagResolvedModelPath(Identifier modelId) { // HITDIAG
+		return tudursvehiclemod$resolveModelPath(modelId); // HITDIAG
+	} // HITDIAG
+
 	private static Path tudursvehiclemod$resolveModelPath(Identifier modelId) {
 		String displayPath = "assets/" + modelId.getNamespace() + "/" + modelId.getPath();
 		String hitboxPath = tudursvehiclemod$hitboxVariantPath(displayPath);

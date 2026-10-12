@@ -60,7 +60,7 @@ Delay = 1
 ```
 
 ### `SmokeColor`
-- **書式**: `A, R, G, B`(各0〜255)、または`0xAARRGGBB`形式(既定値: 半透明の黄褐色)
+- **書式**: `A, R, G, B`(各0〜255)、または`0xAARRGGBB`形式(既定値: 半透明の黄褐色 `230, 200, 170, 110`)
 - **説明**: スモークの色。
 - **例**: `SmokeColor = 230, 200, 20, 80`
 
@@ -93,7 +93,7 @@ MarkTime = 10
 ### `Target`
 - **書式**: `/`区切りの複数指定可(例: `monsters/others`)
 - **説明**: スポット対象の種類。以下から選択:
-  - `planes` / `helicopters` / `vehicles`: 本MODの各種機体
+  - `planes` / `helicopters` / `vehicles`: 本MODの各種機体(`planes`は固定翼機とVTOL、`helicopters`はヘリコプター、`vehicles`はそれ以外の機体)
   - `players`: 他のプレイヤー
   - `monsters`: モンスター
   - `others`: その他のモブ

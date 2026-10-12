@@ -438,7 +438,9 @@ CarrierLandingToAmmoRadius = 15.0
 ### `MidgetTimeout` / `MidgetStuckTimeout`
 - **書式**: 秒数(既定値はそれぞれ`600`・`60`)
 - **説明**: `CasTimeout`/`CasStuckTimeout`と同じ考え方です。`MidgetStuckTimeout`は、
-  水面で塞がれて停止し続けた時間にも適用されます。
+  次のウェイポイントに到達しないまま経過した時間です(水面で塞がれて停止している時間も含みます)。
+  目標を追跡している間は数えません。
+- 出撃中の特殊潜航艇は、周囲3×3チャンクを強制的に読み込みます(撃沈されるか回収されると解除)。
 - **例**: `MidgetTimeout = 600`
 
 ### `MidgetYawOffset` / `MidgetTargetYawOffset`

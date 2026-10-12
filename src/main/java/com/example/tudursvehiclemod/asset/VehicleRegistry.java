@@ -14,6 +14,11 @@ public final class VehicleRegistry {
 
 	public static void setAll(Map<Identifier, VehicleDefinition> definitions) {
 		DEFINITIONS = Map.copyOf(definitions);
+		// /reload reads the models again: every in-memory model cache is dropped first (they used to last until the game was restarted, so an edited OBJ never showed up in hit detection). The track roller cache files on disk are kept - see ServerObjModelTrackRollerBounds.clearCache().
+		ServerObjModelHitboxes.clearCaches();
+		ServerObjModelTrackRollerBounds.clearCache();
+		ServerObjModelZExtent.clearCache();
+		com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$clearDefinitionCaches();
 		// Per a further direct request: every UNIQUE model (several
 		// vehicles can share the same one -.distinct() below avoids
 		// redundant work for those) is now pregenerated in PARALLEL rather

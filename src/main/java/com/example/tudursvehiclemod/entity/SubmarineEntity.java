@@ -415,7 +415,8 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		// rather than staying a real, full block regardless of whatever
 		// raw unit this specific model's own file happens to use.
 		float offsetY = minY.get() * def.scale() + 1f;
-		return offsetY;
+		// Only ever downward, as calculateDefaultBoundingBox()'s doc says: a model whose bottom is less than a block below its origin (minY * scale > -1) gave a positive offset, which RAISED the box's bottom - or turned the box inside out once it passed the top - so the hull's collision floated above the model.
+		return Math.min(0f, offsetY);
 	}
 
 	@Override
@@ -664,12 +665,13 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 				range, depthNow, candidateDepth);
 		double goalDepth = this.midgetNavigator.tick(routeDepth, depthNow, probe);
 		boolean stuckAtSurface = this.midgetNavigator.mustHold();
-		if (stuckAtSurface) {
+		// MidgetStuckTimeout, as documented (the same idea as CasStuckTimeout): time without reaching the next waypoint - reset only when a waypoint is reached (above). Being held at the surface is simply part of that time. A pursuit has no waypoint to reach, so it doesn't count (MidgetTimeout still bounds it).
+		if (pursuitTarget == null) {
 			this.midgetStuckTicks++;
 		} else {
 			this.midgetStuckTicks = 0;
 		}
-		if (this.midgetStuckTicks > this.midgetStuckTimeoutTicks) {
+		if (this.midgetStuckTimeoutTicks > 0 && this.midgetStuckTicks > this.midgetStuckTimeoutTicks) {
 			this.discard();
 			return;
 		}
@@ -803,20 +805,91 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 	/** The end of the sortie: with recovery enabled and the mothership there, its round goes back to the launching weapon (as a landed Carrier aircraft's does) and a player aboard is put back in a mothership seat; then this midget is removed. */
 	private void tudursvehiclemod$recoverMidget() {
 		AbstractVehicleEntity mothership = this.midgetRecoveryEnabled ? this.tudursvehiclemod$findMidgetMothership() : null;
-		net.minecraft.entity.Entity rider = this.getPassengerList().isEmpty() ? null : this.getPassengerList().get(0);
+		// Every rider, not just the first - the others used to be dropped in the water.
+		java.util.List<net.minecraft.entity.Entity> riders = new java.util.ArrayList<>(this.tudursvehiclemod$getRealPassengerList());
 		this.discard();
 		if (mothership != null) {
 			mothership.tudursvehiclemod$replenishWeaponAmmo(this.midgetMothershipWeaponIndex, 1, this.getUuid());
-			if (rider != null) {
-				if (this.midgetMothershipSeatIndex < 0 || !mothership.tudursvehiclemod$mountToSeat(rider, this.midgetMothershipSeatIndex)) {
-					for (int seatIndex = 0; seatIndex < mothership.getDefinition().seats().size(); seatIndex++) {
-						if (mothership.tudursvehiclemod$mountToSeat(rider, seatIndex)) {
-							break;
-						}
+			for (net.minecraft.entity.Entity rider : riders) {
+				if (rider == riders.get(0) && this.midgetMothershipSeatIndex >= 0 && mothership.tudursvehiclemod$mountToSeat(rider, this.midgetMothershipSeatIndex)) {
+					continue;
+				}
+				for (int seatIndex = 0; seatIndex < mothership.getDefinition().seats().size(); seatIndex++) {
+					if (mothership.tudursvehiclemod$mountToSeat(rider, seatIndex)) {
+						break;
 					}
 				}
 			}
 		}
+	}
+
+	/** The 3x3 chunks around a midget on its sortie, kept force-loaded (as a CAS/Carrier aircraft and a projectile keep theirs) so it doesn't freeze the moment it sails out of every player's range. Released when the sortie ends or it is sunk; removal releases them anyway (AbstractVehicleEntity.onRemove()). */
+	private java.util.Set<net.minecraft.util.math.ChunkPos> midgetForcedChunks = java.util.Set.of();
+
+	private com.example.tudursvehiclemod.ChunkForceTracker.Purpose tudursvehiclemod$midgetChunkRequester() {
+		return new com.example.tudursvehiclemod.ChunkForceTracker.Purpose(this, "midget_grid");
+	}
+
+	private void tudursvehiclemod$updateMidgetForcedChunks() {
+		if (!(this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld)) {
+			return;
+		}
+		com.example.tudursvehiclemod.ChunkForceTracker.Purpose requester = this.tudursvehiclemod$midgetChunkRequester();
+		if (!this.tudursvehiclemod$isMidgetAutopilotActive() || this.tudursvehiclemod$isDestroyed()) {
+			if (!this.midgetForcedChunks.isEmpty()) {
+				com.example.tudursvehiclemod.ChunkForceTracker.releaseAll(serverWorld, requester);
+				this.midgetForcedChunks = java.util.Set.of();
+			}
+			return;
+		}
+		net.minecraft.util.math.ChunkPos center = new net.minecraft.util.math.ChunkPos(this.getBlockPos());
+		java.util.Set<net.minecraft.util.math.ChunkPos> grid = new java.util.HashSet<>();
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dz = -1; dz <= 1; dz++) {
+				grid.add(new net.minecraft.util.math.ChunkPos(center.x + dx, center.z + dz));
+			}
+		}
+		if (grid.equals(this.midgetForcedChunks)) {
+			return;
+		}
+		for (net.minecraft.util.math.ChunkPos chunk : this.midgetForcedChunks) {
+			if (!grid.contains(chunk)) {
+				com.example.tudursvehiclemod.ChunkForceTracker.release(serverWorld, chunk, requester);
+			}
+		}
+		for (net.minecraft.util.math.ChunkPos chunk : grid) {
+			if (!this.midgetForcedChunks.contains(chunk)) {
+				com.example.tudursvehiclemod.ChunkForceTracker.request(serverWorld, chunk, requester);
+			}
+		}
+		this.midgetForcedChunks = grid;
+	}
+
+	/** A player piloting a midget (switched in from the mothership) goes back to the mothership when it is sunk, as a Carrier pilot does - their own seat if it's free, otherwise the first free one. Mothership gone or full: false, and the usual destruction handling applies. */
+	@Override
+	protected boolean tudursvehiclemod$tryReturnPlayerOnDestroyed(net.minecraft.server.world.ServerWorld world, net.minecraft.server.network.ServerPlayerEntity player) {
+		if (this.midgetMothershipUuid == null || !(world.getEntity(this.midgetMothershipUuid) instanceof AbstractVehicleEntity mothership)
+				|| mothership.isRemoved() || mothership.tudursvehiclemod$isDestroyed()) {
+			return false;
+		}
+		int seatCount = mothership.getDefinition().seats().size();
+		int freeSeat = -1;
+		if (this.midgetMothershipSeatIndex >= 0 && this.midgetMothershipSeatIndex < seatCount
+				&& mothership.tudursvehiclemod$getSeatOccupant(this.midgetMothershipSeatIndex) == null) {
+			freeSeat = this.midgetMothershipSeatIndex;
+		} else {
+			for (int seatIndex = 0; seatIndex < seatCount; seatIndex++) {
+				if (mothership.tudursvehiclemod$getSeatOccupant(seatIndex) == null) {
+					freeSeat = seatIndex;
+					break;
+				}
+			}
+		}
+		if (freeSeat < 0) {
+			return false;
+		}
+		player.stopRiding();
+		return mothership.tudursvehiclemod$mountToSeat(player, freeSeat);
 	}
 
 	/** Rotates/translates one MidgetWaypoint's own relX/relZ into world coordinates by originX/Z and forwardX/Z - the same "relative to the marked point, rotated to face the shooter's own direction" convention CasWaypoint/CarrierAircraftConfig already use, applied here to a MidgetWaypoint instead. */
@@ -840,6 +913,7 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		// Not while a player is piloting it (switched in from the mothership): ordinary piloting below, and the autopilot picks up from where it was once they leave.
 		// Not once sunk either: a destroyed midget used to keep sailing its route - and was recovered at the end, its round going back to the mothership - while the client showed it sinking. It sinks like any other wreck (the sinking branch below).
 		boolean playerPiloting = this.getControllingPassenger() instanceof net.minecraft.entity.player.PlayerEntity;
+		this.tudursvehiclemod$updateMidgetForcedChunks();
 		if (this.tudursvehiclemod$isMidgetAutopilotActive() && !this.tudursvehiclemod$isDestroyed() && !playerPiloting) {
 			// D-2: picking up again after a player handed it back - the obstacle-avoidance state (a held depth ceiling, an avoidance in progress) belongs to wherever it was when they took over, not to where they left it.
 			if (this.midgetWasPlayerPiloted && this.midgetNavigator != null) {
@@ -914,7 +988,7 @@ public class SubmarineEntity extends AbstractVehicleEntity implements FreeCamera
 		// submarine genuinely can't turn at all until it's actually
 		// reached pivot_turn_throttle's own minimum speed (matching
 		// CarEntity's own turnRate=0 while restricted).
-		if (!isPivotTurnRestricted(def, this.getSyncedSidewaysInput())) {
+		if (!isPivotTurnRestricted(def, this.getSyncedSidewaysInput()) && !this.tudursvehiclemod$isDestroyed()) {
 			float yawDelta = this.getSyncedSidewaysInput() * this.tudursvehiclemod$getEffectiveTurnSpeed() * YAW_TURN_SPEED_MULTIPLIER;
 			// A real submarine's own rudder response similarly inverts with travel direction while genuinely moving backwards. Keyed off cruiseSpeed (this vehicle's own signed forward speed) rather than throttle input, so it follows ACTUAL motion, flipping only once genuinely travelling backwards - a stationary submarine turning in place is unaffected.
 			if (this.cruiseSpeed < 0f) {

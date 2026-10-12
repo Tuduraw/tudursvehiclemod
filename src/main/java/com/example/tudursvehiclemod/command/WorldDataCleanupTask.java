@@ -82,6 +82,11 @@ public final class WorldDataCleanupTask {
 		source.sendFeedback(() -> Text.literal("[tvm] Starting world data cleanup scan: " + candidateCount + " chunk(s) under investigation."), true);
 	}
 
+	/** Drops a scan still in progress when the server stops (VehicleMod's SERVER_STOPPING). The task is static: in singleplayer it used to outlive the world it was scanning, carry on against that closed world from the next world's ticks, and refuse every new scan there as "already in progress". */
+	public static void cancelForServerStop() {
+		activeTask = null;
+	}
+
 	/** Registered on VehicleMod's own END_SERVER_TICK - a no-op whenever no scan is currently active. */
 	public static void onServerTick(MinecraftServer server) {
 		if (activeTask != null) {

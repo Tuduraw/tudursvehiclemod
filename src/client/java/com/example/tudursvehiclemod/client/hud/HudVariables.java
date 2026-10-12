@@ -286,13 +286,34 @@ public final class HudVariables {
 		return vars;
 	}
 
+	/** The last mortar distance worked out, and for which tick/vehicle/weapon - see tudursvehiclemod$computeMortarDistance(). */
+	private static long mortarDistanceCachedTick = Long.MIN_VALUE;
+	private static int mortarDistanceCachedVehicleId;
+	private static com.example.tudursvehiclemod.asset.WeaponDefinition mortarDistanceCachedWeapon;
+	private static double mortarDistanceCachedValue;
+
+	/** DisplayMortarDistance, worked out at most once per game tick. Both build() and buildStringVariables() ask for it, on every rendered frame - so the raycasts and flight simulation used to run twice a frame (hundreds of times a second), and MachineGun's smoothing moved on at a rate that depended on the frame rate. The aim and the shell only change from tick to tick anyway. */
+	private static double tudursvehiclemod$computeMortarDistance(MinecraftClient client, PlayerEntity player,
+			AbstractVehicleEntity vehicle, com.example.tudursvehiclemod.asset.WeaponDefinition selectedWeapon) {
+		long tick = client.world != null ? client.world.getTime() : Long.MIN_VALUE + 1;
+		if (tick == mortarDistanceCachedTick && vehicle.getId() == mortarDistanceCachedVehicleId && selectedWeapon == mortarDistanceCachedWeapon) {
+			return mortarDistanceCachedValue;
+		}
+		double value = tudursvehiclemod$computeMortarDistanceNow(client, player, vehicle, selectedWeapon);
+		mortarDistanceCachedTick = tick;
+		mortarDistanceCachedVehicleId = vehicle.getId();
+		mortarDistanceCachedWeapon = selectedWeapon;
+		mortarDistanceCachedValue = value;
+		return value;
+	}
+
 	/** DisplayMortarDistance - per Readme_Weapon.txt's own doc, computed differently per WeaponType.
 	 * MachineGun: a plain ballistic same-height range, from Acceleration/Gravity alone (no world raycast needed), using this weapon's own clamped aim pitch (not the player's raw view pitch) and including the firing vehicle's own current velocity - see client.hud.MortarMarkerRenderer's own tudursvehiclemod$computeMachineGunDistance() for this calculation itself, consolidated there alongside the rest of this feature's own logic.
 	 * AS_MISSILE/MK_ROCKET: real-world distance to the ground point currently under the shooter's own crosshair (same raycast AS_MISSILE/MK_ROCKET's own guidance already uses at fire time).
 	 * CAS/Carrier: a plain ballistic same-height range, same idea as MachineGun's own entry above - see client.hud.MortarMarkerRenderer's own tudursvehiclemod$computeCasCarrierDistance() (which AbstractVehicleEntity's own tudursvehiclemod$computeBallisticTargetPoint() mirrors exactly, so the displayed number always matches precisely where the actual strike will land).
 	 * Bomb/Rocket instead get an in-world block marker (see client.hud.MortarMarkerRenderer), not a HUD number - always returns -1 for those.
 	 * Returns -1 (an explicit sentinel, not merely "unset") whenever this weapon has the feature configured but the value isn't currently computable (e.g. not aiming upward) - see mortar_distance_str's own doc for the "---b" display this drives instead of hiding the line entirely. */
-	private static double tudursvehiclemod$computeMortarDistance(MinecraftClient client, PlayerEntity player,
+	private static double tudursvehiclemod$computeMortarDistanceNow(MinecraftClient client, PlayerEntity player,
 			AbstractVehicleEntity vehicle, com.example.tudursvehiclemod.asset.WeaponDefinition selectedWeapon) {
 		if (!selectedWeapon.displayMortarDistance()) {
 			return -1.0;
