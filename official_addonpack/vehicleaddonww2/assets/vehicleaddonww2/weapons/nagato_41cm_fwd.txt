@@ -1,0 +1,26 @@
+; 41 cm/45 main battery, forward twin turrets
+DisplayName = 41cm/45 3rd Year Type (turrets 1-2)
+Type = MachineGun2
+Power = 57000
+Acceleration = 39.5
+Gravity = -0.0245
+Accuracy = 0.5
+Delay = 10
+Round = 4
+ReloadTime = 680
+MaxAmmo = 640
+SuppliedNum = 5
+Item = 6, iron_ingot
+Item = 6, gunpowder
+Explosion = 8.0
+ExplosionBlock = 4
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_naval
+Sound = ww2_naval_gun_big
+SoundVolume = 8.5
+SoundPitch = 1.0
+SoundPitchRandom = 0.05
+AddMuzzleFlash = 2.0, 0.8, 1, 200, 254, 210, 160
+AddMuzzleFlashSmoke = 2.5, 3, 5.0, 2.0, 30, 180, 200, 200, 200
+DisplayMortarDistance = true

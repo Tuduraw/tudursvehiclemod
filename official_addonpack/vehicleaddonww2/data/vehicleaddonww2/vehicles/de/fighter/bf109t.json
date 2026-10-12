@@ -1,0 +1,220 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/de/fighter/bf109t.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/de/fighter/bf109t.png",
+  "display_name": "DE) Bf 109 T-1",
+  "scale": 1.0,
+  "width": 11.08,
+  "height": 2.6,
+  "max_speed": 3.93,
+  "acceleration": 0.046,
+  "turn_speed": 0.264,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 11.75,
+  "stall_speed": 0.25,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_inline_v12",
+  "engine_sound_volume": 3.0,
+  "max_health": 460.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 640.0,
+  "fuel_consumption": 0.55,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.072,
+      "offset_z": -1.42,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.24,
+          "z": -1.37
+        },
+        {
+          "x": 0.0,
+          "y": 3.6,
+          "z": -12.5,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "bf109t_mg17_x2",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.12,
+          "y": 2.02,
+          "z": 1.42
+        },
+        {
+          "x": -0.12,
+          "y": 2.02,
+          "z": 1.42
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "bf109t_mgff_x2",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 2.05,
+          "y": 1.411,
+          "z": 0.16
+        },
+        {
+          "x": -2.05,
+          "y": 1.411,
+          "z": 0.16
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "bf109_droptank",
+      "projectile_item": "minecraft:bucket",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 0.62,
+          "z": -0.9,
+          "linked_part": "$drop_tank"
+        }
+      ]
+    }
+  ],
+  "ammo_parts": [
+    {
+      "part": "$drop_tank",
+      "weapon_name": "bf109_droptank",
+      "slot_index": 0,
+      "display_penalty": "6, 4"
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 0.0,
+      "pivot_y": 1.575,
+      "pivot_z": 1.6,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 66.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 1.9,
+      "pivot_z": -6.0863,
+      "axis_x": -0.0,
+      "axis_y": -0.99999,
+      "axis_z": 0.00526,
+      "max_angle": 25.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.45,
+      "pivot_y": 1.1958,
+      "pivot_z": -1.4929,
+      "mode": "rotate",
+      "axis_x": -0.98764,
+      "axis_y": -0.1132,
+      "axis_z": -0.10839,
+      "max_angle": 45.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -2.7,
+      "pivot_y": 1.4537,
+      "pivot_z": -1.246,
+      "mode": "rotate",
+      "axis_x": -0.98764,
+      "axis_y": 0.1132,
+      "axis_z": 0.10839,
+      "max_angle": 45.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": -0.28,
+      "pivot_y": 2.18,
+      "pivot_z": -1.4,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "max_angle": 100.0,
+      "trigger": "key",
+      "speed": 6.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 0.44,
+      "pivot_y": 1.27,
+      "pivot_z": -0.25,
+      "mode": "rotate",
+      "axis_x": 0.13078,
+      "axis_y": 0.29114,
+      "axis_z": 0.9477,
+      "max_angle": 76.834,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -0.44,
+      "pivot_y": 1.27,
+      "pivot_z": -0.25,
+      "mode": "rotate",
+      "axis_x": 0.13078,
+      "axis_y": -0.29114,
+      "axis_z": -0.9477,
+      "max_angle": 76.834,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$hook",
+      "pivot_x": 0.0,
+      "pivot_y": 1.49,
+      "pivot_z": -4.75,
+      "mode": "rotate",
+      "axis_x": 1,
+      "axis_y": 0,
+      "axis_z": 0,
+      "max_angle": 26.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "DE) Bf 109 T-1",
+    "tier": 3
+  }
+}

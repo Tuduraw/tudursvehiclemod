@@ -1,0 +1,23 @@
+; twin 3.7 cm SK C/30 on the midships superstructure
+DisplayName = 3.7cm SK C/30 (twin)
+Type = MachineGun2
+Power = 460
+Acceleration = 50.0
+Gravity = -0.0245
+Accuracy = 1.2
+Delay = 8
+Round = 16
+ReloadTime = 100
+MaxAmmo = 480
+SuppliedNum = 16
+Item = 1, iron_ingot
+Item = 1, gunpowder
+Explosion = 1.2
+ExplosionBlock = 0
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_20mm
+Sound = ww2_aa_gun
+SoundVolume = 3.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.05

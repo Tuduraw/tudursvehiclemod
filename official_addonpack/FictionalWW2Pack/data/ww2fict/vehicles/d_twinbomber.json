@@ -1,0 +1,438 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "ww2fict:models/obj/d_twinbomber.obj",
+  "texture": "ww2fict:textures/vehicle/d_twinbomber.png",
+  "display_name": "DB-5 Sokk",
+  "scale": 1.0,
+  "width": 5.0,
+  "height": 4.0,
+  "max_speed": 1.35,
+  "acceleration": 0.03,
+  "turn_speed": 1.9,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 9.49,
+  "reverse_throttle": 0.0,
+  "stall_speed": 0.32,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2f_engine",
+  "engine_sound_volume": 3.0,
+  "max_health": 200.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 1200.0,
+  "fuel_consumption": 0.9,
+  "inventory_size": 0,
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.85,
+    "entity_height": 0.85
+  },
+  "force_bounding_box": false,
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 2.2,
+      "offset_z": 0.884,
+      "driver": true,
+      "enable_parachuting": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.1,
+          "z": 0.92
+        },
+        {
+          "x": 0.0,
+          "y": 6.11,
+          "z": -21.7,
+          "force_camera": true
+        }
+      ]
+    },
+    {
+      "name": "turretdorsal",
+      "offset_x": 0.0,
+      "offset_y": 1.94,
+      "offset_z": -3.4,
+      "enable_parachuting": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.29,
+          "z": -3.4
+        }
+      ]
+    },
+    {
+      "name": "ventralgun",
+      "offset_x": 0.0,
+      "offset_y": 1.65,
+      "offset_z": 1.1,
+      "enable_parachuting": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 1.6,
+          "z": 0.9
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2f_bomb250_x4",
+      "projectile_item": "minecraft:tnt",
+      "offsets": [
+        {
+          "x": 0.22,
+          "y": 2.0,
+          "z": -1.8
+        },
+        {
+          "x": -0.22,
+          "y": 2.0,
+          "z": -1.8
+        },
+        {
+          "x": 0.22,
+          "y": 2.0,
+          "z": -3.5
+        },
+        {
+          "x": -0.22,
+          "y": 2.0,
+          "z": -3.5
+        }
+      ]
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "ww2f_mg_turret",
+      "projectile_item": "minecraft:iron_nugget",
+      "pilot_usable": true,
+      "offsets": [
+        {
+          "x": -0.06,
+          "y": 3.0723,
+          "z": -4.3,
+          "linked_part": "$turretdorsal_guns"
+        },
+        {
+          "x": 0.06,
+          "y": 3.0723,
+          "z": -4.3,
+          "linked_part": "$turretdorsal_guns"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": -180.0,
+        "min_yaw": -180,
+        "max_yaw": 180,
+        "min_pitch": -5,
+        "max_pitch": 75
+      }
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "ww2f_mg_flex",
+      "projectile_item": "minecraft:iron_nugget",
+      "pilot_usable": true,
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 1.45,
+          "z": -0.0,
+          "linked_part": "$ventralgun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": -180.0,
+        "min_yaw": -50,
+        "max_yaw": 50,
+        "min_pitch": -50,
+        "max_pitch": 5
+      }
+    }
+  ],
+  "ammo_parts": [
+    {
+      "part": "$bomb_01",
+      "weapon_name": "ww2f_bomb250_x4",
+      "slot_index": 3,
+      "display_penalty": "2, 1"
+    },
+    {
+      "part": "$bomb_02",
+      "weapon_name": "ww2f_bomb250_x4",
+      "slot_index": 2,
+      "display_penalty": "2, 1"
+    },
+    {
+      "part": "$bomb_03",
+      "weapon_name": "ww2f_bomb250_x4",
+      "slot_index": 1,
+      "display_penalty": "2, 1"
+    },
+    {
+      "part": "$bomb_04",
+      "weapon_name": "ww2f_bomb250_x4",
+      "slot_index": 0,
+      "display_penalty": "2, 1"
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_l",
+      "pivot_x": 3.1,
+      "pivot_y": 2.3,
+      "pivot_z": 1.9,
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "speed": 45.0
+    },
+    {
+      "part": "$propeller_r",
+      "pivot_x": -3.1,
+      "pivot_y": 2.3,
+      "pivot_z": 1.9,
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "speed": 45.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.75,
+      "pivot_y": 2.33,
+      "pivot_z": -1.888,
+      "mode": "rotate",
+      "axis_x": -0.9998,
+      "axis_y": 0.002,
+      "axis_z": -0.0173,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 3.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -0.75,
+      "pivot_y": 2.33,
+      "pivot_z": -1.888,
+      "mode": "rotate",
+      "axis_x": -0.9998,
+      "axis_y": -0.002,
+      "axis_z": 0.0173,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 3.0
+    },
+    {
+      "part": "$flapouter_l",
+      "pivot_x": 3.3,
+      "pivot_y": 2.325,
+      "pivot_z": -1.844,
+      "mode": "rotate",
+      "axis_x": -0.9948,
+      "axis_y": -0.0868,
+      "axis_z": -0.0538,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 3.0
+    },
+    {
+      "part": "$flapouter_r",
+      "pivot_x": -3.3,
+      "pivot_y": 2.325,
+      "pivot_z": -1.844,
+      "mode": "rotate",
+      "axis_x": -0.9948,
+      "axis_y": 0.0868,
+      "axis_z": 0.0538,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 3.0
+    },
+    {
+      "part": "$maingear_l",
+      "pivot_x": 3.1,
+      "pivot_y": 2.2,
+      "pivot_z": -0.0,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": -0.0,
+      "max_angle": 90.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$maingear_r",
+      "pivot_x": -3.1,
+      "pivot_y": 2.2,
+      "pivot_z": -0.0,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": -0.0,
+      "max_angle": 90.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$tailgear",
+      "pivot_x": 0.0,
+      "pivot_y": 2.1,
+      "pivot_z": -9.3,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": -0.0,
+      "max_angle": 90.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$bombbaydoor_l",
+      "pivot_x": 0.4981,
+      "pivot_y": 1.7033,
+      "pivot_z": -1.0,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "max_angle": 90.0,
+      "trigger": "weapon_bay",
+      "speed": 5.0,
+      "weapon_name": "ww2f_bomb250_x4"
+    },
+    {
+      "part": "$bombbaydoor_r",
+      "pivot_x": -0.4981,
+      "pivot_y": 1.7033,
+      "pivot_z": -1.0,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": -1.0,
+      "max_angle": 90.0,
+      "trigger": "weapon_bay",
+      "speed": 5.0,
+      "weapon_name": "ww2f_bomb250_x4"
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$turretdorsal",
+      "seat_index": 1,
+      "weapon_name": "ww2f_mg_turret",
+      "pilot_fallback": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 2.94,
+      "pivot_z": -3.4,
+      "aim_range": {
+        "default_yaw": -180.0,
+        "min_yaw": -180,
+        "max_yaw": 180,
+        "min_pitch": -5,
+        "max_pitch": 75
+      }
+    },
+    {
+      "part": "$turretdorsal_guns",
+      "seat_index": 1,
+      "weapon_name": "ww2f_mg_turret",
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 3.0723,
+      "pivot_z": -3.4,
+      "aim_range": {
+        "default_yaw": -180.0,
+        "min_yaw": -180,
+        "max_yaw": 180,
+        "min_pitch": -5,
+        "max_pitch": 75
+      },
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 2.94,
+        "parent_pivot_z": -3.4
+      }
+    },
+    {
+      "part": "$ventralgun",
+      "seat_index": 2,
+      "weapon_name": "ww2f_mg_flex",
+      "yaw_follow": true,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 1.45,
+      "pivot_z": 0.6,
+      "aim_range": {
+        "default_yaw": -180.0,
+        "min_yaw": -50,
+        "max_yaw": 50,
+        "min_pitch": -50,
+        "max_pitch": 5
+      }
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$aileron_l",
+      "pivot_x": 5.4,
+      "pivot_y": 2.5081,
+      "pivot_z": -1.7304,
+      "axis_x": 0.9948,
+      "axis_y": 0.0868,
+      "axis_z": 0.0538,
+      "max_angle": 20.0
+    },
+    {
+      "part": "$aileron_r",
+      "pivot_x": -5.4,
+      "pivot_y": 2.5081,
+      "pivot_z": -1.7304,
+      "axis_x": 0.9948,
+      "axis_y": -0.0868,
+      "axis_z": -0.0538,
+      "max_angle": -20.0
+    },
+    {
+      "part": "$rudder_l",
+      "pivot_x": 3.007,
+      "pivot_y": 1.95,
+      "pivot_z": -10.008,
+      "axis_x": -0.0014,
+      "axis_y": 0.9995,
+      "axis_z": -0.0303,
+      "max_angle": -25.0
+    },
+    {
+      "part": "$rudder_r",
+      "pivot_x": -2.993,
+      "pivot_y": 1.95,
+      "pivot_z": -10.008,
+      "axis_x": -0.0014,
+      "axis_y": 0.9995,
+      "axis_z": -0.0303,
+      "max_angle": -25.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "DB-5 Sokk (Dravan)",
+    "tier": 4
+  }
+}

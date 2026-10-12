@@ -1,0 +1,23 @@
+; 20mm wing / engine cannon (small HE burst)
+DisplayName = 20mm Cannon
+Type = MachineGun2
+Power = 10
+Acceleration = 6.5
+Gravity = -0.015
+Accuracy = 1.2
+Delay = 4
+Round = 120
+ReloadTime = 200
+MaxAmmo = 480
+SuppliedNum = 120
+Item = 3, iron_ingot
+Item = 2, gunpowder
+Explosion = 1
+ExplosionBlock = 0
+TimeFuse = 50
+ModelBullet = tracer
+BulletColor = 255, 255, 180, 80
+Sound = ww2f_cannon
+SoundVolume = 2.0
+SoundPitchRandom = 0.08
+AddMuzzleFlash = 1.0, 0.3, 1, 200, 254, 219, 184

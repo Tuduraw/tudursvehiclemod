@@ -1,0 +1,26 @@
+; after B-2LM twin turret
+DisplayName = 130mm/50 B-2LM (Y turret)
+Type = MachineGun2
+Power = 5700
+Acceleration = 43.5
+Gravity = -0.0245
+Accuracy = 0.6
+Delay = 14
+Round = 2
+ReloadTime = 100
+MaxAmmo = 300
+SuppliedNum = 5
+Item = 2, iron_ingot
+Item = 2, gunpowder
+Explosion = 3.5
+ExplosionBlock = 2
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_naval
+Sound = ww2_naval_gun_small
+SoundVolume = 5.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.05
+AddMuzzleFlash = 2.0, 0.8, 1, 200, 254, 210, 160
+AddMuzzleFlashSmoke = 2.5, 3, 5.0, 2.0, 30, 180, 200, 200, 200
+DisplayMortarDistance = true

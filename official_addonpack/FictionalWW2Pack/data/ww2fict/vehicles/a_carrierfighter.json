@@ -1,0 +1,222 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "ww2fict:models/obj/a_carrierfighter.obj",
+  "texture": "ww2fict:textures/vehicle/a_carrierfighter.png",
+  "display_name": "AN-4 Petrel",
+  "scale": 1.0,
+  "width": 3.0,
+  "height": 3.0,
+  "max_speed": 1.6,
+  "acceleration": 0.05,
+  "turn_speed": 3.4,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 10.52,
+  "reverse_throttle": 0.0,
+  "stall_speed": 0.3,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2f_engine",
+  "engine_sound_volume": 3.0,
+  "max_health": 80.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 750.0,
+  "fuel_consumption": 0.55,
+  "inventory_size": 0,
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.85,
+    "entity_height": 0.85
+  },
+  "force_bounding_box": false,
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.6,
+      "offset_z": -1.574,
+      "driver": true,
+      "enable_parachuting": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.5,
+          "z": -1.52
+        },
+        {
+          "x": 0.0,
+          "y": 5.06,
+          "z": -17.04,
+          "force_camera": true
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2f_mg_heavy",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 2.0,
+          "y": 1.27,
+          "z": 0.85
+        },
+        {
+          "x": -2.0,
+          "y": 1.27,
+          "z": 0.85
+        }
+      ]
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller",
+      "pivot_x": 0.0,
+      "pivot_y": 1.74,
+      "pivot_z": 2.1,
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "speed": 45.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.55,
+      "pivot_y": 1.219,
+      "pivot_z": -0.906,
+      "mode": "rotate",
+      "axis_x": -0.9982,
+      "axis_y": -0.0577,
+      "axis_z": -0.013,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 3.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -0.55,
+      "pivot_y": 1.219,
+      "pivot_z": -0.906,
+      "mode": "rotate",
+      "axis_x": -0.9982,
+      "axis_y": 0.0577,
+      "axis_z": 0.013,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 3.0
+    },
+    {
+      "part": "$wingfold_l",
+      "pivot_x": 2.4,
+      "pivot_y": 1.446,
+      "pivot_z": -0.42,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "max_angle": 105.0,
+      "trigger": "wing_fold",
+      "speed": 3.0
+    },
+    {
+      "part": "$wingfold_r",
+      "pivot_x": -2.4,
+      "pivot_y": 1.446,
+      "pivot_z": -0.42,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": -1.0,
+      "max_angle": 105.0,
+      "trigger": "wing_fold",
+      "speed": 3.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 0.0,
+      "pivot_z": 0.0,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.0,
+      "offset_z": -0.7,
+      "trigger": "key",
+      "speed": 20.0
+    },
+    {
+      "part": "$maingear_l",
+      "pivot_x": 1.85,
+      "pivot_y": 1.12,
+      "pivot_z": -0.0,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": -1.0,
+      "max_angle": 85.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$maingear_r",
+      "pivot_x": -1.85,
+      "pivot_y": 1.12,
+      "pivot_z": -0.0,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "max_angle": 85.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$tailgear",
+      "pivot_x": 0.0,
+      "pivot_y": 1.52,
+      "pivot_z": -5.45,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": -0.0,
+      "max_angle": 90.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$arrestorhook",
+      "pivot_x": 0.0,
+      "pivot_y": 1.4,
+      "pivot_z": -4.9,
+      "mode": "rotate",
+      "axis_x": -1.0,
+      "axis_y": 0.0,
+      "axis_z": -0.0,
+      "max_angle": 60.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.007,
+      "pivot_y": 1.75,
+      "pivot_z": -5.802,
+      "axis_x": -0.0026,
+      "axis_y": 0.9951,
+      "axis_z": -0.0993,
+      "max_angle": -25.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "AN-4 Petrel (Aurelia)",
+    "tier": 3
+  }
+}

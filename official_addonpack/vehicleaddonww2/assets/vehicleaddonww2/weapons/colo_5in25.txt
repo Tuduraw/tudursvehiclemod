@@ -1,0 +1,26 @@
+; single 5 in/25 high-angle guns on the superstructure deck
+DisplayName = 5"/25 Mk 10 (AA)
+Type = MachineGun2
+Power = 5400
+Acceleration = 32.85
+Gravity = -0.0245
+Accuracy = 0.7
+Delay = 10
+Round = 8
+ReloadTime = 150
+MaxAmmo = 640
+SuppliedNum = 8
+Item = 2, iron_ingot
+Item = 1, gunpowder
+Explosion = 2.6
+ExplosionBlock = 1
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_naval
+Sound = ww2_naval_gun_small
+SoundVolume = 4.2
+SoundPitch = 1.0
+SoundPitchRandom = 0.05
+AddMuzzleFlash = 2.0, 0.8, 1, 200, 254, 210, 160
+AddMuzzleFlashSmoke = 2.5, 3, 5.0, 2.0, 30, 180, 200, 200, 200
+DisplayMortarDistance = true

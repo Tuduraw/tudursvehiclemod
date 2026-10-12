@@ -1,0 +1,8 @@
+; 400 l Drop Tank
+DisplayName = 400 l Drop Tank
+Type = DropTank
+Round = 1
+MaxAmmo = 1
+FuelPerAmmo = 400.0
+Gravity = -0.05
+ModelBullet = droptank

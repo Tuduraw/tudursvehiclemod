@@ -1,0 +1,15 @@
+; vertical camera in the rear fuselage; spots vehicles in the observer's line of sight (pilot can use it when flying alone)
+DisplayName = Reconnaissance Camera
+Type = TargetingPod
+Target = planes/helicopters/vehicles/players/monsters
+Length = 320
+Radius = 16
+MarkTime = 40
+Delay = 40
+Round = 24
+ReloadTime = 600
+MaxAmmo = 24
+SuppliedNum = 24
+Item = 1, redstone
+Sound = ww2_camera
+SoundVolume = 1.2

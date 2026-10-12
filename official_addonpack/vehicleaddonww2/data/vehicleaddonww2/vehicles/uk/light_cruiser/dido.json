@@ -1,0 +1,1020 @@
+{
+  "entity_type": "tudursvehiclemod:ship",
+  "model": "vehicleaddonww2:models/obj/uk/light_cruiser/dido.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/uk/light_cruiser/dido.png",
+  "display_name": "UK) Light Cruiser Dido",
+  "scale": 1.0,
+  "width": 15.4,
+  "height": 36.0,
+  "max_speed": 0.78,
+  "acceleration": 0.0052,
+  "turn_speed": 0.64,
+  "step_height": 0.0,
+  "gravity": -0.04,
+  "reverse_throttle": -0.25,
+  "weight_type": "tank",
+  "throttle_up_down": 0.6,
+  "throttle_switch_hold_ticks": 80,
+  "engine_sound": "ww2_ship_turbine",
+  "engine_sound_volume": 3.2,
+  "max_health": 320000.0,
+  "armor_damage_factor": 0.62,
+  "armor_min_damage": 230.0,
+  "armor_max_damage": 320000.0,
+  "damage_factor": 0.17,
+  "max_fuel": 12000.0,
+  "fuel_consumption": 1.3,
+  "inventory_size": 27,
+  "submerged_damage_height": 4.5,
+  "wake_trail_duration_ticks": 400,
+  "hud": "ww2_ship_hud",
+  "passenger_display": {
+    "hide_entity": false
+  },
+  "runways": [
+    {
+      "width": 13.5,
+      "center_x": 0.0,
+      "height_y": 5.6,
+      "start_z": -30.62,
+      "end_z": 47.75
+    },
+    {
+      "width": 13.3,
+      "center_x": 0.0,
+      "height_y": 3.1,
+      "start_z": -53.25,
+      "end_z": -31.38
+    },
+    {
+      "width": 11.9,
+      "center_x": 0.0,
+      "height_y": 3.1,
+      "start_z": -61.5,
+      "end_z": -53.25
+    },
+    {
+      "width": 12.9,
+      "center_x": 0.0,
+      "height_y": 5.6,
+      "start_z": 45.0,
+      "end_z": 51.0
+    },
+    {
+      "width": 11.7,
+      "center_x": 0.0,
+      "height_y": 6.1,
+      "start_z": 50.25,
+      "end_z": 56.5
+    },
+    {
+      "width": 10.7,
+      "center_x": 0.0,
+      "height_y": 3.1,
+      "start_z": -65.75,
+      "end_z": -59.75
+    },
+    {
+      "width": 10.5,
+      "center_x": 0.0,
+      "height_y": 6.1,
+      "start_z": 54.5,
+      "end_z": 60.5
+    },
+    {
+      "width": 9.5,
+      "center_x": 0.0,
+      "height_y": 3.1,
+      "start_z": -69.25,
+      "end_z": -63.25
+    },
+    {
+      "width": 9.3,
+      "center_x": 0.0,
+      "height_y": 6.1,
+      "start_z": 57.75,
+      "end_z": 63.75
+    },
+    {
+      "width": 8.9,
+      "center_x": 0.0,
+      "height_y": 3.1,
+      "start_z": -70.5,
+      "end_z": -64.5
+    },
+    {
+      "width": 8.5,
+      "center_x": 0.0,
+      "height_y": 6.1,
+      "start_z": 59.75,
+      "end_z": 65.75
+    },
+    {
+      "width": 5.9,
+      "center_x": 0.0,
+      "height_y": 6.6,
+      "start_z": 65.5,
+      "end_z": 67.75
+    },
+    {
+      "width": 5.9,
+      "center_x": 0.0,
+      "height_y": 3.6,
+      "start_z": -72.5,
+      "end_z": -70.5
+    },
+    {
+      "width": 5.9,
+      "center_x": 0.0,
+      "height_y": 6.6,
+      "start_z": 67.75,
+      "end_z": 69.25
+    },
+    {
+      "width": 5.9,
+      "center_x": 0.0,
+      "height_y": 6.6,
+      "start_z": 69.25,
+      "end_z": 70.75
+    },
+    {
+      "width": 5.9,
+      "center_x": 0.0,
+      "height_y": 3.6,
+      "start_z": -73.75,
+      "end_z": -72.5
+    },
+    {
+      "width": 5.5,
+      "center_x": 0.0,
+      "height_y": 7.1,
+      "start_z": 70.75,
+      "end_z": 72.0
+    },
+    {
+      "width": 3.7,
+      "center_x": 0.0,
+      "height_y": 7.1,
+      "start_z": 73.0,
+      "end_z": 74.75
+    },
+    {
+      "width": 5.9,
+      "center_x": 0.0,
+      "height_y": 3.6,
+      "start_z": -74.75,
+      "end_z": -73.75
+    },
+    {
+      "width": 5.5,
+      "center_x": 0.0,
+      "height_y": 3.6,
+      "start_z": -75.75,
+      "end_z": -74.75
+    },
+    {
+      "width": 4.9,
+      "center_x": 0.0,
+      "height_y": 7.1,
+      "start_z": 72.0,
+      "end_z": 73.0
+    }
+  ],
+  "seats": [
+    {
+      "name": "captain",
+      "offset_x": 0.0,
+      "offset_y": 14.808,
+      "offset_z": 27.0,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 17.2,
+          "z": 27.4
+        },
+        {
+          "x": 0.0,
+          "y": 42.0,
+          "z": -130.0,
+          "force_camera": true,
+          "fixed_pitch": 15.0
+        }
+      ]
+    },
+    {
+      "name": "main_battery_fwd",
+      "offset_x": 1.6,
+      "offset_y": 20.978,
+      "offset_z": 16.4,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 23.6,
+          "z": 17.8
+        },
+        {
+          "x": 0.0,
+          "y": 34.0,
+          "z": -40.0,
+          "force_camera": true
+        }
+      ]
+    },
+    {
+      "name": "main_battery_aft",
+      "offset_x": 0.0,
+      "offset_y": 10.478,
+      "offset_z": -32.6,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 12.9,
+          "z": -33.0
+        },
+        {
+          "x": 0.0,
+          "y": 30.0,
+          "z": 80.0,
+          "force_camera": true,
+          "fixed_yaw": 180.0
+        }
+      ]
+    },
+    {
+      "name": "aa_control",
+      "offset_x": 2.6,
+      "offset_y": 14.808,
+      "offset_z": 20.0,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 2.6,
+          "y": 17.2,
+          "z": 20.4
+        }
+      ]
+    },
+    {
+      "name": "torpedo_officer",
+      "offset_x": -2.6,
+      "offset_y": 14.808,
+      "offset_z": 20.0,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": -2.6,
+          "y": 17.2,
+          "z": 20.4
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 1,
+      "weapon_name": "dido_525_fwd",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": -0.7,
+          "y": 7.75,
+          "z": 63.0,
+          "linked_part": "$a_gun"
+        },
+        {
+          "x": 0.7,
+          "y": 7.75,
+          "z": 63.0,
+          "linked_part": "$a_gun"
+        },
+        {
+          "x": -0.7,
+          "y": 9.6,
+          "z": 55.0,
+          "linked_part": "$b_gun"
+        },
+        {
+          "x": 0.7,
+          "y": 9.6,
+          "z": 55.0,
+          "linked_part": "$b_gun"
+        },
+        {
+          "x": -0.7,
+          "y": 11.6,
+          "z": 46.9,
+          "linked_part": "$q_gun"
+        },
+        {
+          "x": 0.7,
+          "y": 11.6,
+          "z": 46.9,
+          "linked_part": "$q_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -136.5,
+            "max_pitch": -11.0
+          },
+          {
+            "from_yaw": -27.5,
+            "to_yaw": 27.5,
+            "max_pitch": -0.0
+          },
+          {
+            "from_yaw": 136.5,
+            "to_yaw": 150.0,
+            "max_pitch": -11.0
+          }
+        ]
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 12.0
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "dido_525_aft",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.7,
+          "y": 7.4,
+          "z": -51.0,
+          "linked_part": "$x_gun"
+        },
+        {
+          "x": -0.7,
+          "y": 7.4,
+          "z": -51.0,
+          "linked_part": "$x_gun"
+        },
+        {
+          "x": 0.7,
+          "y": 4.9,
+          "z": -58.9,
+          "linked_part": "$y_gun"
+        },
+        {
+          "x": -0.7,
+          "y": 4.9,
+          "z": -58.9,
+          "linked_part": "$y_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -130.5,
+            "max_pitch": -30.0
+          },
+          {
+            "from_yaw": 130.5,
+            "to_yaw": 150.0,
+            "max_pitch": -30.0
+          }
+        ]
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 12.0
+    },
+    {
+      "seat_index": 3,
+      "weapon_name": "dido_2pdr_quad",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 5.8,
+          "y": 7.52,
+          "z": -12.57
+        },
+        {
+          "x": 5.8,
+          "y": 7.52,
+          "z": -13.03
+        },
+        {
+          "x": 5.8,
+          "y": 7.9,
+          "z": -12.57
+        },
+        {
+          "x": 5.8,
+          "y": 7.9,
+          "z": -13.03
+        },
+        {
+          "x": -5.8,
+          "y": 7.52,
+          "z": -13.03
+        },
+        {
+          "x": -5.8,
+          "y": 7.52,
+          "z": -12.57
+        },
+        {
+          "x": -5.8,
+          "y": 7.9,
+          "z": -13.03
+        },
+        {
+          "x": -5.8,
+          "y": 7.9,
+          "z": -12.57
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0,
+        "min_yaw": -180,
+        "max_yaw": 180,
+        "min_pitch": -85,
+        "max_pitch": 10
+      },
+      "pilot_usable": true
+    },
+    {
+      "seat_index": 3,
+      "weapon_name": "ww2_us_oerlikon20",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 5.072,
+          "y": 16.55,
+          "z": 28.45
+        },
+        {
+          "x": 3.372,
+          "y": 8.25,
+          "z": -31.25
+        },
+        {
+          "x": -5.072,
+          "y": 16.55,
+          "z": 28.45
+        },
+        {
+          "x": -3.372,
+          "y": 8.25,
+          "z": -31.25
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0,
+        "min_yaw": -180,
+        "max_yaw": 180,
+        "min_pitch": -85,
+        "max_pitch": 10
+      },
+      "pilot_usable": true
+    },
+    {
+      "seat_index": 4,
+      "weapon_name": "dido_21in_mk9",
+      "projectile_item": "minecraft:iron_block",
+      "offsets": [
+        {
+          "x": 8.04,
+          "y": 6.37,
+          "z": 2.4,
+          "linked_part": "$tt1"
+        },
+        {
+          "x": 8.04,
+          "y": 6.37,
+          "z": 1.6,
+          "linked_part": "$tt1"
+        },
+        {
+          "x": 8.04,
+          "y": 6.37,
+          "z": 0.8,
+          "linked_part": "$tt1"
+        },
+        {
+          "x": -8.04,
+          "y": 6.37,
+          "z": 0.8,
+          "linked_part": "$tt2"
+        },
+        {
+          "x": -8.04,
+          "y": 6.37,
+          "z": 1.6,
+          "linked_part": "$tt2"
+        },
+        {
+          "x": -8.04,
+          "y": 6.37,
+          "z": 2.4,
+          "linked_part": "$tt2"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -5.0,
+        "max_pitch": 5.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 10.0
+    },
+    {
+      "seat_index": 4,
+      "weapon_name": "dido_dc",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 3.0,
+          "z": -78.4,
+          "mount_yaw": 180.0
+        }
+      ],
+      "pilot_usable": true
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$a",
+      "seat_index": 1,
+      "weapon_name": "dido_525_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 6.45,
+      "pivot_z": 54.4,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -136.5,
+            "max_pitch": -11.0
+          },
+          {
+            "from_yaw": -27.5,
+            "to_yaw": 27.5,
+            "max_pitch": -0.0
+          },
+          {
+            "from_yaw": 136.5,
+            "to_yaw": 150.0,
+            "max_pitch": -11.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$a_gun",
+      "seat_index": 1,
+      "weapon_name": "dido_525_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 7.75,
+      "pivot_z": 55.6,
+      "recoil_distance": 0.45,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 6.45,
+        "parent_pivot_z": 54.4
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -136.5,
+            "max_pitch": -11.0
+          },
+          {
+            "from_yaw": -27.5,
+            "to_yaw": 27.5,
+            "max_pitch": -0.0
+          },
+          {
+            "from_yaw": 136.5,
+            "to_yaw": 150.0,
+            "max_pitch": -11.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$b",
+      "seat_index": 1,
+      "weapon_name": "dido_525_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 8.3,
+      "pivot_z": 46.4,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -136.5,
+            "max_pitch": -11.0
+          },
+          {
+            "from_yaw": -27.5,
+            "to_yaw": 27.5,
+            "max_pitch": -0.0
+          },
+          {
+            "from_yaw": 136.5,
+            "to_yaw": 150.0,
+            "max_pitch": -11.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$b_gun",
+      "seat_index": 1,
+      "weapon_name": "dido_525_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 9.6,
+      "pivot_z": 47.6,
+      "recoil_distance": 0.45,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 8.3,
+        "parent_pivot_z": 46.4
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -136.5,
+            "max_pitch": -11.0
+          },
+          {
+            "from_yaw": -27.5,
+            "to_yaw": 27.5,
+            "max_pitch": -0.0
+          },
+          {
+            "from_yaw": 136.5,
+            "to_yaw": 150.0,
+            "max_pitch": -11.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$q",
+      "seat_index": 1,
+      "weapon_name": "dido_525_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 10.3,
+      "pivot_z": 38.3,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -136.5,
+            "max_pitch": -11.0
+          },
+          {
+            "from_yaw": -27.5,
+            "to_yaw": 27.5,
+            "max_pitch": -0.0
+          },
+          {
+            "from_yaw": 136.5,
+            "to_yaw": 150.0,
+            "max_pitch": -11.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$q_gun",
+      "seat_index": 1,
+      "weapon_name": "dido_525_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 11.6,
+      "pivot_z": 39.5,
+      "recoil_distance": 0.45,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 10.3,
+        "parent_pivot_z": 38.3
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -136.5,
+            "max_pitch": -11.0
+          },
+          {
+            "from_yaw": -27.5,
+            "to_yaw": 27.5,
+            "max_pitch": -0.0
+          },
+          {
+            "from_yaw": 136.5,
+            "to_yaw": 150.0,
+            "max_pitch": -11.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$x",
+      "seat_index": 2,
+      "weapon_name": "dido_525_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 6.1,
+      "pivot_z": -42.4,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -130.5,
+            "max_pitch": -30.0
+          },
+          {
+            "from_yaw": 130.5,
+            "to_yaw": 150.0,
+            "max_pitch": -30.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$x_gun",
+      "seat_index": 2,
+      "weapon_name": "dido_525_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 7.4,
+      "pivot_z": -43.6,
+      "recoil_distance": 0.45,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 6.1,
+        "parent_pivot_z": -42.4
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -130.5,
+            "max_pitch": -30.0
+          },
+          {
+            "from_yaw": 130.5,
+            "to_yaw": 150.0,
+            "max_pitch": -30.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$y",
+      "seat_index": 2,
+      "weapon_name": "dido_525_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 3.6,
+      "pivot_z": -50.3,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -130.5,
+            "max_pitch": -30.0
+          },
+          {
+            "from_yaw": 130.5,
+            "to_yaw": 150.0,
+            "max_pitch": -30.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$y_gun",
+      "seat_index": 2,
+      "weapon_name": "dido_525_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 4.9,
+      "pivot_z": -51.5,
+      "recoil_distance": 0.45,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 3.6,
+        "parent_pivot_z": -50.3
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -70.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -130.5,
+            "max_pitch": -30.0
+          },
+          {
+            "from_yaw": 130.5,
+            "to_yaw": 150.0,
+            "max_pitch": -30.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$tt1",
+      "seat_index": 4,
+      "weapon_name": "dido_21in_mk9",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 4.6,
+      "pivot_y": 5.65,
+      "pivot_z": 1.6,
+      "aim_range": {
+        "default_yaw": -90.0,
+        "min_yaw": -60.0,
+        "max_yaw": 60.0,
+        "min_pitch": -5.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$tt2",
+      "seat_index": 4,
+      "weapon_name": "dido_21in_mk9",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": -4.6,
+      "pivot_y": 5.65,
+      "pivot_z": 1.6,
+      "aim_range": {
+        "default_yaw": 90.0,
+        "min_yaw": -60.0,
+        "max_yaw": 60.0,
+        "min_pitch": -5.0,
+        "max_pitch": 5.0
+      }
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$screw_ol",
+      "pivot_x": 4.2,
+      "pivot_y": -3.8,
+      "pivot_z": -58.0,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 18.0
+    },
+    {
+      "part": "$screw_or",
+      "pivot_x": -4.2,
+      "pivot_y": -3.8,
+      "pivot_z": -58.0,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": -18.0
+    },
+    {
+      "part": "$screw_il",
+      "pivot_x": 1.9,
+      "pivot_y": -3.8,
+      "pivot_z": -64.0,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 18.0
+    },
+    {
+      "part": "$screw_ir",
+      "pivot_x": -1.9,
+      "pivot_y": -3.8,
+      "pivot_z": -64.0,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": -18.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "UK) Light Cruiser Dido",
+    "tier": 3
+  }
+}

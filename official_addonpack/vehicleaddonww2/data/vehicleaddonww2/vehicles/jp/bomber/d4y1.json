@@ -1,0 +1,363 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/jp/bomber/d4y1.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/jp/bomber/d4y1.png",
+  "display_name": "JP) D4Y1 Suisei",
+  "scale": 1.0,
+  "width": 11.5,
+  "height": 3.74,
+  "max_speed": 3.6,
+  "acceleration": 0.042,
+  "turn_speed": 0.208,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 11.21,
+  "stall_speed": 0.22,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_inline_v12",
+  "engine_sound_volume": 3.0,
+  "max_health": 450.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 1000.0,
+  "fuel_consumption": 0.65,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.832,
+      "offset_z": -0.85,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.0,
+          "z": -0.8
+        },
+        {
+          "x": 0.0,
+          "y": 4.5,
+          "z": -14.0,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    },
+    {
+      "name": "gunner",
+      "offset_x": 0.0,
+      "offset_y": 1.802,
+      "offset_z": -2.2,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.97,
+          "z": -2.15
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2_jp_type97_77",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.13,
+          "y": 2.6,
+          "z": 1.52
+        },
+        {
+          "x": -0.13,
+          "y": 2.6,
+          "z": 1.52
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "d4y_500kg",
+      "projectile_item": "minecraft:tnt",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 1.0,
+          "z": -0.75
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "d4y_30kg_x2",
+      "projectile_item": "minecraft:tnt",
+      "offsets": [
+        {
+          "x": 2.75,
+          "y": 1.35,
+          "z": -0.7,
+          "linked_part": "$bomb_l"
+        },
+        {
+          "x": -2.75,
+          "y": 1.35,
+          "z": -0.7,
+          "linked_part": "$bomb_r"
+        }
+      ]
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "ww2_jp_type92",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 2.97,
+          "z": -3.3,
+          "linked_part": "$rear_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -70.0,
+        "max_yaw": 70.0,
+        "min_pitch": -55.0,
+        "max_pitch": 10.0
+      }
+    }
+  ],
+  "ammo_parts": [
+    {
+      "part": "$bomb_l",
+      "weapon_name": "d4y_30kg_x2",
+      "slot_index": 1,
+      "display_penalty": "1, 1"
+    },
+    {
+      "part": "$bomb_r",
+      "weapon_name": "d4y_30kg_x2",
+      "slot_index": 0,
+      "display_penalty": "1, 1"
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 0.0,
+      "pivot_y": 2.1,
+      "pivot_z": 2.52,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 66.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 2.05,
+      "pivot_z": -6.665,
+      "axis_x": -0.0,
+      "axis_y": -1.0,
+      "axis_z": -0.00114,
+      "max_angle": 25.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.62,
+      "pivot_y": 1.6434,
+      "pivot_z": -1.796,
+      "mode": "rotate",
+      "axis_x": -0.9898,
+      "axis_y": -0.06438,
+      "axis_z": -0.12706,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -3.85,
+      "pivot_y": 1.8535,
+      "pivot_z": -1.3814,
+      "mode": "rotate",
+      "axis_x": -0.9898,
+      "axis_y": 0.06438,
+      "axis_z": 0.12706,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 2.7304,
+      "pivot_z": -0.8733,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.02,
+      "offset_z": -0.45,
+      "trigger": "key",
+      "speed": 6.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 2.34,
+      "pivot_y": 1.82,
+      "pivot_z": -0.15,
+      "mode": "rotate",
+      "axis_x": 0.08132,
+      "axis_y": -0.09788,
+      "axis_z": -0.99187,
+      "max_angle": 86.183,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -2.34,
+      "pivot_y": 1.82,
+      "pivot_z": -0.15,
+      "mode": "rotate",
+      "axis_x": 0.08132,
+      "axis_y": 0.09788,
+      "axis_z": 0.99187,
+      "max_angle": 86.183,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_tail",
+      "pivot_x": 0.0,
+      "pivot_y": 1.72,
+      "pivot_z": -6.61,
+      "mode": "rotate",
+      "axis_x": -1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 110.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$hook",
+      "pivot_x": 0.0,
+      "pivot_y": 1.62,
+      "pivot_z": -6.0,
+      "mode": "rotate",
+      "axis_x": 1,
+      "axis_y": 0,
+      "axis_z": 0,
+      "max_angle": 34.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy_rear",
+      "pivot_x": 0.0,
+      "pivot_y": 2.66,
+      "pivot_z": -2.4,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.01,
+      "offset_z": 0.4,
+      "trigger": "key",
+      "speed": 6.0
+    },
+    {
+      "part": "$dive_l",
+      "pivot_x": 0.8,
+      "pivot_y": 1.6069,
+      "pivot_z": -1.2168,
+      "mode": "rotate",
+      "axis_x": -0.99426,
+      "axis_y": -0.07266,
+      "axis_z": -0.07855,
+      "max_angle": 90.0,
+      "trigger": "weapon_bay",
+      "speed": 4.0,
+      "weapon_name": "d4y_500kg"
+    },
+    {
+      "part": "$dive_r",
+      "pivot_x": -3.8,
+      "pivot_y": 1.8261,
+      "pivot_z": -0.9798,
+      "mode": "rotate",
+      "axis_x": -0.99426,
+      "axis_y": 0.07266,
+      "axis_z": 0.07855,
+      "max_angle": 90.0,
+      "trigger": "weapon_bay",
+      "speed": 4.0,
+      "weapon_name": "d4y_500kg"
+    },
+    {
+      "part": "$bay_l",
+      "pivot_x": 0.2497,
+      "pivot_y": 1.2509,
+      "pivot_z": 0.4,
+      "mode": "rotate",
+      "axis_x": 0.00492,
+      "axis_y": 0.00047,
+      "axis_z": 0.99999,
+      "max_angle": 95.0,
+      "trigger": "weapon_bay",
+      "speed": 3.0,
+      "weapon_name": "d4y_500kg"
+    },
+    {
+      "part": "$bay_r",
+      "pivot_x": -0.2497,
+      "pivot_y": 1.2509,
+      "pivot_z": 0.4,
+      "mode": "rotate",
+      "axis_x": 0.00492,
+      "axis_y": -0.00047,
+      "axis_z": -0.99999,
+      "max_angle": 95.0,
+      "trigger": "weapon_bay",
+      "speed": 3.0,
+      "weapon_name": "d4y_500kg"
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$rear_gun",
+      "seat_index": 1,
+      "weapon_name": "ww2_jp_type92",
+      "pilot_fallback": false,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 2.92,
+      "pivot_z": -2.6,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -70.0,
+        "max_yaw": 70.0,
+        "min_pitch": -55.0,
+        "max_pitch": 10.0
+      }
+    }
+  ],
+  "spawn_item": {
+    "display_name": "JP) D4Y1 Suisei",
+    "tier": 3
+  }
+}

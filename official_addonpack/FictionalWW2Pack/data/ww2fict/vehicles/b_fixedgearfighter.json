@@ -1,0 +1,180 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "ww2fict:models/obj/b_fixedgearfighter.obj",
+  "texture": "ww2fict:textures/vehicle/b_fixedgearfighter.png",
+  "display_name": "BV-7 Kobchik",
+  "scale": 1.0,
+  "width": 3.0,
+  "height": 3.0,
+  "max_speed": 1.35,
+  "acceleration": 0.045,
+  "turn_speed": 3.8,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 11.01,
+  "reverse_throttle": 0.0,
+  "stall_speed": 0.3,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2f_engine",
+  "engine_sound_volume": 3.0,
+  "max_health": 60.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 600.0,
+  "fuel_consumption": 0.45,
+  "inventory_size": 0,
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.85,
+    "entity_height": 0.85
+  },
+  "force_bounding_box": false,
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.5,
+      "offset_z": -1.044,
+      "driver": true,
+      "enable_parachuting": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.4,
+          "z": -1.02
+        },
+        {
+          "x": 0.0,
+          "y": 4.99,
+          "z": -16.77,
+          "force_camera": true
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2f_mg_light",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.5,
+          "y": 1.85,
+          "z": 1.0
+        },
+        {
+          "x": -0.5,
+          "y": 1.85,
+          "z": 1.0
+        }
+      ]
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller",
+      "pivot_x": 0.0,
+      "pivot_y": 1.65,
+      "pivot_z": 1.9,
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "speed": 45.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 1.9,
+      "pivot_y": 1.033,
+      "pivot_z": -0.876,
+      "mode": "rotate",
+      "axis_x": -0.9884,
+      "axis_y": -0.1358,
+      "axis_z": -0.0685,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 3.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -1.9,
+      "pivot_y": 1.033,
+      "pivot_z": -0.876,
+      "mode": "rotate",
+      "axis_x": -0.9884,
+      "axis_y": 0.1358,
+      "axis_z": 0.0685,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 3.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$aileron_l",
+      "pivot_x": 3.2,
+      "pivot_y": 1.2117,
+      "pivot_z": -0.786,
+      "axis_x": 0.9884,
+      "axis_y": 0.1358,
+      "axis_z": 0.0685,
+      "max_angle": 20.0
+    },
+    {
+      "part": "$aileron_r",
+      "pivot_x": -3.2,
+      "pivot_y": 1.2117,
+      "pivot_z": -0.786,
+      "axis_x": 0.9884,
+      "axis_y": -0.1358,
+      "axis_z": -0.0685,
+      "max_angle": -20.0
+    },
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0064,
+      "pivot_y": 1.7,
+      "pivot_z": -5.5477,
+      "axis_x": -0.0022,
+      "axis_y": 0.9938,
+      "axis_z": -0.111,
+      "max_angle": -25.0
+    }
+  ],
+  "wheel_parts": [
+    {
+      "part": "$wheel_l",
+      "pivot_x": 1.9,
+      "pivot_y": 0.36,
+      "pivot_z": -0.0
+    },
+    {
+      "part": "$wheel_r",
+      "pivot_x": -1.9,
+      "pivot_y": 0.36,
+      "pivot_z": -0.0
+    },
+    {
+      "part": "$tailwheel",
+      "pivot_x": 0.0,
+      "pivot_y": 1.18,
+      "pivot_z": -5.45,
+      "steer_angle": -30.0,
+      "steer_axis_x": 0.0,
+      "steer_axis_y": 1.0,
+      "steer_axis_z": 0.0,
+      "steer_pivot_x": 0.0,
+      "steer_pivot_y": 1.58,
+      "steer_pivot_z": -5.3
+    }
+  ],
+  "wheel_rotation_speed": 40.0,
+  "spawn_item": {
+    "display_name": "BV-7 Kobchik (Borvia)",
+    "tier": 2
+  }
+}

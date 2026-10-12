@@ -1,0 +1,23 @@
+; 12.7mm class heavy machine gun (wing / cowl)
+DisplayName = 12.7mm HMG
+Type = MachineGun1
+Power = 6
+Acceleration = 8.0
+Gravity = -0.01
+Accuracy = 1.0
+Delay = 2
+Round = 350
+ReloadTime = 140
+MaxAmmo = 1400
+SuppliedNum = 350
+Item = 2, iron_ingot
+Item = 1, gunpowder
+Piercing = 1
+TimeFuse = 55
+ModelBullet = tracer
+BulletColor = 255, 255, 220, 120
+Sound = ww2f_mg
+SoundVolume = 1.8
+SoundPitch = 0.85
+SoundPitchRandom = 0.1
+AddMuzzleFlash = 0.8, 0.25, 1, 200, 254, 219, 184

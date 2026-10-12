@@ -1,0 +1,257 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/jp/recon/ki46.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/jp/recon/ki46.png",
+  "display_name": "JP) Ki-46-II Dinah",
+  "scale": 1.0,
+  "width": 14.7,
+  "height": 3.88,
+  "max_speed": 4.02,
+  "acceleration": 0.04,
+  "turn_speed": 0.167,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 10.7,
+  "stall_speed": 0.25,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_radial_large",
+  "engine_sound_volume": 3.0,
+  "max_health": 550.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 1900.0,
+  "fuel_consumption": 0.8,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.872,
+      "offset_z": 0.0,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.04,
+          "z": 0.05
+        },
+        {
+          "x": 0.0,
+          "y": 4.5,
+          "z": -17.0,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    },
+    {
+      "name": "observer",
+      "offset_x": 0.0,
+      "offset_y": 1.812,
+      "offset_z": -2.3,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.2,
+          "z": -2.75
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 1,
+      "weapon_name": "ki46_type89",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 3.0,
+          "z": -3.45,
+          "linked_part": "$rear_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -60.0,
+        "max_yaw": 60.0,
+        "min_pitch": -45.0,
+        "max_pitch": 15.0
+      }
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "ki46_camera",
+      "projectile_item": "minecraft:paper",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 1.45,
+          "z": -3.25
+        }
+      ],
+      "pilot_usable": true
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 1.95,
+      "pivot_y": 2.02,
+      "pivot_z": 1.15,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 62.0
+    },
+    {
+      "part": "$propeller_blade2",
+      "pivot_x": -1.95,
+      "pivot_y": 2.02,
+      "pivot_z": 1.15,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 62.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 2.2,
+      "pivot_z": -7.3114,
+      "axis_x": -0.0,
+      "axis_y": -0.9626,
+      "axis_z": 0.27092,
+      "max_angle": 24.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.7,
+      "pivot_y": 1.8717,
+      "pivot_z": -2.2182,
+      "mode": "rotate",
+      "axis_x": -0.97712,
+      "axis_y": -0.12081,
+      "axis_z": -0.17505,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -1.35,
+      "pivot_y": 1.9521,
+      "pivot_z": -2.1017,
+      "mode": "rotate",
+      "axis_x": -0.97712,
+      "axis_y": 0.12081,
+      "axis_z": 0.17505,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap2_l",
+      "pivot_x": 2.55,
+      "pivot_y": 2.1016,
+      "pivot_z": -1.8868,
+      "mode": "rotate",
+      "axis_x": -0.97688,
+      "axis_y": -0.12278,
+      "axis_z": -0.17501,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap2_r",
+      "pivot_x": -4.1,
+      "pivot_y": 2.2964,
+      "pivot_z": -1.6091,
+      "mode": "rotate",
+      "axis_x": -0.97688,
+      "axis_y": 0.12278,
+      "axis_z": 0.17501,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 1.95,
+      "pivot_y": 1.7,
+      "pivot_z": 0.2,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 89.931,
+      "trigger": "landing_gear",
+      "speed": 2.8
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -1.95,
+      "pivot_y": 1.7,
+      "pivot_z": 0.2,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 89.931,
+      "trigger": "landing_gear",
+      "speed": 2.8
+    },
+    {
+      "part": "$gear_tail",
+      "pivot_x": 0.0,
+      "pivot_y": 1.97,
+      "pivot_z": -7.1,
+      "mode": "rotate",
+      "axis_x": -1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 120.0,
+      "trigger": "landing_gear",
+      "speed": 2.8
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$rear_gun",
+      "seat_index": 1,
+      "weapon_name": "ki46_type89",
+      "pilot_fallback": false,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 3.0,
+      "pivot_z": -2.5,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -60.0,
+        "max_yaw": 60.0,
+        "min_pitch": -45.0,
+        "max_pitch": 15.0
+      }
+    }
+  ],
+  "spawn_item": {
+    "display_name": "JP) Ki-46-II Dinah",
+    "tier": 3
+  }
+}

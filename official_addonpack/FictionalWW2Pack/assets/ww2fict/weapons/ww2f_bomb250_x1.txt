@@ -1,0 +1,18 @@
+; single 250kg bomb (dive bombers). Selecting it opens the dive brakes.
+DisplayName = 250kg Bomb
+Type = Bomb
+Power = 70
+Gravity = -0.05
+Round = 1
+ReloadTime = 1200
+Delay = 20
+MaxAmmo = 3
+SuppliedNum = 1
+Item = 8, iron_ingot
+Item = 6, gunpowder
+Explosion = 5
+ExplosionBlock = 5
+ModelBullet = bomb250
+DisplayMortarDistance = true
+Sound = ww2f_release
+SoundVolume = 1.0

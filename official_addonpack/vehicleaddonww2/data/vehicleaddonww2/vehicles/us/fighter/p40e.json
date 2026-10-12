@@ -1,0 +1,222 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/us/fighter/p40e.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/us/fighter/p40e.png",
+  "display_name": "US) P-40E Warhawk",
+  "scale": 1.0,
+  "width": 11.37,
+  "height": 3.25,
+  "max_speed": 3.87,
+  "acceleration": 0.042,
+  "turn_speed": 0.236,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 12.9,
+  "stall_speed": 0.28,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_inline_v12",
+  "engine_sound_volume": 3.0,
+  "max_health": 550.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 800.0,
+  "fuel_consumption": 0.6,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.572,
+      "offset_z": -1.25,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.74,
+          "z": -1.2
+        },
+        {
+          "x": 0.0,
+          "y": 4.4,
+          "z": -14.5,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2_us_m2_x6",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 2.05,
+          "y": 1.445,
+          "z": 0.34
+        },
+        {
+          "x": 2.25,
+          "y": 1.466,
+          "z": 0.34
+        },
+        {
+          "x": 2.45,
+          "y": 1.488,
+          "z": 0.34
+        },
+        {
+          "x": -2.05,
+          "y": 1.445,
+          "z": 0.34
+        },
+        {
+          "x": -2.25,
+          "y": 1.466,
+          "z": 0.34
+        },
+        {
+          "x": -2.45,
+          "y": 1.488,
+          "z": 0.34
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "p40e_droptank",
+      "projectile_item": "minecraft:bucket",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 0.75,
+          "z": -0.1,
+          "linked_part": "$drop_tank"
+        }
+      ]
+    }
+  ],
+  "ammo_parts": [
+    {
+      "part": "$drop_tank",
+      "weapon_name": "p40e_droptank",
+      "slot_index": 0,
+      "display_penalty": "6, 4"
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 0.0,
+      "pivot_y": 2.09,
+      "pivot_z": 2.44,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 65.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 2.02,
+      "pivot_z": -6.3644,
+      "axis_x": -0.0,
+      "axis_y": -0.99404,
+      "axis_z": -0.10902,
+      "max_angle": 25.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.62,
+      "pivot_y": 1.2503,
+      "pivot_z": -1.742,
+      "mode": "rotate",
+      "axis_x": -0.97697,
+      "axis_y": -0.11346,
+      "axis_z": -0.18072,
+      "max_angle": 45.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -3.05,
+      "pivot_y": 1.5325,
+      "pivot_z": -1.2926,
+      "mode": "rotate",
+      "axis_x": -0.97697,
+      "axis_y": 0.11346,
+      "axis_z": 0.18072,
+      "max_angle": 45.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 2.751,
+      "pivot_z": -1.315,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.03,
+      "offset_z": -0.55,
+      "trigger": "key",
+      "speed": 6.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 1.39,
+      "pivot_y": 1.4,
+      "pivot_z": 0.06,
+      "mode": "rotate",
+      "axis_x": 0.57735,
+      "axis_y": 0.57735,
+      "axis_z": 0.57735,
+      "max_angle": 120.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -1.39,
+      "pivot_y": 1.4,
+      "pivot_z": 0.06,
+      "mode": "rotate",
+      "axis_x": 0.57735,
+      "axis_y": -0.57735,
+      "axis_z": -0.57735,
+      "max_angle": 120.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_tail",
+      "pivot_x": 0.0,
+      "pivot_y": 1.8,
+      "pivot_z": -5.2,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 100.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "US) P-40E Warhawk",
+    "tier": 2
+  }
+}

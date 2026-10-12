@@ -1,0 +1,872 @@
+{
+  "entity_type": "tudursvehiclemod:ship",
+  "model": "vehicleaddonww2:models/obj/us/destroyer/sims.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/us/destroyer/sims.png",
+  "display_name": "US) Sims-class Destroyer",
+  "scale": 1.0,
+  "width": 11.0,
+  "height": 26.0,
+  "max_speed": 0.95,
+  "acceleration": 0.009,
+  "turn_speed": 0.86,
+  "step_height": 0.0,
+  "gravity": -0.04,
+  "reverse_throttle": -0.25,
+  "weight_type": "tank",
+  "throttle_up_down": 0.6,
+  "throttle_switch_hold_ticks": 60,
+  "engine_sound": "ww2_ship_turbine",
+  "engine_sound_volume": 3.0,
+  "max_health": 220000.0,
+  "armor_damage_factor": 0.7,
+  "armor_min_damage": 62.0,
+  "armor_max_damage": 220000.0,
+  "damage_factor": 0.2,
+  "max_fuel": 6000.0,
+  "fuel_consumption": 1.2,
+  "inventory_size": 27,
+  "submerged_damage_height": 4.8,
+  "wake_trail_duration_ticks": 360,
+  "hud": "ww2_ship_hud",
+  "passenger_display": {
+    "hide_entity": false
+  },
+  "runways": [
+    {
+      "width": 9.3,
+      "center_x": 0.0,
+      "height_y": 3.55,
+      "start_z": -36.25,
+      "end_z": -16.75
+    },
+    {
+      "width": 9.7,
+      "center_x": 0.0,
+      "height_y": 4.55,
+      "start_z": -2.5,
+      "end_z": 13.25
+    },
+    {
+      "width": 10.3,
+      "center_x": 0.0,
+      "height_y": 4.05,
+      "start_z": -16.75,
+      "end_z": -2.5
+    },
+    {
+      "width": 8.9,
+      "center_x": 0.0,
+      "height_y": 5.05,
+      "start_z": 13.25,
+      "end_z": 28.5
+    },
+    {
+      "width": 8.3,
+      "center_x": 0.0,
+      "height_y": 3.55,
+      "start_z": -44.0,
+      "end_z": -36.25
+    },
+    {
+      "width": 8.1,
+      "center_x": 0.0,
+      "height_y": 5.55,
+      "start_z": 28.5,
+      "end_z": 35.5
+    },
+    {
+      "width": 7.3,
+      "center_x": 0.0,
+      "height_y": 3.55,
+      "start_z": -49.0,
+      "end_z": -43.0
+    },
+    {
+      "width": 7.3,
+      "center_x": 0.0,
+      "height_y": 5.55,
+      "start_z": 33.5,
+      "end_z": 39.5
+    },
+    {
+      "width": 6.5,
+      "center_x": 0.0,
+      "height_y": 3.55,
+      "start_z": -50.5,
+      "end_z": -44.5
+    },
+    {
+      "width": 5.9,
+      "center_x": 0.0,
+      "height_y": 6.05,
+      "start_z": 38.75,
+      "end_z": 41.75
+    },
+    {
+      "width": 5.9,
+      "center_x": 0.0,
+      "height_y": 6.05,
+      "start_z": 41.75,
+      "end_z": 44.5
+    },
+    {
+      "width": 5.3,
+      "center_x": 0.0,
+      "height_y": 6.05,
+      "start_z": 44.5,
+      "end_z": 46.0
+    },
+    {
+      "width": 4.7,
+      "center_x": 0.0,
+      "height_y": 6.55,
+      "start_z": 46.0,
+      "end_z": 47.25
+    },
+    {
+      "width": 5.7,
+      "center_x": 0.0,
+      "height_y": 3.55,
+      "start_z": -51.5,
+      "end_z": -50.5
+    },
+    {
+      "width": 4.1,
+      "center_x": 0.0,
+      "height_y": 6.55,
+      "start_z": 47.25,
+      "end_z": 48.5
+    },
+    {
+      "width": 3.3,
+      "center_x": 0.0,
+      "height_y": 6.55,
+      "start_z": 48.5,
+      "end_z": 49.75
+    }
+  ],
+  "seats": [
+    {
+      "name": "captain",
+      "offset_x": 0.0,
+      "offset_y": 12.778,
+      "offset_z": 21.4,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 15.0,
+          "z": 21.8
+        },
+        {
+          "x": 0.0,
+          "y": 32.0,
+          "z": -92.0,
+          "force_camera": true,
+          "fixed_pitch": 15.0
+        }
+      ]
+    },
+    {
+      "name": "gun_director",
+      "offset_x": 0.8,
+      "offset_y": 15.278,
+      "offset_z": 17.1,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 17.5,
+          "z": 17.6
+        },
+        {
+          "x": 0.0,
+          "y": 22.0,
+          "z": -40.0,
+          "force_camera": true
+        }
+      ]
+    },
+    {
+      "name": "gun_control_aft",
+      "offset_x": 1.9,
+      "offset_y": 5.578,
+      "offset_z": -22.5,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 9.1,
+          "z": -23.0
+        },
+        {
+          "x": 0.0,
+          "y": 22.0,
+          "z": 40.0,
+          "force_camera": true,
+          "fixed_yaw": 180.0
+        }
+      ]
+    },
+    {
+      "name": "aa_control",
+      "offset_x": 2.1,
+      "offset_y": 7.478,
+      "offset_z": 25.6,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 10.6,
+          "z": 25.4
+        }
+      ]
+    },
+    {
+      "name": "torpedo_officer",
+      "offset_x": 4.6,
+      "offset_y": 10.178,
+      "offset_z": 17.9,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 4.6,
+          "y": 12.45,
+          "z": 18.2
+        }
+      ]
+    },
+    {
+      "name": "asw_officer",
+      "offset_x": 0.0,
+      "offset_y": 2.903,
+      "offset_z": -49.0,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 6.424,
+          "z": -47.5
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 1,
+      "weapon_name": "sims_5in_fwd",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 6.924,
+          "z": 41.0,
+          "linked_part": "$m51_gun"
+        },
+        {
+          "x": 0.0,
+          "y": 9.25,
+          "z": 34.4,
+          "linked_part": "$m52_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 5.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 25.0
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "sims_5in_aft",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 7.55,
+          "z": -29.6,
+          "linked_part": "$m54_gun"
+        },
+        {
+          "x": 0.0,
+          "y": 4.634,
+          "z": -43.7,
+          "linked_part": "$m55_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 5.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 25.0
+    },
+    {
+      "seat_index": 3,
+      "weapon_name": "ww2_us_m2_aa",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 2.9,
+          "y": 9.165,
+          "z": 25.9,
+          "linked_part": "$mg1_gun"
+        },
+        {
+          "x": -2.9,
+          "y": 9.165,
+          "z": 25.9,
+          "linked_part": "$mg2_gun"
+        },
+        {
+          "x": 1.7,
+          "y": 7.265,
+          "z": -19.8,
+          "linked_part": "$mg3_gun"
+        },
+        {
+          "x": -1.7,
+          "y": 7.265,
+          "z": -19.8,
+          "linked_part": "$mg4_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 50.0
+    },
+    {
+      "seat_index": 4,
+      "weapon_name": "sims_mk15",
+      "projectile_item": "minecraft:iron_block",
+      "offsets": [
+        {
+          "x": -1.05,
+          "y": 5.288,
+          "z": 4.5,
+          "linked_part": "$tt1"
+        },
+        {
+          "x": -0.35,
+          "y": 5.288,
+          "z": 4.5,
+          "linked_part": "$tt1"
+        },
+        {
+          "x": 0.35,
+          "y": 5.288,
+          "z": 4.5,
+          "linked_part": "$tt1"
+        },
+        {
+          "x": 1.05,
+          "y": 5.288,
+          "z": 4.5,
+          "linked_part": "$tt1"
+        },
+        {
+          "x": -1.05,
+          "y": 4.886,
+          "z": -5.7,
+          "linked_part": "$tt2"
+        },
+        {
+          "x": -0.35,
+          "y": 4.886,
+          "z": -5.7,
+          "linked_part": "$tt2"
+        },
+        {
+          "x": 0.35,
+          "y": 4.886,
+          "z": -5.7,
+          "linked_part": "$tt2"
+        },
+        {
+          "x": 1.05,
+          "y": 4.886,
+          "z": -5.7,
+          "linked_part": "$tt2"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -5.0,
+        "max_pitch": 5.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 12.0
+    },
+    {
+      "seat_index": 5,
+      "weapon_name": "sims_mk6_dc",
+      "projectile_item": "minecraft:iron_block",
+      "offsets": [
+        {
+          "x": 1.45,
+          "y": 3.943,
+          "z": -52.7,
+          "mount_yaw": 180.0,
+          "mount_pitch": 10.0
+        },
+        {
+          "x": -1.45,
+          "y": 3.943,
+          "z": -52.7,
+          "mount_yaw": 180.0,
+          "mount_pitch": 10.0
+        }
+      ],
+      "pilot_usable": true
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$m51",
+      "seat_index": 1,
+      "weapon_name": "sims_5in_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 5.674,
+      "pivot_z": 35.6,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$m51_gun",
+      "seat_index": 1,
+      "weapon_name": "sims_5in_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 6.924,
+      "pivot_z": 36.5,
+      "recoil_distance": 0.5,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 5.674,
+        "parent_pivot_z": 35.6
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$m52",
+      "seat_index": 1,
+      "weapon_name": "sims_5in_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 8.0,
+      "pivot_z": 29.0,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$m52_gun",
+      "seat_index": 1,
+      "weapon_name": "sims_5in_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 9.25,
+      "pivot_z": 29.9,
+      "recoil_distance": 0.5,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 8.0,
+        "parent_pivot_z": 29.0
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$m54",
+      "seat_index": 2,
+      "weapon_name": "sims_5in_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 6.1,
+      "pivot_z": -25.0,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$m54_gun",
+      "seat_index": 2,
+      "weapon_name": "sims_5in_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 7.55,
+      "pivot_z": -25.2,
+      "recoil_distance": 0.5,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 6.1,
+        "parent_pivot_z": -25.0
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$m55",
+      "seat_index": 2,
+      "weapon_name": "sims_5in_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 3.3835,
+      "pivot_z": -38.3,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$m55_gun",
+      "seat_index": 2,
+      "weapon_name": "sims_5in_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 4.6335,
+      "pivot_z": -39.2,
+      "recoil_distance": 0.5,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 3.3835,
+        "parent_pivot_z": -38.3
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$mg1",
+      "seat_index": 3,
+      "weapon_name": "ww2_us_m2_aa",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 2.9,
+      "pivot_y": 9.0,
+      "pivot_z": 24.4,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$mg1_gun",
+      "seat_index": 3,
+      "weapon_name": "ww2_us_m2_aa",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 2.9,
+      "pivot_y": 9.165,
+      "pivot_z": 24.4,
+      "recoil_distance": 0.05,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 2.9,
+        "parent_pivot_y": 9.0,
+        "parent_pivot_z": 24.4
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$mg2",
+      "seat_index": 3,
+      "weapon_name": "ww2_us_m2_aa",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": -2.9,
+      "pivot_y": 9.0,
+      "pivot_z": 24.4,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$mg2_gun",
+      "seat_index": 3,
+      "weapon_name": "ww2_us_m2_aa",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": -2.9,
+      "pivot_y": 9.165,
+      "pivot_z": 24.4,
+      "recoil_distance": 0.05,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": -2.9,
+        "parent_pivot_y": 9.0,
+        "parent_pivot_z": 24.4
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$mg3",
+      "seat_index": 3,
+      "weapon_name": "ww2_us_m2_aa",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 1.7,
+      "pivot_y": 7.1,
+      "pivot_z": -18.3,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$mg3_gun",
+      "seat_index": 3,
+      "weapon_name": "ww2_us_m2_aa",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 1.7,
+      "pivot_y": 7.265,
+      "pivot_z": -18.3,
+      "recoil_distance": 0.05,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 1.7,
+        "parent_pivot_y": 7.1,
+        "parent_pivot_z": -18.3
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$mg4",
+      "seat_index": 3,
+      "weapon_name": "ww2_us_m2_aa",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": -1.7,
+      "pivot_y": 7.1,
+      "pivot_z": -18.3,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$mg4_gun",
+      "seat_index": 3,
+      "weapon_name": "ww2_us_m2_aa",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": -1.7,
+      "pivot_y": 7.265,
+      "pivot_z": -18.3,
+      "recoil_distance": 0.05,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": -1.7,
+        "parent_pivot_y": 7.1,
+        "parent_pivot_z": -18.3
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$tt1",
+      "seat_index": 4,
+      "weapon_name": "sims_mk15",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 4.418,
+      "pivot_z": 0.6,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -5.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$tt2",
+      "seat_index": 4,
+      "weapon_name": "sims_mk15",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 4.016,
+      "pivot_z": -9.6,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -5.0,
+        "max_pitch": 5.0
+      }
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$screw_l",
+      "pivot_x": 2.4,
+      "pivot_y": -3.55,
+      "pivot_z": -44.5,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 22.0
+    },
+    {
+      "part": "$screw_r",
+      "pivot_x": -2.4,
+      "pivot_y": -3.55,
+      "pivot_z": -44.5,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": -22.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "US) Sims-class Destroyer",
+    "tier": 4
+  }
+}

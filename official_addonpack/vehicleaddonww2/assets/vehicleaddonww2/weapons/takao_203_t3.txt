@@ -1,0 +1,26 @@
+; 20.3 cm/50, No.3 turret (forward, facing aft; masked astern by the bridge)
+DisplayName = 20.3cm/50 3rd Year Type (turret 3)
+Type = MachineGun2
+Power = 14000
+Acceleration = 41.75
+Gravity = -0.0245
+Accuracy = 0.5
+Delay = 10
+Round = 2
+ReloadTime = 320
+MaxAmmo = 240
+SuppliedNum = 5
+Item = 4, iron_ingot
+Item = 4, gunpowder
+Explosion = 5.0
+ExplosionBlock = 3
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_naval
+Sound = ww2_naval_gun_big
+SoundVolume = 7.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.05
+AddMuzzleFlash = 2.0, 0.8, 1, 200, 254, 210, 160
+AddMuzzleFlashSmoke = 2.5, 3, 5.0, 2.0, 30, 180, 200, 200, 200
+DisplayMortarDistance = true

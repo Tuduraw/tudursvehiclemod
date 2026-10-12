@@ -1,0 +1,22 @@
+; High Velocity Aircraft Rocket, 8 on zero-length rails
+DisplayName = 5in HVAR x8
+Type = Rocket
+Power = 5400
+Acceleration = 21.0
+Gravity = -0.0245
+Accuracy = 1.5
+Delay = 5
+Round = 8
+ReloadTime = 800
+MaxAmmo = 8
+SuppliedNum = 8
+Item = 2, iron_ingot
+Item = 2, gunpowder
+Explosion = 3.5
+ExplosionBlock = 2
+ModelBullet = rocket
+TrajectoryParticle = smoke
+TrajectoryParticleStartTick = 1
+Sound = ww2_rocket
+SoundVolume = 2.5
+DisplayMortarDistance = true

@@ -1,0 +1,183 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/us/seaplane/sc1.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/us/seaplane/sc1.png",
+  "display_name": "US) SC-1 Seahawk",
+  "scale": 1.0,
+  "width": 12.5,
+  "height": 4.88,
+  "max_speed": 2.26,
+  "acceleration": 0.036,
+  "turn_speed": 0.236,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 1.0,
+  "stall_speed": 0.4,
+  "float_capable": true,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_radial_large",
+  "engine_sound_volume": 2.8,
+  "max_health": 550.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 1200.0,
+  "fuel_consumption": 0.6,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 2.302,
+      "offset_z": 0.1,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.47,
+          "z": 0.15
+        },
+        {
+          "x": 0.0,
+          "y": 5.0,
+          "z": -16.0,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "sc1_m2_x2",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 2.7,
+          "y": 2.1,
+          "z": 1.5
+        },
+        {
+          "x": -2.7,
+          "y": 2.1,
+          "z": 1.5
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "sc1_250lb_x2",
+      "projectile_item": "minecraft:tnt",
+      "offsets": [
+        {
+          "x": 3.3,
+          "y": 1.6,
+          "z": 0.55
+        },
+        {
+          "x": -3.3,
+          "y": 1.6,
+          "z": 0.55
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "sc1_camera",
+      "projectile_item": "minecraft:paper",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 1.62,
+          "z": -0.6
+        }
+      ]
+    }
+  ],
+  "ammo_parts": [
+    {
+      "part": "$bomb_0",
+      "weapon_name": "sc1_250lb_x2",
+      "slot_index": 0
+    },
+    {
+      "part": "$bomb_1",
+      "weapon_name": "sc1_250lb_x2",
+      "slot_index": 1
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 0.0,
+      "pivot_y": 2.45,
+      "pivot_z": 2.9,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 62.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 3.0,
+      "pivot_z": -5.3001,
+      "axis_x": -0.0,
+      "axis_y": -1.0,
+      "axis_z": -4e-05,
+      "max_angle": 25.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.8,
+      "pivot_y": 1.9456,
+      "pivot_z": -0.6277,
+      "mode": "rotate",
+      "axis_x": -0.98888,
+      "axis_y": -0.07877,
+      "axis_z": -0.12613,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -4.2,
+      "pivot_y": 2.2165,
+      "pivot_z": -0.1941,
+      "mode": "rotate",
+      "axis_x": -0.98888,
+      "axis_y": 0.07877,
+      "axis_z": 0.12613,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 3.1961,
+      "pivot_z": 0.1,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.0,
+      "offset_z": -0.9,
+      "trigger": "key",
+      "speed": 6.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "US) SC-1 Seahawk",
+    "tier": 3
+  }
+}

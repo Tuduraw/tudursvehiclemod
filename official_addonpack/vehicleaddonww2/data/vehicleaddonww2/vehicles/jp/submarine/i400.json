@@ -1,0 +1,591 @@
+{
+  "entity_type": "tudursvehiclemod:submarine",
+  "model": "vehicleaddonww2:models/obj/jp/submarine/i400.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/jp/submarine/i400.png",
+  "display_name": "JP) I-400-class Submarine",
+  "scale": 1.0,
+  "width": 12.0,
+  "height": 14.0,
+  "max_speed": 0.48,
+  "dive_max_speed": 0.167,
+  "acceleration": 0.004,
+  "turn_speed": 0.26,
+  "step_height": 0.0,
+  "gravity": -0.04,
+  "reverse_throttle": -0.25,
+  "weight_type": "tank",
+  "throttle_up_down": 0.6,
+  "throttle_switch_hold_ticks": 50,
+  "engine_sound": "ww2_ship_diesel",
+  "engine_sound_volume": 3.2,
+  "max_health": 240000.0,
+  "armor_damage_factor": 0.75,
+  "armor_min_damage": 67.0,
+  "armor_max_damage": 240000.0,
+  "damage_factor": 0.26,
+  "max_fuel": 16000.0,
+  "fuel_consumption": 0.9,
+  "inventory_size": 27,
+  "submerged_damage_height": 200.0,
+  "wake_trail_duration_ticks": 340,
+  "hud": "ww2_ship_hud",
+  "passenger_display": {
+    "hide_entity": false
+  },
+  "seats": [
+    {
+      "name": "captain",
+      "offset_x": 1.5,
+      "offset_y": 5.778,
+      "offset_z": 3.3,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 1.95,
+          "y": 8.4,
+          "z": 3.6
+        },
+        {
+          "x": 0.0,
+          "y": 26.0,
+          "z": -95.0,
+          "force_camera": true,
+          "fixed_pitch": 12.0
+        }
+      ]
+    },
+    {
+      "name": "gun_captain",
+      "offset_x": 0.9,
+      "offset_y": 1.73,
+      "offset_z": -31.2,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 4.844,
+          "z": -30.7
+        }
+      ]
+    },
+    {
+      "name": "aa_gunner",
+      "offset_x": 0.7,
+      "offset_y": 4.457,
+      "offset_z": -12.4,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 7.22,
+          "z": -12.0
+        }
+      ]
+    },
+    {
+      "name": "torpedo_officer",
+      "offset_x": 2.4,
+      "offset_y": 5.778,
+      "offset_z": 3.3,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 1.95,
+          "y": 8.4,
+          "z": 3.0
+        },
+        {
+          "x": 0.0,
+          "y": 26.0,
+          "z": -95.0,
+          "force_camera": true,
+          "fixed_pitch": 12.0
+        }
+      ]
+    },
+    {
+      "name": "aviation_officer",
+      "offset_x": -1.1,
+      "offset_y": 4.456,
+      "offset_z": 6.2,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": -1.1,
+          "y": 7.42,
+          "z": 5.8
+        },
+        {
+          "x": 0.0,
+          "y": 24.0,
+          "z": -35.0,
+          "force_camera": true,
+          "fixed_pitch": 16.0
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 3,
+      "weapon_name": "ww2_jp_type95_i400",
+      "projectile_item": "minecraft:iron_block",
+      "offsets": [
+        {
+          "x": 0.55,
+          "y": -0.9,
+          "z": 56.14
+        },
+        {
+          "x": -0.55,
+          "y": -0.9,
+          "z": 56.14
+        },
+        {
+          "x": 1.35,
+          "y": -1.25,
+          "z": 56.05
+        },
+        {
+          "x": -1.35,
+          "y": -1.25,
+          "z": 56.05
+        },
+        {
+          "x": 0.55,
+          "y": -2.9,
+          "z": 55.06
+        },
+        {
+          "x": -0.55,
+          "y": -2.9,
+          "z": 55.06
+        },
+        {
+          "x": 1.35,
+          "y": -3.25,
+          "z": 54.85
+        },
+        {
+          "x": -1.35,
+          "y": -3.25,
+          "z": 54.85
+        }
+      ],
+      "pilot_usable": true
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "ww2_jp_14cm_sub",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 3.824,
+          "z": -38.15,
+          "linked_part": "$gun14_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -35.0,
+        "max_pitch": 10.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 14.0
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_triple",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.3,
+          "y": 5.895,
+          "z": -19.95,
+          "linked_part": "$aa1_gun"
+        },
+        {
+          "x": 0.0,
+          "y": 5.895,
+          "z": -19.95,
+          "linked_part": "$aa1_gun"
+        },
+        {
+          "x": -0.3,
+          "y": 5.895,
+          "z": -19.95,
+          "linked_part": "$aa1_gun"
+        },
+        {
+          "x": 0.3,
+          "y": 5.895,
+          "z": -9.65,
+          "linked_part": "$aa2_gun"
+        },
+        {
+          "x": 0.0,
+          "y": 5.895,
+          "z": -9.65,
+          "linked_part": "$aa2_gun"
+        },
+        {
+          "x": -0.3,
+          "y": 5.895,
+          "z": -9.65,
+          "linked_part": "$aa2_gun"
+        },
+        {
+          "x": -0.3,
+          "y": 5.895,
+          "z": 9.75,
+          "linked_part": "$aa3_gun"
+        },
+        {
+          "x": 0.0,
+          "y": 5.895,
+          "z": 9.75,
+          "linked_part": "$aa3_gun"
+        },
+        {
+          "x": 0.3,
+          "y": 5.895,
+          "z": 9.75,
+          "linked_part": "$aa3_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 40.0
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_single",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 1.95,
+          "y": 7.242,
+          "z": -6.55,
+          "linked_part": "$aa4_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 45.0
+    },
+    {
+      "seat_index": 4,
+      "weapon_name": "ww2_cat_i400_m6a1",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 3.75,
+          "z": 13.6,
+          "mount_yaw": 0.0
+        }
+      ],
+      "pilot_usable": true
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$gun14",
+      "seat_index": 1,
+      "weapon_name": "ww2_jp_14cm_sub",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 3.2244,
+      "pivot_z": -32.6,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -35.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$gun14_gun",
+      "seat_index": 1,
+      "weapon_name": "ww2_jp_14cm_sub",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 3.8244,
+      "pivot_z": -32.7,
+      "recoil_distance": 0.4,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 3.2244,
+        "parent_pivot_z": -32.6
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -35.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$aa1",
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_triple",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 5.62,
+      "pivot_z": -17.6,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$aa1_gun",
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_triple",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 5.895,
+      "pivot_z": -17.6,
+      "recoil_distance": 0.06,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 5.62,
+        "parent_pivot_z": -17.6
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$aa2",
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_triple",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 5.62,
+      "pivot_z": -7.3,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$aa2_gun",
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_triple",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 5.895,
+      "pivot_z": -7.3,
+      "recoil_distance": 0.06,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 5.62,
+        "parent_pivot_z": -7.3
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$aa3",
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_triple",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 5.62,
+      "pivot_z": 7.4,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$aa3_gun",
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_triple",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 5.895,
+      "pivot_z": 7.4,
+      "recoil_distance": 0.06,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 5.62,
+        "parent_pivot_z": 7.4
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$aa4",
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_single",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 1.95,
+      "pivot_y": 7.05,
+      "pivot_z": -4.3,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$aa4_gun",
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_single",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 1.95,
+      "pivot_y": 7.2425,
+      "pivot_z": -4.3,
+      "recoil_distance": 0.05,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 1.95,
+        "parent_pivot_y": 7.05,
+        "parent_pivot_z": -4.3
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$hatch_bridge",
+      "pivot_x": 1.65,
+      "pivot_y": 6.48,
+      "pivot_z": 4.32,
+      "mode": "rotate",
+      "axis_x": 1,
+      "axis_y": 0,
+      "axis_z": 0,
+      "max_angle": 90.0,
+      "trigger": "key",
+      "speed": 3.0
+    },
+    {
+      "part": "$hatch_periscope",
+      "pivot_x": 1.95,
+      "pivot_y": 8.0,
+      "pivot_z": 2.3,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 4.0,
+      "offset_z": 0.0,
+      "trigger": "key",
+      "speed": 2.0
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$screw_l",
+      "pivot_x": 2.2,
+      "pivot_y": -3.1,
+      "pivot_z": -51.0,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 16.0
+    },
+    {
+      "part": "$screw_r",
+      "pivot_x": -2.2,
+      "pivot_y": -3.1,
+      "pivot_z": -51.0,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": -16.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "JP) I-400-class Submarine",
+    "tier": 4
+  }
+}

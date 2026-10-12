@@ -1,0 +1,23 @@
+; powered turret twin heavy machine guns
+DisplayName = Twin 12.7mm Turret
+Type = MachineGun1
+Power = 6
+Acceleration = 8.0
+Gravity = -0.01
+Accuracy = 1.2
+Delay = 2
+Round = 400
+ReloadTime = 160
+MaxAmmo = 1600
+SuppliedNum = 400
+Item = 2, iron_ingot
+Item = 1, gunpowder
+Piercing = 1
+TimeFuse = 55
+ModelBullet = tracer
+BulletColor = 255, 255, 220, 120
+Sound = ww2f_mg
+SoundVolume = 1.8
+SoundPitch = 0.85
+SoundPitchRandom = 0.1
+AddMuzzleFlash = 0.8, 0.25, 1, 200, 254, 219, 184

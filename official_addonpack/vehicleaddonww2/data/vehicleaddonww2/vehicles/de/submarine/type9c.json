@@ -1,0 +1,480 @@
+{
+  "entity_type": "tudursvehiclemod:submarine",
+  "model": "vehicleaddonww2:models/obj/de/submarine/type9c.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/de/submarine/type9c.png",
+  "display_name": "DE) U-boat Type IXC/40",
+  "scale": 1.0,
+  "width": 6.9,
+  "height": 9.6,
+  "max_speed": 0.49,
+  "dive_max_speed": 0.19,
+  "acceleration": 0.0055,
+  "turn_speed": 0.32,
+  "step_height": 0.0,
+  "gravity": -0.04,
+  "reverse_throttle": -0.25,
+  "weight_type": "tank",
+  "throttle_up_down": 0.6,
+  "throttle_switch_hold_ticks": 40,
+  "engine_sound": "ww2_ship_diesel",
+  "engine_sound_volume": 2.7,
+  "max_health": 110000.0,
+  "armor_damage_factor": 0.8,
+  "armor_min_damage": 17.0,
+  "armor_max_damage": 110000.0,
+  "damage_factor": 0.33,
+  "max_fuel": 9000.0,
+  "fuel_consumption": 0.8,
+  "inventory_size": 27,
+  "submerged_damage_height": 200.0,
+  "wake_trail_duration_ticks": 300,
+  "hud": "ww2_ship_hud",
+  "passenger_display": {
+    "hide_entity": false
+  },
+  "seats": [
+    {
+      "name": "commander",
+      "offset_x": 0.0,
+      "offset_y": 3.508,
+      "offset_z": 2.5,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 6.1,
+          "z": 3.0
+        },
+        {
+          "x": 0.0,
+          "y": 17.0,
+          "z": -60.0,
+          "force_camera": true,
+          "fixed_pitch": 12.0
+        }
+      ]
+    },
+    {
+      "name": "gun_layer",
+      "offset_x": 0.8,
+      "offset_y": 0.978,
+      "offset_z": 6.9,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.8,
+          "z": 6.6
+        }
+      ]
+    },
+    {
+      "name": "flak_gunner",
+      "offset_x": 0.0,
+      "offset_y": 2.778,
+      "offset_z": -1.8,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 5.5,
+          "z": -1.3
+        }
+      ]
+    },
+    {
+      "name": "torpedo_officer",
+      "offset_x": 0.55,
+      "offset_y": 3.328,
+      "offset_z": -0.5,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 6.1,
+          "z": -0.2
+        },
+        {
+          "x": 0.0,
+          "y": 17.0,
+          "z": -60.0,
+          "force_camera": true,
+          "fixed_pitch": 12.0
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 3,
+      "weapon_name": "ww2_de_g7e_ix_bow",
+      "projectile_item": "minecraft:iron_block",
+      "offsets": [
+        {
+          "x": 0.55,
+          "y": -1.15,
+          "z": 35.4
+        },
+        {
+          "x": -0.55,
+          "y": -1.15,
+          "z": 35.4
+        },
+        {
+          "x": 0.55,
+          "y": -2.35,
+          "z": 34.5
+        },
+        {
+          "x": -0.55,
+          "y": -2.35,
+          "z": 34.5
+        }
+      ],
+      "pilot_usable": true
+    },
+    {
+      "seat_index": 3,
+      "weapon_name": "ww2_de_g7e_ix_stern",
+      "projectile_item": "minecraft:iron_block",
+      "offsets": [
+        {
+          "x": 0.45,
+          "y": -0.55,
+          "z": -37.6,
+          "mount_yaw": 180.0
+        },
+        {
+          "x": -0.45,
+          "y": -0.55,
+          "z": -37.6,
+          "mount_yaw": 180.0
+        }
+      ],
+      "pilot_usable": true
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "ww2_de_105mm_skc32",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 2.9,
+          "z": 13.15,
+          "linked_part": "$gun105_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -30.0,
+        "max_pitch": 10.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 16.0
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "ww2_de_37mm_m42u",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 3.481,
+          "z": -7.95,
+          "linked_part": "$flak37_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 40.0
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "ww2_de_20mm_zwilling",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.85,
+          "y": 4.187,
+          "z": -4.5,
+          "linked_part": "$flak20p_gun"
+        },
+        {
+          "x": 0.59,
+          "y": 4.187,
+          "z": -4.5,
+          "linked_part": "$flak20p_gun"
+        },
+        {
+          "x": -0.59,
+          "y": 4.187,
+          "z": -4.5,
+          "linked_part": "$flak20s_gun"
+        },
+        {
+          "x": -0.85,
+          "y": 4.187,
+          "z": -4.5,
+          "linked_part": "$flak20s_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 45.0
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$gun105",
+      "seat_index": 1,
+      "weapon_name": "ww2_de_105mm_skc32",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 2.25,
+      "pivot_z": 8.3,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -30.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$gun105_gun",
+      "seat_index": 1,
+      "weapon_name": "ww2_de_105mm_skc32",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 2.9,
+      "pivot_z": 8.4,
+      "recoil_distance": 0.45,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 2.25,
+        "parent_pivot_z": 8.3
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -30.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$flak37",
+      "seat_index": 2,
+      "weapon_name": "ww2_de_37mm_m42u",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 3.25,
+      "pivot_z": -5.5,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$flak37_gun",
+      "seat_index": 2,
+      "weapon_name": "ww2_de_37mm_m42u",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 3.481,
+      "pivot_z": -5.5,
+      "recoil_distance": 0.1,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 3.25,
+        "parent_pivot_z": -5.5
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$flak20p",
+      "seat_index": 2,
+      "weapon_name": "ww2_de_20mm_zwilling",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.72,
+      "pivot_y": 4.0,
+      "pivot_z": -2.55,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$flak20p_gun",
+      "seat_index": 2,
+      "weapon_name": "ww2_de_20mm_zwilling",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.72,
+      "pivot_y": 4.187,
+      "pivot_z": -2.55,
+      "recoil_distance": 0.06,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.72,
+        "parent_pivot_y": 4.0,
+        "parent_pivot_z": -2.55
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$flak20s",
+      "seat_index": 2,
+      "weapon_name": "ww2_de_20mm_zwilling",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": -0.72,
+      "pivot_y": 4.0,
+      "pivot_z": -2.55,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$flak20s_gun",
+      "seat_index": 2,
+      "weapon_name": "ww2_de_20mm_zwilling",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": -0.72,
+      "pivot_y": 4.187,
+      "pivot_z": -2.55,
+      "recoil_distance": 0.06,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": -0.72,
+        "parent_pivot_y": 4.0,
+        "parent_pivot_z": -2.55
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$hatch_bridge",
+      "pivot_x": 0.0,
+      "pivot_y": 4.03,
+      "pivot_z": 1.97,
+      "mode": "rotate",
+      "axis_x": 1,
+      "axis_y": 0,
+      "axis_z": 0,
+      "max_angle": 90.0,
+      "trigger": "key",
+      "speed": 3.0
+    },
+    {
+      "part": "$hatch_periscope",
+      "pivot_x": 0.0,
+      "pivot_y": 6.4,
+      "pivot_z": 0.6,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 2.4,
+      "offset_z": 0.0,
+      "trigger": "key",
+      "speed": 2.0
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$screw_l",
+      "pivot_x": 1.35,
+      "pivot_y": -2.45,
+      "pivot_z": -30.3,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 18.0
+    },
+    {
+      "part": "$screw_r",
+      "pivot_x": -1.35,
+      "pivot_y": -2.45,
+      "pivot_z": -30.3,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": -18.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "DE) U-boat Type IXC/40",
+    "tier": 3
+  }
+}

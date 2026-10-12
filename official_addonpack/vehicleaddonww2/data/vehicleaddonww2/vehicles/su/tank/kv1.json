@@ -1,0 +1,688 @@
+{
+  "entity_type": "tudursvehiclemod:car",
+  "model": "vehicleaddonww2:models/obj/su/tank/kv1.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/su/tank/kv1.png",
+  "display_name": "SU) KV-1 model 1941",
+  "scale": 1.0,
+  "width": 3.32,
+  "height": 2.71,
+  "max_speed": 0.47,
+  "acceleration": 0.012,
+  "turn_speed": 1.6,
+  "step_height": 1.1,
+  "gravity": -0.04,
+  "reverse_throttle": -0.35,
+  "pivot_turn_throttle": 0.08,
+  "weight_type": "tank",
+  "wheel_rotation_speed": 40.0,
+  "throttle_up_down": 1.0,
+  "throttle_switch_hold_ticks": 20,
+  "engine_sound": "ww2_tank_diesel",
+  "engine_sound_volume": 1.8,
+  "max_health": 9600.0,
+  "armor_damage_factor": 0.47,
+  "armor_min_damage": 180.0,
+  "armor_max_damage": 9600.0,
+  "damage_factor": 0.25,
+  "max_fuel": 1000.0,
+  "fuel_consumption": 0.45,
+  "inventory_size": 9,
+  "submerged_damage_height": 1.3,
+  "hud": "ww2_tank_hud",
+  "passenger_display": {
+    "hide_entity": true
+  },
+  "seats": [
+    {
+      "name": "driver",
+      "offset_x": 0.45,
+      "offset_y": 1.0,
+      "offset_z": 1.925,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.45,
+          "y": 1.46,
+          "z": 2.156
+        },
+        {
+          "x": 0.0,
+          "y": 4.4,
+          "z": -11.0,
+          "force_camera": true
+        }
+      ]
+    },
+    {
+      "name": "gunner",
+      "offset_x": 0.4,
+      "offset_y": 1.25,
+      "offset_z": 0.675,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.35,
+          "y": 2.56,
+          "z": 0.995
+        },
+        {
+          "x": 0.0,
+          "y": 4.6,
+          "z": -11.5,
+          "force_camera": true
+        }
+      ]
+    },
+    {
+      "name": "commander",
+      "offset_x": 0.4,
+      "offset_y": 1.35,
+      "offset_z": -0.175,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.4,
+          "y": 2.78,
+          "z": -0.175
+        }
+      ]
+    },
+    {
+      "name": "radio_operator",
+      "offset_x": -0.5,
+      "offset_y": 1.0,
+      "offset_z": 1.925,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": -0.5,
+          "y": 1.46,
+          "z": 2.156
+        }
+      ]
+    },
+    {
+      "name": "loader",
+      "offset_x": -0.4,
+      "offset_y": 1.25,
+      "offset_z": 0.175,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": -0.3,
+          "y": 2.78,
+          "z": -0.225
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 1,
+      "weapon_name": "ww2_su_76mm_zis5",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 2.03,
+          "z": 2.715,
+          "linked_part": "$gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -25.0,
+        "max_pitch": 7.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 14.0
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "ww2_su_dt_coax",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.28,
+          "y": 1.93,
+          "z": 1.705,
+          "linked_part": "$gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -25.0,
+        "max_pitch": 7.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 14.0
+    },
+    {
+      "seat_index": 4,
+      "weapon_name": "ww2_su_dt_rear",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 2.0,
+          "z": -1.085,
+          "linked_part": "$turret"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": 150.0,
+        "max_yaw": 210.0,
+        "min_pitch": -15.0,
+        "max_pitch": 8.0
+      },
+      "pilot_usable": false
+    },
+    {
+      "seat_index": 3,
+      "weapon_name": "ww2_su_dt_bow",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": -0.5,
+          "y": 1.5,
+          "z": 2.599
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -12.0,
+        "max_yaw": 12.0,
+        "min_pitch": -15.0,
+        "max_pitch": 6.0
+      },
+      "pilot_usable": false
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$turret",
+      "seat_index": 1,
+      "weapon_name": "ww2_su_76mm_zis5",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 1.65,
+      "pivot_z": 0.375,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -25.0,
+        "max_pitch": 7.0
+      }
+    },
+    {
+      "part": "$gun",
+      "seat_index": 1,
+      "weapon_name": "ww2_su_76mm_zis5",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 2.03,
+      "pivot_z": 1.075,
+      "recoil_distance": 0.3,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 1.65,
+        "parent_pivot_z": 0.375
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -25.0,
+        "max_pitch": 7.0
+      }
+    }
+  ],
+  "crawler_tracks": [
+    {
+      "part": "$track_l",
+      "flip": false,
+      "link_spacing": 0.2614,
+      "x": 1.31,
+      "path": [
+        {
+          "y": 0.82,
+          "z": -3.305
+        },
+        {
+          "y": 0.7216,
+          "z": -3.2921
+        },
+        {
+          "y": 0.6243,
+          "z": -3.2507
+        },
+        {
+          "y": 0.5421,
+          "z": -3.1842
+        },
+        {
+          "y": 0.4845,
+          "z": -3.1034
+        },
+        {
+          "y": 0.4729,
+          "z": -3.0796
+        },
+        {
+          "y": 0.0994,
+          "z": -2.2333
+        },
+        {
+          "y": 0.0742,
+          "z": -2.1482
+        },
+        {
+          "y": 0.07,
+          "z": -2.095
+        },
+        {
+          "y": 0.07,
+          "z": 2.215
+        },
+        {
+          "y": 0.0832,
+          "z": 2.3087
+        },
+        {
+          "y": 0.1186,
+          "z": 2.3901
+        },
+        {
+          "y": 0.1217,
+          "z": 2.3952
+        },
+        {
+          "y": 0.5517,
+          "z": 3.0852
+        },
+        {
+          "y": 0.6125,
+          "z": 3.1577
+        },
+        {
+          "y": 0.6856,
+          "z": 3.2079
+        },
+        {
+          "y": 0.7693,
+          "z": 3.2376
+        },
+        {
+          "y": 0.8637,
+          "z": 3.2442
+        },
+        {
+          "y": 0.9563,
+          "z": 3.2245
+        },
+        {
+          "y": 1.035,
+          "z": 3.1835
+        },
+        {
+          "y": 1.1042,
+          "z": 3.119
+        },
+        {
+          "y": 1.153,
+          "z": 3.0378
+        },
+        {
+          "y": 1.1775,
+          "z": 2.9464
+        },
+        {
+          "y": 1.1799,
+          "z": 2.9109
+        },
+        {
+          "y": 1.19,
+          "z": 1.8083
+        },
+        {
+          "y": 1.19,
+          "z": 1.805
+        },
+        {
+          "y": 1.2,
+          "z": -2.925
+        },
+        {
+          "y": 1.1871,
+          "z": -3.0234
+        },
+        {
+          "y": 1.1457,
+          "z": -3.1207
+        },
+        {
+          "y": 1.0792,
+          "z": -3.2029
+        },
+        {
+          "y": 0.9984,
+          "z": -3.2605
+        },
+        {
+          "y": 0.9055,
+          "z": -3.2953
+        }
+      ]
+    },
+    {
+      "part": "$track_r",
+      "flip": false,
+      "link_spacing": 0.2614,
+      "x": -1.31,
+      "path": [
+        {
+          "y": 0.82,
+          "z": -3.305
+        },
+        {
+          "y": 0.7216,
+          "z": -3.2921
+        },
+        {
+          "y": 0.6243,
+          "z": -3.2507
+        },
+        {
+          "y": 0.5421,
+          "z": -3.1842
+        },
+        {
+          "y": 0.4845,
+          "z": -3.1034
+        },
+        {
+          "y": 0.4729,
+          "z": -3.0796
+        },
+        {
+          "y": 0.0994,
+          "z": -2.2333
+        },
+        {
+          "y": 0.0742,
+          "z": -2.1482
+        },
+        {
+          "y": 0.07,
+          "z": -2.095
+        },
+        {
+          "y": 0.07,
+          "z": 2.215
+        },
+        {
+          "y": 0.0832,
+          "z": 2.3087
+        },
+        {
+          "y": 0.1186,
+          "z": 2.3901
+        },
+        {
+          "y": 0.1217,
+          "z": 2.3952
+        },
+        {
+          "y": 0.5517,
+          "z": 3.0852
+        },
+        {
+          "y": 0.6125,
+          "z": 3.1577
+        },
+        {
+          "y": 0.6856,
+          "z": 3.2079
+        },
+        {
+          "y": 0.7693,
+          "z": 3.2376
+        },
+        {
+          "y": 0.8637,
+          "z": 3.2442
+        },
+        {
+          "y": 0.9563,
+          "z": 3.2245
+        },
+        {
+          "y": 1.035,
+          "z": 3.1835
+        },
+        {
+          "y": 1.1042,
+          "z": 3.119
+        },
+        {
+          "y": 1.153,
+          "z": 3.0378
+        },
+        {
+          "y": 1.1775,
+          "z": 2.9464
+        },
+        {
+          "y": 1.1799,
+          "z": 2.9109
+        },
+        {
+          "y": 1.19,
+          "z": 1.8083
+        },
+        {
+          "y": 1.19,
+          "z": 1.805
+        },
+        {
+          "y": 1.2,
+          "z": -2.925
+        },
+        {
+          "y": 1.1871,
+          "z": -3.0234
+        },
+        {
+          "y": 1.1457,
+          "z": -3.1207
+        },
+        {
+          "y": 1.0792,
+          "z": -3.2029
+        },
+        {
+          "y": 0.9984,
+          "z": -3.2605
+        },
+        {
+          "y": 0.9055,
+          "z": -3.2953
+        }
+      ]
+    }
+  ],
+  "track_roller_parts": [
+    {
+      "part": "$idler_l",
+      "pivot_x": 1.31,
+      "pivot_y": 0.84,
+      "pivot_z": 2.905,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_l1",
+      "pivot_x": 1.31,
+      "pivot_y": 0.41,
+      "pivot_z": 2.215,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_l2",
+      "pivot_x": 1.31,
+      "pivot_y": 0.41,
+      "pivot_z": 1.375,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_l3",
+      "pivot_x": 1.31,
+      "pivot_y": 0.41,
+      "pivot_z": 0.525,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_l4",
+      "pivot_x": 1.31,
+      "pivot_y": 0.41,
+      "pivot_z": -0.335,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_l5",
+      "pivot_x": 1.31,
+      "pivot_y": 0.41,
+      "pivot_z": -1.215,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_l6",
+      "pivot_x": 1.31,
+      "pivot_y": 0.41,
+      "pivot_z": -2.095,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$roller_l1",
+      "pivot_x": 1.18,
+      "pivot_y": 1.0,
+      "pivot_z": 1.805,
+      "rotations_per_block": 1.061
+    },
+    {
+      "part": "$roller_l2",
+      "pivot_x": 1.18,
+      "pivot_y": 1.0,
+      "pivot_z": 0.095,
+      "rotations_per_block": 1.061
+    },
+    {
+      "part": "$roller_l3",
+      "pivot_x": 1.18,
+      "pivot_y": 1.0,
+      "pivot_z": -1.575,
+      "rotations_per_block": 1.061
+    },
+    {
+      "part": "$sprocket_l",
+      "pivot_x": 1.31,
+      "pivot_y": 0.82,
+      "pivot_z": -2.925,
+      "rotations_per_block": 0.4681
+    },
+    {
+      "part": "$idler_r",
+      "pivot_x": -1.31,
+      "pivot_y": 0.84,
+      "pivot_z": 2.905,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_r1",
+      "pivot_x": -1.31,
+      "pivot_y": 0.41,
+      "pivot_z": 2.215,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_r2",
+      "pivot_x": -1.31,
+      "pivot_y": 0.41,
+      "pivot_z": 1.375,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_r3",
+      "pivot_x": -1.31,
+      "pivot_y": 0.41,
+      "pivot_z": 0.525,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_r4",
+      "pivot_x": -1.31,
+      "pivot_y": 0.41,
+      "pivot_z": -0.335,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_r5",
+      "pivot_x": -1.31,
+      "pivot_y": 0.41,
+      "pivot_z": -1.215,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$wheel_r6",
+      "pivot_x": -1.31,
+      "pivot_y": 0.41,
+      "pivot_z": -2.095,
+      "rotations_per_block": 0.5305
+    },
+    {
+      "part": "$roller_r1",
+      "pivot_x": -1.18,
+      "pivot_y": 1.0,
+      "pivot_z": 1.805,
+      "rotations_per_block": 1.061
+    },
+    {
+      "part": "$roller_r2",
+      "pivot_x": -1.18,
+      "pivot_y": 1.0,
+      "pivot_z": 0.095,
+      "rotations_per_block": 1.061
+    },
+    {
+      "part": "$roller_r3",
+      "pivot_x": -1.18,
+      "pivot_y": 1.0,
+      "pivot_z": -1.575,
+      "rotations_per_block": 1.061
+    },
+    {
+      "part": "$sprocket_r",
+      "pivot_x": -1.31,
+      "pivot_y": 0.82,
+      "pivot_z": -2.925,
+      "rotations_per_block": 0.4681
+    }
+  ],
+  "spawn_item": {
+    "display_name": "SU) KV-1 model 1941",
+    "tier": 3
+  }
+}

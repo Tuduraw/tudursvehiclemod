@@ -1,0 +1,201 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "ww2projects:models/obj/jp/fighter/j7w1.obj",
+  "texture": "ww2projects:textures/vehicle/jp/fighter/j7w1.png",
+  "display_name": "JP) J7W1 Shinden",
+  "scale": 1.0,
+  "width": 11.11,
+  "height": 4.29,
+  "max_speed": 4.99,
+  "acceleration": 0.044,
+  "turn_speed": 0.222,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 5.0,
+  "stall_speed": 0.3,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2p_radial_large",
+  "engine_sound_volume": 3.2,
+  "max_health": 70.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 900.0,
+  "fuel_consumption": 0.8,
+  "hud": "ww2p_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.788,
+      "offset_z": 2.3,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.895,
+          "z": 2.35
+        },
+        {
+          "x": 0,
+          "y": 4.6,
+          "z": -12.0,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2p_jp_type5_30mm_x4",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.11,
+          "y": 2.13,
+          "z": 7.44
+        },
+        {
+          "x": -0.11,
+          "y": 2.13,
+          "z": 7.44
+        },
+        {
+          "x": 0.11,
+          "y": 1.99,
+          "z": 7.44
+        },
+        {
+          "x": -0.11,
+          "y": 1.99,
+          "z": 7.44
+        }
+      ]
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller",
+      "pivot_x": 0.0,
+      "pivot_y": 2.1,
+      "pivot_z": -1.88,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": -62.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.62,
+      "pivot_y": 1.8278,
+      "pivot_z": -0.6324,
+      "mode": "rotate",
+      "axis_x": -0.98225,
+      "axis_y": -0.05891,
+      "axis_z": 0.1781,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -0.62,
+      "pivot_y": 1.8278,
+      "pivot_z": -0.6324,
+      "mode": "rotate",
+      "axis_x": -0.98225,
+      "axis_y": 0.05891,
+      "axis_z": -0.1781,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 2.9,
+      "pivot_z": 2.4,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.03,
+      "offset_z": -0.7,
+      "trigger": "key",
+      "speed": 6.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 1.55,
+      "pivot_y": 1.9,
+      "pivot_z": 0.25,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": -1.0,
+      "max_angle": 90.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -1.55,
+      "pivot_y": 1.9,
+      "pivot_z": 0.25,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "max_angle": 90.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_n",
+      "pivot_x": 0.0,
+      "pivot_y": 1.85,
+      "pivot_z": 5.75,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 90.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder_l",
+      "pivot_x": 2.2228,
+      "pivot_y": 2.0,
+      "pivot_z": -0.952,
+      "axis_x": -0.0,
+      "axis_y": -0.96738,
+      "axis_z": 0.25333,
+      "max_angle": 25.0
+    },
+    {
+      "part": "$rudder_r",
+      "pivot_x": -2.2228,
+      "pivot_y": 2.0,
+      "pivot_z": -0.952,
+      "axis_x": -0.0,
+      "axis_y": -0.96738,
+      "axis_z": 0.25333,
+      "max_angle": 25.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "JP) J7W1 Shinden",
+    "tier": 4
+  }
+}

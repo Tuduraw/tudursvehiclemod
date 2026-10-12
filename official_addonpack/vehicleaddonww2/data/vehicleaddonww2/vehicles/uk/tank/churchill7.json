@@ -1,0 +1,688 @@
+{
+  "entity_type": "tudursvehiclemod:car",
+  "model": "vehicleaddonww2:models/obj/uk/tank/churchill7.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/uk/tank/churchill7.png",
+  "display_name": "UK) Churchill Mk VII",
+  "scale": 1.0,
+  "width": 3.25,
+  "height": 2.57,
+  "max_speed": 0.34,
+  "acceleration": 0.011,
+  "turn_speed": 1.8,
+  "step_height": 1.3,
+  "gravity": -0.04,
+  "reverse_throttle": -0.35,
+  "pivot_turn_throttle": 0.08,
+  "weight_type": "tank",
+  "wheel_rotation_speed": 40.0,
+  "throttle_up_down": 1.0,
+  "throttle_switch_hold_ticks": 20,
+  "engine_sound": "ww2_tank_petrol",
+  "engine_sound_volume": 1.7,
+  "max_health": 9900.0,
+  "armor_damage_factor": 0.45,
+  "armor_min_damage": 170.0,
+  "armor_max_damage": 9900.0,
+  "damage_factor": 0.25,
+  "max_fuel": 900.0,
+  "fuel_consumption": 0.4,
+  "inventory_size": 9,
+  "submerged_damage_height": 1.2,
+  "hud": "ww2_tank_hud",
+  "passenger_display": {
+    "hide_entity": true
+  },
+  "seats": [
+    {
+      "name": "driver",
+      "offset_x": -0.42,
+      "offset_y": 0.95,
+      "offset_z": 2.19,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": -0.42,
+          "y": 1.46,
+          "z": 2.52
+        },
+        {
+          "x": 0.0,
+          "y": 4.6,
+          "z": -11.5,
+          "force_camera": true
+        }
+      ]
+    },
+    {
+      "name": "gunner",
+      "offset_x": -0.35,
+      "offset_y": 1.3,
+      "offset_z": 0.38,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": -0.3,
+          "y": 2.3,
+          "z": 0.88
+        },
+        {
+          "x": 0.0,
+          "y": 4.8,
+          "z": -12.0,
+          "force_camera": true
+        }
+      ]
+    },
+    {
+      "name": "commander",
+      "offset_x": 0.42,
+      "offset_y": 1.4,
+      "offset_z": -0.13,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.42,
+          "y": 2.8,
+          "z": -0.13
+        }
+      ]
+    },
+    {
+      "name": "hull_gunner",
+      "offset_x": 0.42,
+      "offset_y": 0.95,
+      "offset_z": 2.19,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.42,
+          "y": 1.48,
+          "z": 2.52
+        }
+      ]
+    },
+    {
+      "name": "loader",
+      "offset_x": 0.35,
+      "offset_y": 1.3,
+      "offset_z": 0.33,
+      "driver": false
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 1,
+      "weapon_name": "ww2_uk_qf75",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 2.04,
+          "z": 3.04,
+          "linked_part": "$gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -20.0,
+        "max_pitch": 12.5
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 18.0
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "ww2_uk_besa_coax",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.22,
+          "y": 1.99,
+          "z": 1.42,
+          "linked_part": "$gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -20.0,
+        "max_pitch": 12.5
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 18.0
+    },
+    {
+      "seat_index": 3,
+      "weapon_name": "ww2_uk_besa_bow",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.42,
+          "y": 1.45,
+          "z": 2.96
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -22.0,
+        "max_yaw": 22.0,
+        "min_pitch": -12.0,
+        "max_pitch": 10.0
+      },
+      "pilot_usable": false
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$turret",
+      "seat_index": 1,
+      "weapon_name": "ww2_uk_qf75",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 1.66,
+      "pivot_z": 0.08,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -20.0,
+        "max_pitch": 12.5
+      }
+    },
+    {
+      "part": "$gun",
+      "seat_index": 1,
+      "weapon_name": "ww2_uk_qf75",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 2.04,
+      "pivot_z": 1.1,
+      "recoil_distance": 0.3,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 1.66,
+        "parent_pivot_z": 0.08
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -20.0,
+        "max_pitch": 12.5
+      }
+    }
+  ],
+  "crawler_tracks": [
+    {
+      "part": "$track_l",
+      "flip": false,
+      "link_spacing": 0.2201,
+      "x": 1.13,
+      "path": [
+        {
+          "y": 1.1,
+          "z": -3.27
+        },
+        {
+          "y": 1.0198,
+          "z": -3.2594
+        },
+        {
+          "y": 0.9403,
+          "z": -3.2257
+        },
+        {
+          "y": 0.9049,
+          "z": -3.2009
+        },
+        {
+          "y": 0.2886,
+          "z": -2.6976
+        },
+        {
+          "y": 0.255,
+          "z": -2.6615
+        },
+        {
+          "y": 0.2337,
+          "z": -2.6205
+        },
+        {
+          "y": 0.2275,
+          "z": -2.5998
+        },
+        {
+          "y": 0.0645,
+          "z": -1.8998
+        },
+        {
+          "y": 0.06,
+          "z": -1.86
+        },
+        {
+          "y": 0.06,
+          "z": 1.9
+        },
+        {
+          "y": 0.0613,
+          "z": 1.9216
+        },
+        {
+          "y": 0.1443,
+          "z": 2.6016
+        },
+        {
+          "y": 0.1559,
+          "z": 2.6463
+        },
+        {
+          "y": 0.1805,
+          "z": 2.689
+        },
+        {
+          "y": 0.197,
+          "z": 2.7073
+        },
+        {
+          "y": 0.8847,
+          "z": 3.373
+        },
+        {
+          "y": 0.9497,
+          "z": 3.4211
+        },
+        {
+          "y": 1.025,
+          "z": 3.4508
+        },
+        {
+          "y": 1.1054,
+          "z": 3.46
+        },
+        {
+          "y": 1.1854,
+          "z": 3.448
+        },
+        {
+          "y": 1.2643,
+          "z": 3.4129
+        },
+        {
+          "y": 1.3267,
+          "z": 3.3614
+        },
+        {
+          "y": 1.3762,
+          "z": 3.2907
+        },
+        {
+          "y": 1.4032,
+          "z": 3.2145
+        },
+        {
+          "y": 1.41,
+          "z": 3.15
+        },
+        {
+          "y": 1.41,
+          "z": -2.96
+        },
+        {
+          "y": 1.3994,
+          "z": -3.0402
+        },
+        {
+          "y": 1.3657,
+          "z": -3.1197
+        },
+        {
+          "y": 1.3114,
+          "z": -3.1867
+        },
+        {
+          "y": 1.2407,
+          "z": -3.2362
+        },
+        {
+          "y": 1.1645,
+          "z": -3.2632
+        }
+      ]
+    },
+    {
+      "part": "$track_r",
+      "flip": false,
+      "link_spacing": 0.2201,
+      "x": -1.13,
+      "path": [
+        {
+          "y": 1.1,
+          "z": -3.27
+        },
+        {
+          "y": 1.0198,
+          "z": -3.2594
+        },
+        {
+          "y": 0.9403,
+          "z": -3.2257
+        },
+        {
+          "y": 0.9049,
+          "z": -3.2009
+        },
+        {
+          "y": 0.2886,
+          "z": -2.6976
+        },
+        {
+          "y": 0.255,
+          "z": -2.6615
+        },
+        {
+          "y": 0.2337,
+          "z": -2.6205
+        },
+        {
+          "y": 0.2275,
+          "z": -2.5998
+        },
+        {
+          "y": 0.0645,
+          "z": -1.8998
+        },
+        {
+          "y": 0.06,
+          "z": -1.86
+        },
+        {
+          "y": 0.06,
+          "z": 1.9
+        },
+        {
+          "y": 0.0613,
+          "z": 1.9216
+        },
+        {
+          "y": 0.1443,
+          "z": 2.6016
+        },
+        {
+          "y": 0.1559,
+          "z": 2.6463
+        },
+        {
+          "y": 0.1805,
+          "z": 2.689
+        },
+        {
+          "y": 0.197,
+          "z": 2.7073
+        },
+        {
+          "y": 0.8847,
+          "z": 3.373
+        },
+        {
+          "y": 0.9497,
+          "z": 3.4211
+        },
+        {
+          "y": 1.025,
+          "z": 3.4508
+        },
+        {
+          "y": 1.1054,
+          "z": 3.46
+        },
+        {
+          "y": 1.1854,
+          "z": 3.448
+        },
+        {
+          "y": 1.2643,
+          "z": 3.4129
+        },
+        {
+          "y": 1.3267,
+          "z": 3.3614
+        },
+        {
+          "y": 1.3762,
+          "z": 3.2907
+        },
+        {
+          "y": 1.4032,
+          "z": 3.2145
+        },
+        {
+          "y": 1.41,
+          "z": 3.15
+        },
+        {
+          "y": 1.41,
+          "z": -2.96
+        },
+        {
+          "y": 1.3994,
+          "z": -3.0402
+        },
+        {
+          "y": 1.3657,
+          "z": -3.1197
+        },
+        {
+          "y": 1.3114,
+          "z": -3.1867
+        },
+        {
+          "y": 1.2407,
+          "z": -3.2362
+        },
+        {
+          "y": 1.1645,
+          "z": -3.2632
+        }
+      ]
+    }
+  ],
+  "track_roller_parts": [
+    {
+      "part": "$idler_l",
+      "pivot_x": 1.13,
+      "pivot_y": 1.1,
+      "pivot_z": 3.15,
+      "rotations_per_block": 0.5684
+    },
+    {
+      "part": "$wheel_l1",
+      "pivot_x": 1.13,
+      "pivot_y": 0.32,
+      "pivot_z": 2.58,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_l2",
+      "pivot_x": 1.13,
+      "pivot_y": 0.237,
+      "pivot_z": 1.9,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_l3",
+      "pivot_x": 1.13,
+      "pivot_y": 0.237,
+      "pivot_z": 1.43,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_l4",
+      "pivot_x": 1.13,
+      "pivot_y": 0.237,
+      "pivot_z": 0.98,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_l5",
+      "pivot_x": 1.13,
+      "pivot_y": 0.237,
+      "pivot_z": 0.5,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_l6",
+      "pivot_x": 1.13,
+      "pivot_y": 0.237,
+      "pivot_z": 0.03,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_l7",
+      "pivot_x": 1.13,
+      "pivot_y": 0.237,
+      "pivot_z": -0.44,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_l8",
+      "pivot_x": 1.13,
+      "pivot_y": 0.237,
+      "pivot_z": -0.91,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_l9",
+      "pivot_x": 1.13,
+      "pivot_y": 0.237,
+      "pivot_z": -1.38,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_l10",
+      "pivot_x": 1.13,
+      "pivot_y": 0.237,
+      "pivot_z": -1.86,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_l11",
+      "pivot_x": 1.13,
+      "pivot_y": 0.4,
+      "pivot_z": -2.56,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$sprocket_l",
+      "pivot_x": 1.13,
+      "pivot_y": 1.1,
+      "pivot_z": -2.96,
+      "rotations_per_block": 0.5684
+    },
+    {
+      "part": "$idler_r",
+      "pivot_x": -1.13,
+      "pivot_y": 1.1,
+      "pivot_z": 3.15,
+      "rotations_per_block": 0.5684
+    },
+    {
+      "part": "$wheel_r1",
+      "pivot_x": -1.13,
+      "pivot_y": 0.32,
+      "pivot_z": 2.58,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_r2",
+      "pivot_x": -1.13,
+      "pivot_y": 0.237,
+      "pivot_z": 1.9,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_r3",
+      "pivot_x": -1.13,
+      "pivot_y": 0.237,
+      "pivot_z": 1.43,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_r4",
+      "pivot_x": -1.13,
+      "pivot_y": 0.237,
+      "pivot_z": 0.98,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_r5",
+      "pivot_x": -1.13,
+      "pivot_y": 0.237,
+      "pivot_z": 0.5,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_r6",
+      "pivot_x": -1.13,
+      "pivot_y": 0.237,
+      "pivot_z": 0.03,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_r7",
+      "pivot_x": -1.13,
+      "pivot_y": 0.237,
+      "pivot_z": -0.44,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_r8",
+      "pivot_x": -1.13,
+      "pivot_y": 0.237,
+      "pivot_z": -0.91,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_r9",
+      "pivot_x": -1.13,
+      "pivot_y": 0.237,
+      "pivot_z": -1.38,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_r10",
+      "pivot_x": -1.13,
+      "pivot_y": 0.237,
+      "pivot_z": -1.86,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$wheel_r11",
+      "pivot_x": -1.13,
+      "pivot_y": 0.4,
+      "pivot_z": -2.56,
+      "rotations_per_block": 1.0827
+    },
+    {
+      "part": "$sprocket_r",
+      "pivot_x": -1.13,
+      "pivot_y": 1.1,
+      "pivot_z": -2.96,
+      "rotations_per_block": 0.5684
+    }
+  ],
+  "spawn_item": {
+    "display_name": "UK) Churchill Mk VII",
+    "tier": 3
+  }
+}

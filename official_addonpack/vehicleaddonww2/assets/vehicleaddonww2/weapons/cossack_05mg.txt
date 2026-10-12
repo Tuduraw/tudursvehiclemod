@@ -1,0 +1,22 @@
+; two quadruple 0.5 in machine guns
+DisplayName = Vickers 0.5in Mk III (quadruple)
+Type = MachineGun2
+Power = 54
+Acceleration = 38.0
+Gravity = -0.0245
+Accuracy = 1.6
+Delay = 1
+Round = 200
+ReloadTime = 200
+MaxAmmo = 800
+SuppliedNum = 200
+Item = 1, iron_ingot
+Item = 1, gunpowder
+TimeFuse = 80
+BulletColor = 255, 255, 230, 140
+ModelBullet = shell_small
+Sound = ww2_mg_heavy
+SoundVolume = 2.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.08
+AddMuzzleFlash = 0.6, 0.25, 1, 200, 254, 219, 184

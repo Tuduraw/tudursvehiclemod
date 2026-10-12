@@ -1,0 +1,211 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/jp/seaplane/e14y1.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/jp/seaplane/e14y1.png",
+  "display_name": "JP) E14Y1 Type 0 Small Recon Seaplane (Glen)",
+  "scale": 1.0,
+  "width": 11.0,
+  "height": 3.82,
+  "max_speed": 1.49,
+  "acceleration": 0.026,
+  "turn_speed": 0.208,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 1.0,
+  "stall_speed": 0.3,
+  "float_capable": true,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_radial_small",
+  "engine_sound_volume": 2.4,
+  "max_health": 320.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 700.0,
+  "fuel_consumption": 0.3,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.472,
+      "offset_z": 0.05,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.64,
+          "z": 0.1
+        },
+        {
+          "x": 0.0,
+          "y": 4.2,
+          "z": -13.0,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    },
+    {
+      "name": "observer",
+      "offset_x": 0.0,
+      "offset_y": 1.452,
+      "offset_z": -0.95,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.85,
+          "z": -1.1
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2_jp_60kg",
+      "projectile_item": "minecraft:tnt",
+      "offsets": [
+        {
+          "x": 1.3,
+          "y": 1.25,
+          "z": 0.4
+        },
+        {
+          "x": -1.3,
+          "y": 1.25,
+          "z": 0.4
+        }
+      ]
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "ww2_jp_type92",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 2.62,
+          "z": -2.4,
+          "linked_part": "$rear_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -70.0,
+        "max_yaw": 70.0,
+        "min_pitch": -50.0,
+        "max_pitch": 20.0
+      }
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "e14y1_camera",
+      "projectile_item": "minecraft:paper",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 1.4,
+          "z": -0.95
+        }
+      ],
+      "pilot_usable": true
+    }
+  ],
+  "ammo_parts": [
+    {
+      "part": "$bomb_0",
+      "weapon_name": "ww2_jp_60kg",
+      "slot_index": 0
+    },
+    {
+      "part": "$bomb_1",
+      "weapon_name": "ww2_jp_60kg",
+      "slot_index": 1
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 0.0,
+      "pivot_y": 1.85,
+      "pivot_z": 2.21,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 62.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 2.1,
+      "pivot_z": -4.5,
+      "axis_x": -0.0,
+      "axis_y": -0.98867,
+      "axis_z": 0.15009,
+      "max_angle": 25.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.6,
+      "pivot_y": 1.5061,
+      "pivot_z": -0.6379,
+      "mode": "rotate",
+      "axis_x": -0.99804,
+      "axis_y": -0.03818,
+      "axis_z": 0.04961,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -3.0,
+      "pivot_y": 1.5979,
+      "pivot_z": -0.7572,
+      "mode": "rotate",
+      "axis_x": -0.99804,
+      "axis_y": 0.03818,
+      "axis_z": -0.04961,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$rear_gun",
+      "seat_index": 1,
+      "weapon_name": "ww2_jp_type92",
+      "pilot_fallback": false,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 2.62,
+      "pivot_z": -1.45,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -70.0,
+        "max_yaw": 70.0,
+        "min_pitch": -50.0,
+        "max_pitch": 20.0
+      }
+    }
+  ],
+  "spawn_item": {
+    "display_name": "JP) E14Y1 Type 0 Small Recon Seaplane (Glen)",
+    "tier": 2
+  }
+}

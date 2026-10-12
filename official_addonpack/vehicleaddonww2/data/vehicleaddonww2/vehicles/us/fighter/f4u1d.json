@@ -1,0 +1,337 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/us/fighter/f4u1d.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/us/fighter/f4u1d.png",
+  "display_name": "US) F4U-1D Corsair",
+  "scale": 1.0,
+  "width": 12.49,
+  "height": 4.5,
+  "max_speed": 4.6,
+  "acceleration": 0.046,
+  "turn_speed": 0.25,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 12.13,
+  "stall_speed": 0.27,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_radial_large",
+  "engine_sound_volume": 3.2,
+  "max_health": 720.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 1050.0,
+  "fuel_consumption": 0.75,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 2.282,
+      "offset_z": -2.45,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.45,
+          "z": -2.4
+        },
+        {
+          "x": 0.0,
+          "y": 5.0,
+          "z": -16.0,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2_us_m2_x6",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 2.42,
+          "y": 1.577,
+          "z": 0.092
+        },
+        {
+          "x": 2.6,
+          "y": 1.602,
+          "z": 0.081
+        },
+        {
+          "x": 2.79,
+          "y": 1.632,
+          "z": 0.068
+        },
+        {
+          "x": -2.42,
+          "y": 1.577,
+          "z": 0.092
+        },
+        {
+          "x": -2.6,
+          "y": 1.602,
+          "z": 0.081
+        },
+        {
+          "x": -2.79,
+          "y": 1.632,
+          "z": 0.068
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2_us_hvar_x8",
+      "projectile_item": "minecraft:gunpowder",
+      "offsets": [
+        {
+          "x": 3.2,
+          "y": 1.415,
+          "z": -0.45
+        },
+        {
+          "x": 3.6,
+          "y": 1.476,
+          "z": -0.45
+        },
+        {
+          "x": 4.0,
+          "y": 1.538,
+          "z": -0.45
+        },
+        {
+          "x": 4.4,
+          "y": 1.6,
+          "z": -0.45
+        },
+        {
+          "x": -3.2,
+          "y": 1.415,
+          "z": -0.45
+        },
+        {
+          "x": -3.6,
+          "y": 1.476,
+          "z": -0.45
+        },
+        {
+          "x": -4.0,
+          "y": 1.538,
+          "z": -0.45
+        },
+        {
+          "x": -4.4,
+          "y": 1.6,
+          "z": -0.45
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2_us_1000lb_x2",
+      "projectile_item": "minecraft:tnt",
+      "offsets": [
+        {
+          "x": 0.98,
+          "y": 0.95,
+          "z": -0.75
+        },
+        {
+          "x": -0.98,
+          "y": 0.95,
+          "z": -0.75
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "f4u_droptank",
+      "projectile_item": "minecraft:bucket",
+      "offsets": [
+        {
+          "x": 0.98,
+          "y": 0.65,
+          "z": -0.75,
+          "linked_part": "$drop_tank_l"
+        },
+        {
+          "x": -0.98,
+          "y": 0.65,
+          "z": -0.75,
+          "linked_part": "$drop_tank_r"
+        }
+      ]
+    }
+  ],
+  "ammo_parts": [
+    {
+      "part": "$drop_tank_l",
+      "weapon_name": "f4u_droptank",
+      "slot_index": 1,
+      "display_penalty": "6, 4"
+    },
+    {
+      "part": "$drop_tank_r",
+      "weapon_name": "f4u_droptank",
+      "slot_index": 0,
+      "display_penalty": "6, 4"
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 0.0,
+      "pivot_y": 2.26,
+      "pivot_z": 1.92,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 62.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 2.95,
+      "pivot_z": -6.101,
+      "axis_x": -0.0,
+      "axis_y": -0.9861,
+      "axis_z": 0.16618,
+      "max_angle": 25.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$wing_fold_l",
+      "pivot_x": 2.37,
+      "pivot_y": 1.6707,
+      "pivot_z": -1.2008,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0303,
+      "axis_z": 0.99954,
+      "max_angle": 112.0,
+      "trigger": "wing_fold",
+      "speed": 1.2
+    },
+    {
+      "part": "$wing_fold_r",
+      "pivot_x": -2.37,
+      "pivot_y": 1.6707,
+      "pivot_z": -1.2008,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": -0.0303,
+      "axis_z": -0.99954,
+      "max_angle": 112.0,
+      "trigger": "wing_fold",
+      "speed": 1.2
+    },
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.78,
+      "pivot_y": 1.6593,
+      "pivot_z": -1.8871,
+      "mode": "rotate",
+      "axis_x": -0.99508,
+      "axis_y": 0.09851,
+      "axis_z": -0.01009,
+      "max_angle": 50.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -2.3,
+      "pivot_y": 1.5088,
+      "pivot_z": -1.8717,
+      "mode": "rotate",
+      "axis_x": -0.99508,
+      "axis_y": -0.09851,
+      "axis_z": 0.01009,
+      "max_angle": 50.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 3.28,
+      "pivot_z": -2.5,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.03,
+      "offset_z": -0.5,
+      "trigger": "key",
+      "speed": 6.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 1.83,
+      "pivot_y": 1.52,
+      "pivot_z": -0.3,
+      "mode": "rotate",
+      "axis_x": 0.57735,
+      "axis_y": -0.57735,
+      "axis_z": -0.57735,
+      "max_angle": 120.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -1.83,
+      "pivot_y": 1.52,
+      "pivot_z": -0.3,
+      "mode": "rotate",
+      "axis_x": 0.57735,
+      "axis_y": 0.57735,
+      "axis_z": 0.57735,
+      "max_angle": 120.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_tail",
+      "pivot_x": 0.0,
+      "pivot_y": 2.2,
+      "pivot_z": -6.09,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 100.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$hook",
+      "pivot_x": 0.0,
+      "pivot_y": 2.24,
+      "pivot_z": -6.62,
+      "mode": "rotate",
+      "axis_x": 1,
+      "axis_y": 0,
+      "axis_z": 0,
+      "max_angle": 30.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "US) F4U-1D Corsair",
+    "tier": 3
+  }
+}

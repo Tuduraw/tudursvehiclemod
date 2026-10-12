@@ -1,0 +1,19 @@
+; two 150 kg depth charges on racks under the wing centre section (the alternative load was 3 x 50 kg bombs)
+DisplayName = 150 kg Depth Charge x2
+Type = Depth
+Power = 43000
+Gravity = -0.04
+GravityInWater = 0.06
+Delay = 20
+Round = 2
+ReloadTime = 900
+MaxAmmo = 2
+SuppliedNum = 2
+Item = 3, iron_ingot
+Item = 3, gunpowder
+Explosion = 2
+ExplosionInWater = 7.0
+ExplosionBlock = 1
+ModelBullet = depthcharge
+Sound = ww2_bomb_release
+SoundVolume = 1.5

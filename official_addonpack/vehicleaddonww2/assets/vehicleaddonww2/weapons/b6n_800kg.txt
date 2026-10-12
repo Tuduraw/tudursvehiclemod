@@ -1,0 +1,18 @@
+; Type 99 No.80 800kg Bomb
+DisplayName = Type 99 No.80 800kg Bomb
+Type = Bomb
+Power = 370000
+Gravity = -0.05
+Delay = 10
+Round = 1
+ReloadTime = 1300
+MaxAmmo = 1
+SuppliedNum = 1
+Item = 4, iron_ingot
+Item = 4, gunpowder
+Explosion = 7.0
+ExplosionBlock = 6
+ModelBullet = bomb_large
+Sound = ww2_bomb_release
+SoundVolume = 1.5
+DisplayMortarDistance = true

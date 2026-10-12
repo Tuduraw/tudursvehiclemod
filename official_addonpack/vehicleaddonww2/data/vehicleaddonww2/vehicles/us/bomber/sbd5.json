@@ -1,0 +1,349 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/us/bomber/sbd5.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/us/bomber/sbd5.png",
+  "display_name": "US) SBD-5 Dauntless",
+  "scale": 1.0,
+  "width": 12.66,
+  "height": 4.14,
+  "max_speed": 2.72,
+  "acceleration": 0.036,
+  "turn_speed": 0.222,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 11.65,
+  "stall_speed": 0.2,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_radial_large",
+  "engine_sound_volume": 3.1,
+  "max_health": 640.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 950.0,
+  "fuel_consumption": 0.6,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.652,
+      "offset_z": -0.75,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.82,
+          "z": -0.7
+        },
+        {
+          "x": 0.0,
+          "y": 5.0,
+          "z": -16.0,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    },
+    {
+      "name": "gunner",
+      "offset_x": 0.0,
+      "offset_y": 1.632,
+      "offset_z": -2.15,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.8,
+          "z": -2.1
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "sbd_m2_x2",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.16,
+          "y": 2.6,
+          "z": 1.8
+        },
+        {
+          "x": -0.16,
+          "y": 2.6,
+          "z": 1.8
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2_us_1000lb",
+      "projectile_item": "minecraft:tnt",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 0.62,
+          "z": -0.35,
+          "linked_part": "$bomb_c"
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "sbd_100lb_x2",
+      "projectile_item": "minecraft:tnt",
+      "offsets": [
+        {
+          "x": 2.9,
+          "y": 1.05,
+          "z": -0.45,
+          "linked_part": "$bomb_l"
+        },
+        {
+          "x": -2.9,
+          "y": 1.05,
+          "z": -0.45,
+          "linked_part": "$bomb_r"
+        }
+      ]
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "sbd_m1919_twin",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.07,
+          "y": 3.02,
+          "z": -3.12,
+          "linked_part": "$rear_gun"
+        },
+        {
+          "x": -0.07,
+          "y": 3.02,
+          "z": -3.12,
+          "linked_part": "$rear_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -80.0,
+        "max_yaw": 80.0,
+        "min_pitch": -60.0,
+        "max_pitch": 12.0
+      }
+    }
+  ],
+  "ammo_parts": [
+    {
+      "part": "$bomb_c",
+      "weapon_name": "ww2_us_1000lb",
+      "slot_index": 0,
+      "display_penalty": "8, 6"
+    },
+    {
+      "part": "$bomb_l",
+      "weapon_name": "sbd_100lb_x2",
+      "slot_index": 1,
+      "display_penalty": "2, 1"
+    },
+    {
+      "part": "$bomb_r",
+      "weapon_name": "sbd_100lb_x2",
+      "slot_index": 0,
+      "display_penalty": "2, 1"
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 0.0,
+      "pivot_y": 1.934,
+      "pivot_z": 2.07,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 60.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 2.02,
+      "pivot_z": -6.85,
+      "axis_x": -0.0,
+      "axis_y": -0.99999,
+      "axis_z": -0.00341,
+      "max_angle": 25.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.62,
+      "pivot_y": 1.3355,
+      "pivot_z": -1.8404,
+      "mode": "rotate",
+      "axis_x": -0.99972,
+      "axis_y": -0.00272,
+      "axis_z": 0.02358,
+      "max_angle": 48.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -1.68,
+      "pivot_y": 1.3384,
+      "pivot_z": -1.8654,
+      "mode": "rotate",
+      "axis_x": -0.99972,
+      "axis_y": 0.00272,
+      "axis_z": -0.02358,
+      "max_angle": 48.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap2_l",
+      "pivot_x": 1.72,
+      "pivot_y": 1.3422,
+      "pivot_z": -1.863,
+      "mode": "rotate",
+      "axis_x": -0.9737,
+      "axis_y": -0.18162,
+      "axis_z": -0.13755,
+      "max_angle": 48.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap2_r",
+      "pivot_x": -4.3,
+      "pivot_y": 1.8235,
+      "pivot_z": -1.4986,
+      "mode": "rotate",
+      "axis_x": -0.9737,
+      "axis_y": 0.18162,
+      "axis_z": 0.13755,
+      "max_angle": 48.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 2.53,
+      "pivot_z": -0.7533,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.03,
+      "offset_z": -0.72,
+      "trigger": "key",
+      "speed": 6.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 1.605,
+      "pivot_y": 1.36,
+      "pivot_z": -0.22,
+      "mode": "rotate",
+      "axis_x": 0.08993,
+      "axis_y": -0.21605,
+      "axis_z": -0.97223,
+      "max_angle": 93.514,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -1.605,
+      "pivot_y": 1.36,
+      "pivot_z": -0.22,
+      "mode": "rotate",
+      "axis_x": 0.08993,
+      "axis_y": 0.21605,
+      "axis_z": 0.97223,
+      "max_angle": 93.514,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$hook",
+      "pivot_x": 0.0,
+      "pivot_y": 1.76,
+      "pivot_z": -6.1,
+      "mode": "rotate",
+      "axis_x": 1,
+      "axis_y": 0,
+      "axis_z": 0,
+      "max_angle": 27.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$dive_l",
+      "pivot_x": 1.85,
+      "pivot_y": 1.5405,
+      "pivot_z": -1.8445,
+      "mode": "rotate",
+      "axis_x": 0.97903,
+      "axis_y": 0.14967,
+      "axis_z": 0.13823,
+      "max_angle": 60.0,
+      "trigger": "weapon_bay",
+      "speed": 4.0,
+      "weapon_name": "ww2_us_1000lb"
+    },
+    {
+      "part": "$dive_r",
+      "pivot_x": -4.3,
+      "pivot_y": 1.9151,
+      "pivot_z": -1.4986,
+      "mode": "rotate",
+      "axis_x": 0.97903,
+      "axis_y": -0.14967,
+      "axis_z": -0.13823,
+      "max_angle": 60.0,
+      "trigger": "weapon_bay",
+      "speed": 4.0,
+      "weapon_name": "ww2_us_1000lb"
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$rear_gun",
+      "seat_index": 1,
+      "weapon_name": "sbd_m1919_twin",
+      "pilot_fallback": false,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 3.0,
+      "pivot_z": -2.3,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -80.0,
+        "max_yaw": 80.0,
+        "min_pitch": -60.0,
+        "max_pitch": 12.0
+      }
+    }
+  ],
+  "spawn_item": {
+    "display_name": "US) SBD-5 Dauntless",
+    "tier": 2
+  }
+}

@@ -1,0 +1,24 @@
+; Yak-3 cannon firing through the propeller hub
+DisplayName = ShVAK 20mm (motor cannon)
+Type = MachineGun1
+Power = 130
+Acceleration = 39.5
+Gravity = -0.0245
+Accuracy = 1.4
+Delay = 2
+Round = 120
+ReloadTime = 420
+MaxAmmo = 120
+SuppliedNum = 120
+Item = 1, iron_ingot
+Item = 1, gunpowder
+Explosion = 1.0
+ExplosionBlock = 0
+TimeFuse = 80
+BulletColor = 255, 255, 200, 90
+ModelBullet = shell_20mm
+Sound = ww2_cannon_20mm
+SoundVolume = 2.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.08
+AddMuzzleFlash = 0.6, 0.25, 1, 200, 254, 219, 184

@@ -1,0 +1,8 @@
+; 150 US gal Drop Tank
+DisplayName = 150 US gal Drop Tank
+Type = DropTank
+Round = 1
+MaxAmmo = 1
+FuelPerAmmo = 380.0
+Gravity = -0.05
+ModelBullet = droptank

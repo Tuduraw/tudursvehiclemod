@@ -1,0 +1,24 @@
+; 2 x quadruple centreline launchers, no reloads
+DisplayName = Mk 15 21in Torpedo
+Type = Torpedo
+Power = 410000
+Acceleration = 1.2
+Gravity = -0.015
+GravityInWater = 0.0
+AccelerationInWater = 1.447
+VelocityInWater = 0.2
+TargetDepth = 2.0
+Delay = 10
+Round = 8
+ReloadTime = 6000
+MaxAmmo = 8
+SuppliedNum = 8
+Item = 6, iron_ingot
+Item = 6, gunpowder
+Explosion = 5.0
+ExplosionInWater = 10.0
+ExplosionBlock = 2
+BulletColorInWater = 255, 30, 40, 60
+ModelBullet = torpedo
+Sound = ww2_torpedo
+SoundVolume = 2.0

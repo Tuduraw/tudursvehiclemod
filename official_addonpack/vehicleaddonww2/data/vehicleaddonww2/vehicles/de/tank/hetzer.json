@@ -1,0 +1,533 @@
+{
+  "entity_type": "tudursvehiclemod:car",
+  "model": "vehicleaddonww2:models/obj/de/tank/hetzer.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/de/tank/hetzer.png",
+  "display_name": "DE) Jagdpanzer 38 Hetzer",
+  "scale": 1.0,
+  "width": 2.63,
+  "height": 2.17,
+  "max_speed": 0.55,
+  "acceleration": 0.018,
+  "turn_speed": 2.3,
+  "step_height": 1.0,
+  "gravity": -0.04,
+  "reverse_throttle": -0.35,
+  "pivot_turn_throttle": 0.08,
+  "weight_type": "tank",
+  "wheel_rotation_speed": 40.0,
+  "throttle_up_down": 1.0,
+  "throttle_switch_hold_ticks": 20,
+  "engine_sound": "ww2_tank_petrol",
+  "engine_sound_volume": 1.5,
+  "max_health": 3800.0,
+  "armor_damage_factor": 0.55,
+  "armor_min_damage": 49.0,
+  "armor_max_damage": 3800.0,
+  "damage_factor": 0.25,
+  "max_fuel": 700.0,
+  "fuel_consumption": 0.3,
+  "inventory_size": 9,
+  "submerged_damage_height": 0.9,
+  "hud": "ww2_tank_hud",
+  "passenger_display": {
+    "hide_entity": true
+  },
+  "seats": [
+    {
+      "name": "driver",
+      "offset_x": 0.4,
+      "offset_y": 0.95,
+      "offset_z": 0.835,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.4,
+          "y": 1.55,
+          "z": 0.985
+        },
+        {
+          "x": 0.0,
+          "y": 4.0,
+          "z": -9.0,
+          "force_camera": true
+        }
+      ]
+    },
+    {
+      "name": "gunner",
+      "offset_x": 0.1,
+      "offset_y": 1.05,
+      "offset_z": 0.335,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": -0.16,
+          "y": 1.88,
+          "z": 0.885
+        },
+        {
+          "x": 0.0,
+          "y": 4.2,
+          "z": -9.5,
+          "force_camera": true
+        }
+      ]
+    },
+    {
+      "name": "loader",
+      "offset_x": 0.35,
+      "offset_y": 1.1,
+      "offset_z": -0.215,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.35,
+          "y": 2.3,
+          "z": 0.035
+        }
+      ]
+    },
+    {
+      "name": "commander",
+      "offset_x": -0.4,
+      "offset_y": 1.1,
+      "offset_z": -0.315,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": -0.4,
+          "y": 2.3,
+          "z": -0.165
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 1,
+      "weapon_name": "ww2_de_75mm_pak39",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": -0.38,
+          "y": 1.52,
+          "z": 3.965,
+          "linked_part": "$gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -5.0,
+        "max_yaw": 11.0,
+        "min_pitch": -12.0,
+        "max_pitch": 6.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 8.0
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "ww2_de_mg34_remote",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.35,
+          "y": 2.15,
+          "z": 0.861
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -20.0,
+        "max_pitch": 8.0
+      },
+      "pilot_usable": false
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$gun",
+      "seat_index": 1,
+      "weapon_name": "ww2_de_75mm_pak39",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": true,
+      "pivot_x": -0.38,
+      "pivot_y": 1.52,
+      "pivot_z": 1.115,
+      "recoil_distance": 0.3,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -5.0,
+        "max_yaw": 11.0,
+        "min_pitch": -12.0,
+        "max_pitch": 6.0
+      }
+    }
+  ],
+  "crawler_tracks": [
+    {
+      "part": "$track_l",
+      "flip": false,
+      "link_spacing": 0.2003,
+      "x": 1.06,
+      "path": [
+        {
+          "y": 0.69,
+          "z": -2.3
+        },
+        {
+          "y": 0.6114,
+          "z": -2.289
+        },
+        {
+          "y": 0.539,
+          "z": -2.2567
+        },
+        {
+          "y": 0.4816,
+          "z": -2.2094
+        },
+        {
+          "y": 0.4457,
+          "z": -2.1618
+        },
+        {
+          "y": 0.1171,
+          "z": -1.619
+        },
+        {
+          "y": 0.0698,
+          "z": -1.5076
+        },
+        {
+          "y": 0.055,
+          "z": -1.395
+        },
+        {
+          "y": 0.055,
+          "z": 1.285
+        },
+        {
+          "y": 0.0698,
+          "z": 1.3976
+        },
+        {
+          "y": 0.1095,
+          "z": 1.4959
+        },
+        {
+          "y": 0.4545,
+          "z": 2.1077
+        },
+        {
+          "y": 0.5073,
+          "z": 2.1777
+        },
+        {
+          "y": 0.5773,
+          "z": 2.2305
+        },
+        {
+          "y": 0.6591,
+          "z": 2.2619
+        },
+        {
+          "y": 0.7465,
+          "z": 2.2696
+        },
+        {
+          "y": 0.8273,
+          "z": 2.2546
+        },
+        {
+          "y": 0.9061,
+          "z": 2.2161
+        },
+        {
+          "y": 0.9677,
+          "z": 2.1617
+        },
+        {
+          "y": 1.0155,
+          "z": 2.0881
+        },
+        {
+          "y": 1.0411,
+          "z": 2.0043
+        },
+        {
+          "y": 1.0448,
+          "z": 1.966
+        },
+        {
+          "y": 1.1249,
+          "z": -0.1106
+        },
+        {
+          "y": 1.1247,
+          "z": -0.1237
+        },
+        {
+          "y": 0.9743,
+          "z": -2.0349
+        },
+        {
+          "y": 0.9578,
+          "z": -2.1125
+        },
+        {
+          "y": 0.9206,
+          "z": -2.1825
+        },
+        {
+          "y": 0.8655,
+          "z": -2.2396
+        },
+        {
+          "y": 0.7968,
+          "z": -2.2792
+        },
+        {
+          "y": 0.7247,
+          "z": -2.2979
+        }
+      ]
+    },
+    {
+      "part": "$track_r",
+      "flip": false,
+      "link_spacing": 0.2003,
+      "x": -1.06,
+      "path": [
+        {
+          "y": 0.69,
+          "z": -2.3
+        },
+        {
+          "y": 0.6114,
+          "z": -2.289
+        },
+        {
+          "y": 0.539,
+          "z": -2.2567
+        },
+        {
+          "y": 0.4816,
+          "z": -2.2094
+        },
+        {
+          "y": 0.4457,
+          "z": -2.1618
+        },
+        {
+          "y": 0.1171,
+          "z": -1.619
+        },
+        {
+          "y": 0.0698,
+          "z": -1.5076
+        },
+        {
+          "y": 0.055,
+          "z": -1.395
+        },
+        {
+          "y": 0.055,
+          "z": 1.285
+        },
+        {
+          "y": 0.0698,
+          "z": 1.3976
+        },
+        {
+          "y": 0.1095,
+          "z": 1.4959
+        },
+        {
+          "y": 0.4545,
+          "z": 2.1077
+        },
+        {
+          "y": 0.5073,
+          "z": 2.1777
+        },
+        {
+          "y": 0.5773,
+          "z": 2.2305
+        },
+        {
+          "y": 0.6591,
+          "z": 2.2619
+        },
+        {
+          "y": 0.7465,
+          "z": 2.2696
+        },
+        {
+          "y": 0.8273,
+          "z": 2.2546
+        },
+        {
+          "y": 0.9061,
+          "z": 2.2161
+        },
+        {
+          "y": 0.9677,
+          "z": 2.1617
+        },
+        {
+          "y": 1.0155,
+          "z": 2.0881
+        },
+        {
+          "y": 1.0411,
+          "z": 2.0043
+        },
+        {
+          "y": 1.0448,
+          "z": 1.966
+        },
+        {
+          "y": 1.1249,
+          "z": -0.1106
+        },
+        {
+          "y": 1.1247,
+          "z": -0.1237
+        },
+        {
+          "y": 0.9743,
+          "z": -2.0349
+        },
+        {
+          "y": 0.9578,
+          "z": -2.1125
+        },
+        {
+          "y": 0.9206,
+          "z": -2.1825
+        },
+        {
+          "y": 0.8655,
+          "z": -2.2396
+        },
+        {
+          "y": 0.7968,
+          "z": -2.2792
+        },
+        {
+          "y": 0.7247,
+          "z": -2.2979
+        }
+      ]
+    }
+  ],
+  "track_roller_parts": [
+    {
+      "part": "$sprocket_l",
+      "pivot_x": 1.06,
+      "pivot_y": 0.73,
+      "pivot_z": 1.955,
+      "rotations_per_block": 0.5488
+    },
+    {
+      "part": "$wheel_l1",
+      "pivot_x": 1.06,
+      "pivot_y": 0.49,
+      "pivot_z": 1.285,
+      "rotations_per_block": 0.3882
+    },
+    {
+      "part": "$wheel_l2",
+      "pivot_x": 1.06,
+      "pivot_y": 0.49,
+      "pivot_z": 0.385,
+      "rotations_per_block": 0.3882
+    },
+    {
+      "part": "$wheel_l3",
+      "pivot_x": 1.06,
+      "pivot_y": 0.49,
+      "pivot_z": -0.575,
+      "rotations_per_block": 0.3882
+    },
+    {
+      "part": "$wheel_l4",
+      "pivot_x": 1.06,
+      "pivot_y": 0.49,
+      "pivot_z": -1.395,
+      "rotations_per_block": 0.3882
+    },
+    {
+      "part": "$roller_l1",
+      "pivot_x": 0.96,
+      "pivot_y": 1.0,
+      "pivot_z": -0.115,
+      "rotations_per_block": 1.5915
+    },
+    {
+      "part": "$idler_l",
+      "pivot_x": 1.06,
+      "pivot_y": 0.69,
+      "pivot_z": -2.015,
+      "rotations_per_block": 0.6121
+    },
+    {
+      "part": "$sprocket_r",
+      "pivot_x": -1.06,
+      "pivot_y": 0.73,
+      "pivot_z": 1.955,
+      "rotations_per_block": 0.5488
+    },
+    {
+      "part": "$wheel_r1",
+      "pivot_x": -1.06,
+      "pivot_y": 0.49,
+      "pivot_z": 1.285,
+      "rotations_per_block": 0.3882
+    },
+    {
+      "part": "$wheel_r2",
+      "pivot_x": -1.06,
+      "pivot_y": 0.49,
+      "pivot_z": 0.385,
+      "rotations_per_block": 0.3882
+    },
+    {
+      "part": "$wheel_r3",
+      "pivot_x": -1.06,
+      "pivot_y": 0.49,
+      "pivot_z": -0.575,
+      "rotations_per_block": 0.3882
+    },
+    {
+      "part": "$wheel_r4",
+      "pivot_x": -1.06,
+      "pivot_y": 0.49,
+      "pivot_z": -1.395,
+      "rotations_per_block": 0.3882
+    },
+    {
+      "part": "$roller_r1",
+      "pivot_x": -0.96,
+      "pivot_y": 1.0,
+      "pivot_z": -0.115,
+      "rotations_per_block": 1.5915
+    },
+    {
+      "part": "$idler_r",
+      "pivot_x": -1.06,
+      "pivot_y": 0.69,
+      "pivot_z": -2.015,
+      "rotations_per_block": 0.6121
+    }
+  ],
+  "spawn_item": {
+    "display_name": "DE) Jagdpanzer 38 Hetzer",
+    "tier": 3
+  }
+}

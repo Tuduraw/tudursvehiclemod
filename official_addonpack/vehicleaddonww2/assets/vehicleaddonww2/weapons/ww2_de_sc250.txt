@@ -1,0 +1,18 @@
+; SC 250 Bomb
+DisplayName = SC 250 Bomb
+Type = Bomb
+Power = 150000
+Gravity = -0.05
+Delay = 10
+Round = 1
+ReloadTime = 900
+MaxAmmo = 1
+SuppliedNum = 1
+Item = 4, iron_ingot
+Item = 4, gunpowder
+Explosion = 5.0
+ExplosionBlock = 4
+ModelBullet = bomb_small
+Sound = ww2_bomb_release
+SoundVolume = 1.5
+DisplayMortarDistance = true

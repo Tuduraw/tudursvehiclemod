@@ -1,0 +1,24 @@
+; twin powered 20 mm Oerlikon mounts on the gallery sponsons
+DisplayName = 20mm Oerlikon (twin Mk V)
+Type = MachineGun2
+Power = 130
+Acceleration = 41.75
+Gravity = -0.0245
+Accuracy = 1.6
+Delay = 1
+Round = 120
+ReloadTime = 140
+MaxAmmo = 480
+SuppliedNum = 120
+Item = 1, iron_ingot
+Item = 1, gunpowder
+Explosion = 0.8
+ExplosionBlock = 0
+TimeFuse = 80
+BulletColor = 255, 255, 230, 140
+ModelBullet = shell_20mm
+Sound = ww2_cannon_20mm
+SoundVolume = 2.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.08
+AddMuzzleFlash = 0.6, 0.25, 1, 200, 254, 219, 184

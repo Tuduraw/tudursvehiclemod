@@ -1,0 +1,22 @@
+; second Type 92 firing aft under the tail
+DisplayName = Type 92 7.7mm (ventral tunnel)
+Type = MachineGun2
+Power = 20
+Acceleration = 37.25
+Gravity = -0.0245
+Accuracy = 2.0
+Delay = 2
+Round = 291
+ReloadTime = 320
+MaxAmmo = 291
+SuppliedNum = 291
+Item = 1, iron_ingot
+Item = 1, gunpowder
+TimeFuse = 80
+BulletColor = 255, 255, 230, 140
+ModelBullet = shell_small
+Sound = ww2_mg_light
+SoundVolume = 2.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.08
+AddMuzzleFlash = 0.6, 0.25, 1, 200, 254, 219, 184

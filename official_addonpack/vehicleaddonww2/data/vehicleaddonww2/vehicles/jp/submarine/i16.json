@@ -1,0 +1,397 @@
+{
+  "entity_type": "tudursvehiclemod:submarine",
+  "model": "vehicleaddonww2:models/obj/jp/submarine/i16.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/jp/submarine/i16.png",
+  "display_name": "JP) Submarine I-16",
+  "scale": 1.0,
+  "width": 9.1,
+  "height": 11.0,
+  "max_speed": 0.62,
+  "dive_max_speed": 0.207,
+  "acceleration": 0.0055,
+  "turn_speed": 0.32,
+  "step_height": 0.0,
+  "gravity": -0.04,
+  "reverse_throttle": -0.25,
+  "weight_type": "tank",
+  "throttle_up_down": 0.6,
+  "throttle_switch_hold_ticks": 40,
+  "engine_sound": "ww2_ship_diesel",
+  "engine_sound_volume": 2.8,
+  "max_health": 150000.0,
+  "armor_damage_factor": 0.8,
+  "armor_min_damage": 17.0,
+  "armor_max_damage": 150000.0,
+  "damage_factor": 0.3,
+  "max_fuel": 12000.0,
+  "fuel_consumption": 0.8,
+  "inventory_size": 18,
+  "submerged_damage_height": 200.0,
+  "wake_trail_duration_ticks": 300,
+  "hud": "ww2_ship_hud",
+  "passenger_display": {
+    "hide_entity": false
+  },
+  "seats": [
+    {
+      "name": "captain",
+      "offset_x": -0.55,
+      "offset_y": 5.878,
+      "offset_z": 1.05,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 8.3,
+          "z": 1.35
+        },
+        {
+          "x": 0.0,
+          "y": 22.0,
+          "z": -80.0,
+          "force_camera": true,
+          "fixed_pitch": 12.0
+        }
+      ]
+    },
+    {
+      "name": "gun_captain",
+      "offset_x": 0.9,
+      "offset_y": 2.664,
+      "offset_z": 8.6,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 5.499,
+          "z": 8.1
+        }
+      ]
+    },
+    {
+      "name": "aa_gunner",
+      "offset_x": 0.0,
+      "offset_y": 4.678,
+      "offset_z": -5.5,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 7.2,
+          "z": -5.3
+        }
+      ]
+    },
+    {
+      "name": "torpedo_officer",
+      "offset_x": 0.45,
+      "offset_y": 5.878,
+      "offset_z": 1.15,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 8.3,
+          "z": 0.75
+        },
+        {
+          "x": 0.0,
+          "y": 22.0,
+          "z": -80.0,
+          "force_camera": true,
+          "fixed_pitch": 12.0
+        }
+      ]
+    },
+    {
+      "name": "midget_officer",
+      "offset_x": 1.2,
+      "offset_y": 2.551,
+      "offset_z": -10.5,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 6.2,
+          "z": -9.0
+        },
+        {
+          "x": 0.0,
+          "y": 18.0,
+          "z": 30.0,
+          "force_camera": true,
+          "fixed_yaw": 180.0,
+          "fixed_pitch": 14.0
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 3,
+      "weapon_name": "i16_type95",
+      "projectile_item": "minecraft:iron_block",
+      "offsets": [
+        {
+          "x": 0.5,
+          "y": -1.0,
+          "z": 51.9
+        },
+        {
+          "x": -0.5,
+          "y": -1.0,
+          "z": 51.9
+        },
+        {
+          "x": 0.5,
+          "y": -2.1,
+          "z": 50.7
+        },
+        {
+          "x": -0.5,
+          "y": -2.1,
+          "z": 50.7
+        },
+        {
+          "x": 1.1,
+          "y": -1.55,
+          "z": 50.2
+        },
+        {
+          "x": -1.1,
+          "y": -1.55,
+          "z": 50.2
+        },
+        {
+          "x": 1.0,
+          "y": -2.6,
+          "z": 49.6
+        },
+        {
+          "x": -1.0,
+          "y": -2.6,
+          "z": 49.6
+        }
+      ],
+      "pilot_usable": true
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "i16_14cm",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 4.549,
+          "z": 15.55,
+          "linked_part": "$gun_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -35.0,
+        "max_pitch": 8.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 14.0
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_twin",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.17,
+          "y": 6.181,
+          "z": -8.65,
+          "linked_part": "$aa1_gun"
+        },
+        {
+          "x": -0.17,
+          "y": 6.181,
+          "z": -8.65,
+          "linked_part": "$aa1_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 45.0
+    },
+    {
+      "seat_index": 4,
+      "weapon_name": "i16_kohyoteki",
+      "projectile_item": "minecraft:iron_block",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 0.3,
+          "z": -58.65,
+          "mount_yaw": 180.0
+        }
+      ],
+      "pilot_usable": true
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$gun",
+      "seat_index": 1,
+      "weapon_name": "i16_14cm",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 3.9495,
+      "pivot_z": 10.0,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -35.0,
+        "max_pitch": 8.0
+      }
+    },
+    {
+      "part": "$gun_gun",
+      "seat_index": 1,
+      "weapon_name": "i16_14cm",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 4.5495,
+      "pivot_z": 10.1,
+      "recoil_distance": 0.35,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 3.9495,
+        "parent_pivot_z": 10.0
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -35.0,
+        "max_pitch": 8.0
+      }
+    },
+    {
+      "part": "$aa1",
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_twin",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 5.95,
+      "pivot_z": -6.4,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$aa1_gun",
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_twin",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 6.181,
+      "pivot_z": -6.4,
+      "recoil_distance": 0.05,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 5.95,
+        "parent_pivot_z": -6.4
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -85.0,
+        "max_pitch": 10.0
+      }
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$hatch_bridge",
+      "pivot_x": 0.5,
+      "pivot_y": 6.58,
+      "pivot_z": 3.0,
+      "mode": "rotate",
+      "axis_x": 1,
+      "axis_y": 0,
+      "axis_z": 0,
+      "max_angle": 90.0,
+      "trigger": "key",
+      "speed": 3.0
+    },
+    {
+      "part": "$hatch_periscope",
+      "pivot_x": 0.0,
+      "pivot_y": 9.4,
+      "pivot_z": 0.3,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 3.5,
+      "offset_z": 0.0,
+      "trigger": "key",
+      "speed": 2.0
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$screw_l",
+      "pivot_x": 1.7124,
+      "pivot_y": -2.7747,
+      "pivot_z": -47.2594,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 18.0
+    },
+    {
+      "part": "$screw_r",
+      "pivot_x": -1.7124,
+      "pivot_y": -2.7747,
+      "pivot_z": -47.2594,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": -18.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "JP) Submarine I-16",
+    "tier": 3
+  },
+  "ammo_parts": [
+    {
+      "part": "$midget",
+      "weapon_name": "i16_kohyoteki",
+      "slot_index": 0
+    }
+  ]
+}

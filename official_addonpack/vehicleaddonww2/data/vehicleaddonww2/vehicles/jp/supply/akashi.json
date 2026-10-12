@@ -1,0 +1,467 @@
+{
+  "entity_type": "tudursvehiclemod:ship",
+  "model": "vehicleaddonww2:models/obj/jp/supply/akashi.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/jp/supply/akashi.png",
+  "display_name": "JP) Repair Ship Akashi",
+  "scale": 1.0,
+  "width": 20.6,
+  "height": 34.0,
+  "max_speed": 0.49,
+  "acceleration": 0.004,
+  "turn_speed": 0.45,
+  "step_height": 0.0,
+  "gravity": -0.04,
+  "reverse_throttle": -0.25,
+  "weight_type": "tank",
+  "throttle_up_down": 0.6,
+  "throttle_switch_hold_ticks": 80,
+  "engine_sound": "ww2_ship_turbine",
+  "engine_sound_volume": 3.0,
+  "max_health": 380000.0,
+  "armor_damage_factor": 0.8,
+  "armor_min_damage": 71.0,
+  "armor_max_damage": 380000.0,
+  "damage_factor": 0.2,
+  "max_fuel": 20000.0,
+  "fuel_consumption": 1.0,
+  "inventory_size": 54,
+  "submerged_damage_height": 7.0,
+  "fuel_supply_range": 35.0,
+  "ammo_supply_range": 35.0,
+  "health_supply_range": 90.0,
+  "wake_trail_duration_ticks": 400,
+  "hud": "ww2_ship_hud",
+  "passenger_display": {
+    "hide_entity": false
+  },
+  "runways": [
+    {
+      "width": 18.1,
+      "center_x": 0.0,
+      "height_y": 7.7,
+      "start_z": -47.0,
+      "end_z": 33.5
+    },
+    {
+      "width": 16.3,
+      "center_x": 0.0,
+      "height_y": 7.7,
+      "start_z": -61.5,
+      "end_z": -47.0
+    },
+    {
+      "width": 16.3,
+      "center_x": 0.0,
+      "height_y": 7.7,
+      "start_z": 33.5,
+      "end_z": 44.0
+    },
+    {
+      "width": 15.5,
+      "center_x": 0.0,
+      "height_y": 7.7,
+      "start_z": 41.0,
+      "end_z": 47.0
+    },
+    {
+      "width": 14.5,
+      "center_x": 0.0,
+      "height_y": 7.7,
+      "start_z": -66.75,
+      "end_z": -60.75
+    },
+    {
+      "width": 13.5,
+      "center_x": 0.0,
+      "height_y": 8.2,
+      "start_z": 46.75,
+      "end_z": 52.75
+    },
+    {
+      "width": 12.9,
+      "center_x": 0.0,
+      "height_y": 7.7,
+      "start_z": -70.0,
+      "end_z": -64.0
+    },
+    {
+      "width": 12.7,
+      "center_x": 0.0,
+      "height_y": 8.2,
+      "start_z": 49.5,
+      "end_z": 55.5
+    },
+    {
+      "width": 11.5,
+      "center_x": 0.0,
+      "height_y": 7.7,
+      "start_z": -72.75,
+      "end_z": -66.75
+    },
+    {
+      "width": 11.3,
+      "center_x": 0.0,
+      "height_y": 8.2,
+      "start_z": 53.25,
+      "end_z": 59.25
+    },
+    {
+      "width": 10.5,
+      "center_x": 0.0,
+      "height_y": 8.2,
+      "start_z": 55.5,
+      "end_z": 61.5
+    },
+    {
+      "width": 10.3,
+      "center_x": 0.0,
+      "height_y": 7.7,
+      "start_z": -74.25,
+      "end_z": -68.25
+    },
+    {
+      "width": 8.3,
+      "center_x": 0.0,
+      "height_y": 7.7,
+      "start_z": -76.25,
+      "end_z": -70.25
+    },
+    {
+      "width": 8.1,
+      "center_x": 0.0,
+      "height_y": 8.7,
+      "start_z": 61.5,
+      "end_z": 67.5
+    },
+    {
+      "width": 8.1,
+      "center_x": 0.0,
+      "height_y": 8.7,
+      "start_z": 61.5,
+      "end_z": 67.5
+    },
+    {
+      "width": 6.9,
+      "center_x": 0.0,
+      "height_y": 8.7,
+      "start_z": 64.0,
+      "end_z": 70.0
+    },
+    {
+      "width": 5.5,
+      "center_x": 0.0,
+      "height_y": 9.2,
+      "start_z": 71.25,
+      "end_z": 73.25
+    },
+    {
+      "width": 4.5,
+      "center_x": 0.0,
+      "height_y": 9.2,
+      "start_z": 73.25,
+      "end_z": 75.5
+    },
+    {
+      "width": 5.9,
+      "center_x": 0.0,
+      "height_y": 9.2,
+      "start_z": 69.75,
+      "end_z": 71.25
+    },
+    {
+      "width": 3.9,
+      "center_x": 0.0,
+      "height_y": 9.7,
+      "start_z": 75.5,
+      "end_z": 76.5
+    },
+    {
+      "width": 3.1,
+      "center_x": 0.0,
+      "height_y": 9.7,
+      "start_z": 76.5,
+      "end_z": 77.5
+    }
+  ],
+  "seats": [
+    {
+      "name": "captain",
+      "offset_x": 0.0,
+      "offset_y": 16.778,
+      "offset_z": 45.0,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 19.2,
+          "z": 45.4
+        },
+        {
+          "x": 0.0,
+          "y": 45.0,
+          "z": -140.0,
+          "force_camera": true,
+          "fixed_pitch": 15.0
+        }
+      ]
+    },
+    {
+      "name": "gunnery_officer",
+      "offset_x": 1.6,
+      "offset_y": 19.128,
+      "offset_z": 41.0,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 22.6,
+          "z": 42.0
+        },
+        {
+          "x": 0.0,
+          "y": 36.0,
+          "z": -60.0,
+          "force_camera": true
+        }
+      ]
+    },
+    {
+      "name": "aa_gunner",
+      "offset_x": 0.0,
+      "offset_y": 9.678,
+      "offset_z": 34.5,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 12.4,
+          "z": 34.0
+        }
+      ]
+    },
+    {
+      "name": "repair_officer",
+      "offset_x": -3.4,
+      "offset_y": 7.186,
+      "offset_z": 18.2,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": -3.0,
+          "y": 9.7,
+          "z": 18.0
+        },
+        {
+          "x": 0.0,
+          "y": 40.0,
+          "z": 0.0,
+          "force_camera": true,
+          "fixed_pitch": 60.0
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 1,
+      "weapon_name": "akashi_127mm_fwd",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": -0.45,
+          "y": 10.23,
+          "z": 62.3,
+          "linked_part": "$hf_gun"
+        },
+        {
+          "x": 0.45,
+          "y": 10.23,
+          "z": 62.3,
+          "linked_part": "$hf_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 16.0
+    },
+    {
+      "seat_index": 1,
+      "weapon_name": "akashi_127mm_aft",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.45,
+          "y": 9.795,
+          "z": -61.3,
+          "linked_part": "$ha_gun"
+        },
+        {
+          "x": -0.45,
+          "y": 9.795,
+          "z": -61.3,
+          "linked_part": "$ha_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 16.0
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_25mm_twin",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 6.05,
+          "y": 11.55,
+          "z": 31.0
+        },
+        {
+          "x": -6.05,
+          "y": 11.55,
+          "z": 31.0
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0,
+        "min_yaw": -180,
+        "max_yaw": 180,
+        "min_pitch": -85,
+        "max_pitch": 10
+      },
+      "pilot_usable": true
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$hf",
+      "seat_index": 1,
+      "weapon_name": "akashi_127mm_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 9.03,
+      "pivot_z": 56.0,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$hf_gun",
+      "seat_index": 1,
+      "weapon_name": "akashi_127mm_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 10.23,
+      "pivot_z": 56.8,
+      "recoil_distance": 0.4,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 9.03,
+        "parent_pivot_z": 56.0
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$ha",
+      "seat_index": 1,
+      "weapon_name": "akashi_127mm_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 8.595,
+      "pivot_z": -55.0,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$ha_gun",
+      "seat_index": 1,
+      "weapon_name": "akashi_127mm_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 9.795,
+      "pivot_z": -55.8,
+      "recoil_distance": 0.4,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 8.595,
+        "parent_pivot_z": -55.0
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      }
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$screw_l",
+      "pivot_x": 3.6,
+      "pivot_y": -4.76,
+      "pivot_z": -72.5,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 14.0
+    },
+    {
+      "part": "$screw_r",
+      "pivot_x": -3.6,
+      "pivot_y": -4.76,
+      "pivot_z": -72.5,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": -14.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "JP) Repair Ship Akashi",
+    "tier": 4
+  }
+}

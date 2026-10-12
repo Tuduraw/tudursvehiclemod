@@ -1,0 +1,345 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/jp/bomber/b6n2.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/jp/bomber/b6n2.png",
+  "display_name": "JP) B6N2 Tenzan",
+  "scale": 1.0,
+  "width": 14.89,
+  "height": 3.8,
+  "max_speed": 3.07,
+  "acceleration": 0.038,
+  "turn_speed": 0.194,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 11.26,
+  "stall_speed": 0.21,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_radial_big",
+  "engine_sound_volume": 3.3,
+  "max_health": 650.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 1100.0,
+  "fuel_consumption": 0.75,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 2.072,
+      "offset_z": -0.55,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.24,
+          "z": -0.5
+        },
+        {
+          "x": 0.0,
+          "y": 5.0,
+          "z": -16.0,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    },
+    {
+      "name": "observer",
+      "offset_x": 0.0,
+      "offset_y": 2.052,
+      "offset_z": -1.7,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.22,
+          "z": -1.65
+        }
+      ],
+      "enable_parachuting": true
+    },
+    {
+      "name": "gunner",
+      "offset_x": 0.0,
+      "offset_y": 2.012,
+      "offset_z": -2.85,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.18,
+          "z": -2.8
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "b6n_type91",
+      "projectile_item": "minecraft:tnt",
+      "offsets": [
+        {
+          "x": -0.3,
+          "y": 1.23,
+          "z": -1.035,
+          "linked_part": "$torpedo"
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "b6n_800kg",
+      "projectile_item": "minecraft:tnt",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 1.2,
+          "z": -0.8
+        }
+      ]
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_type92",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 3.3,
+          "z": -4.0,
+          "linked_part": "$rear_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -70.0,
+        "max_yaw": 70.0,
+        "min_pitch": -55.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "b6n_ventral",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 1.72,
+          "z": -4.9,
+          "linked_part": "$ventral_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -25.0,
+        "max_yaw": 25.0,
+        "min_pitch": -5.0,
+        "max_pitch": 40.0
+      }
+    }
+  ],
+  "ammo_parts": [
+    {
+      "part": "$torpedo",
+      "weapon_name": "b6n_type91",
+      "slot_index": 0,
+      "display_penalty": "12, 8"
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 0.0,
+      "pivot_y": 2.3,
+      "pivot_z": 2.57,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 60.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 2.55,
+      "pivot_z": -7.4,
+      "axis_x": -0.0,
+      "axis_y": -0.97857,
+      "axis_z": -0.20592,
+      "max_angle": 25.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$wing_fold_l",
+      "pivot_x": 3.05,
+      "pivot_y": 2.0837,
+      "pivot_z": -0.9492,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.03092,
+      "axis_z": 0.99952,
+      "max_angle": 100.0,
+      "trigger": "wing_fold",
+      "speed": 1.1
+    },
+    {
+      "part": "$wing_fold_r",
+      "pivot_x": -3.05,
+      "pivot_y": 2.0837,
+      "pivot_z": -0.9492,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": -0.03092,
+      "axis_z": -0.99952,
+      "max_angle": 100.0,
+      "trigger": "wing_fold",
+      "speed": 1.1
+    },
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.65,
+      "pivot_y": 1.6402,
+      "pivot_z": -2.0643,
+      "mode": "rotate",
+      "axis_x": -0.98421,
+      "axis_y": -0.12197,
+      "axis_z": -0.12824,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -2.98,
+      "pivot_y": 1.9289,
+      "pivot_z": -1.7607,
+      "mode": "rotate",
+      "axis_x": -0.98421,
+      "axis_y": 0.12197,
+      "axis_z": 0.12824,
+      "max_angle": 40.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 3.016,
+      "pivot_z": -0.5633,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.02,
+      "offset_z": -0.55,
+      "trigger": "key",
+      "speed": 6.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 2.2,
+      "pivot_y": 1.98,
+      "pivot_z": 0.04,
+      "mode": "rotate",
+      "axis_x": 0.11207,
+      "axis_y": 0.02547,
+      "axis_z": -0.99337,
+      "max_angle": 81.358,
+      "trigger": "landing_gear",
+      "speed": 3.5
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -2.2,
+      "pivot_y": 1.98,
+      "pivot_z": 0.04,
+      "mode": "rotate",
+      "axis_x": 0.11207,
+      "axis_y": -0.02547,
+      "axis_z": 0.99337,
+      "max_angle": 81.358,
+      "trigger": "landing_gear",
+      "speed": 3.5
+    },
+    {
+      "part": "$hook",
+      "pivot_x": 0.0,
+      "pivot_y": 1.99,
+      "pivot_z": -6.45,
+      "mode": "rotate",
+      "axis_x": 1,
+      "axis_y": 0,
+      "axis_z": 0,
+      "max_angle": 39.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy_rear",
+      "pivot_x": 0.0,
+      "pivot_y": 2.9779,
+      "pivot_z": -2.6,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.01,
+      "offset_z": 0.4,
+      "trigger": "key",
+      "speed": 6.0
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$rear_gun",
+      "seat_index": 2,
+      "weapon_name": "ww2_jp_type92",
+      "pilot_fallback": false,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 3.25,
+      "pivot_z": -3.25,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -70.0,
+        "max_yaw": 70.0,
+        "min_pitch": -55.0,
+        "max_pitch": 10.0
+      }
+    },
+    {
+      "part": "$ventral_gun",
+      "seat_index": 2,
+      "weapon_name": "b6n_ventral",
+      "pilot_fallback": false,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 1.8,
+      "pivot_z": -4.35,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -25.0,
+        "max_yaw": 25.0,
+        "min_pitch": -5.0,
+        "max_pitch": 40.0
+      }
+    }
+  ],
+  "spawn_item": {
+    "display_name": "JP) B6N2 Tenzan",
+    "tier": 3
+  }
+}

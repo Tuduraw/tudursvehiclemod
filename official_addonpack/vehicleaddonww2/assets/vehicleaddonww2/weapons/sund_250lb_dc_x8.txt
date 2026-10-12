@@ -1,0 +1,19 @@
+; two bomb-room racks, run out under the wing roots while selected
+DisplayName = 250 lb Mk VIII Depth Charge x8
+Type = Depth
+Power = 33000
+Gravity = -0.04
+GravityInWater = 0.06
+Delay = 20
+Round = 8
+ReloadTime = 1800
+MaxAmmo = 8
+SuppliedNum = 8
+Item = 3, iron_ingot
+Item = 3, gunpowder
+Explosion = 2
+ExplosionInWater = 6.5
+ExplosionBlock = 1
+ModelBullet = depthcharge
+Sound = ww2_bomb_release
+SoundVolume = 1.5

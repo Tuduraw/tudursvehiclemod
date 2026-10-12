@@ -1,0 +1,27 @@
+; Surcouf's Besson MB.411 (the pack's mb411, one carried): assembled on deck and swung out onto the water by the crane - it appears on the water off the port side abreast of the hangar, takes off, makes a camera pass over the aimed point, then alights alongside and is hoisted back aboard
+DisplayName = Launch MB.411 (swung out onto the water)
+Type = Carrier
+CarrierAircraft = mb411
+CarrierWeaponIndex = 0
+CarrierAccuracy = 3.0
+CarrierTimeout = 600
+CarrierStuckTimeout = 120
+CarrierYawOffset = 0
+CarrierLaunchWaypoint = 0,3,30,90,-,-,77
+CarrierLaunchWaypoint = 0,25,150,80
+CarrierWaypoint = 0,70,-900,75,false
+CarrierWaypoint = 0,70,-250,75,false
+CarrierWaypoint = 0,80,-60,60,true
+CarrierWaypoint = 0,80,60,60,true
+CarrierWaypoint = 0,70,250,75,false
+CarrierLandingWaypoint = 6,35,-220,55,-,-,-
+CarrierLandingWaypoint = 6,3,-60,40,-,-,-
+CarrierLandingToAmmoRadius = 10.5
+Delay = 40
+Round = 1
+ReloadTime = 1800
+MaxAmmo = 1
+SuppliedNum = 1
+Item = 12, iron_ingot
+Item = 4, redstone
+DisplayMortarDistance = true

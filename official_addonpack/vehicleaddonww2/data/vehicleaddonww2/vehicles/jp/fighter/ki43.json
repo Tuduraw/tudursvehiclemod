@@ -1,0 +1,201 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/jp/fighter/ki43.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/jp/fighter/ki43.png",
+  "display_name": "JP) Ki-43-II Hayabusa",
+  "scale": 1.0,
+  "width": 10.84,
+  "height": 3.27,
+  "max_speed": 3.52,
+  "acceleration": 0.046,
+  "turn_speed": 0.347,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 11.17,
+  "stall_speed": 0.2,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_radial_small",
+  "engine_sound_volume": 3.0,
+  "max_health": 360.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 800.0,
+  "fuel_consumption": 0.5,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.372,
+      "offset_z": -1.3,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.54,
+          "z": -1.25
+        },
+        {
+          "x": 0.0,
+          "y": 4.0,
+          "z": -13.0,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2_jp_ho103_x2",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.225,
+          "y": 2.4,
+          "z": 1.26
+        },
+        {
+          "x": -0.225,
+          "y": 2.4,
+          "z": 1.26
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "ki43_250kg",
+      "projectile_item": "minecraft:tnt",
+      "offsets": [
+        {
+          "x": 2.25,
+          "y": 1.05,
+          "z": -0.55,
+          "linked_part": "$bomb_l"
+        },
+        {
+          "x": -2.25,
+          "y": 1.05,
+          "z": -0.55,
+          "linked_part": "$bomb_r"
+        }
+      ]
+    }
+  ],
+  "ammo_parts": [
+    {
+      "part": "$bomb_l",
+      "weapon_name": "ki43_250kg",
+      "slot_index": 1,
+      "display_penalty": "4, 3"
+    },
+    {
+      "part": "$bomb_r",
+      "weapon_name": "ki43_250kg",
+      "slot_index": 0,
+      "display_penalty": "4, 3"
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 0.0,
+      "pivot_y": 1.89,
+      "pivot_z": 1.29,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 66.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 1.66,
+      "pivot_z": -6.5299,
+      "axis_x": -0.0,
+      "axis_y": -0.99977,
+      "axis_z": 0.02157,
+      "max_angle": 25.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.62,
+      "pivot_y": 1.4032,
+      "pivot_z": -1.8357,
+      "mode": "rotate",
+      "axis_x": -0.97554,
+      "axis_y": -0.10569,
+      "axis_z": -0.19277,
+      "max_angle": 32.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -2.5,
+      "pivot_y": 1.6069,
+      "pivot_z": -1.4642,
+      "mode": "rotate",
+      "axis_x": -0.97554,
+      "axis_y": 0.10569,
+      "axis_z": 0.19277,
+      "max_angle": 32.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 2.4218,
+      "pivot_z": -1.3033,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.03,
+      "offset_z": -0.62,
+      "trigger": "key",
+      "speed": 6.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 1.72,
+      "pivot_y": 1.56,
+      "pivot_z": -0.2,
+      "mode": "rotate",
+      "axis_x": 0.17857,
+      "axis_y": -0.15306,
+      "axis_z": -0.97195,
+      "max_angle": 88.608,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -1.72,
+      "pivot_y": 1.56,
+      "pivot_z": -0.2,
+      "mode": "rotate",
+      "axis_x": 0.17857,
+      "axis_y": 0.15306,
+      "axis_z": 0.97195,
+      "max_angle": 88.608,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "JP) Ki-43-II Hayabusa",
+    "tier": 2
+  }
+}

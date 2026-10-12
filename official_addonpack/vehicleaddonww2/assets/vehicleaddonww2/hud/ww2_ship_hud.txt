@@ -1,0 +1,38 @@
+; ww2_ship_hud - bridge instruments: speed in knots, bearing of the selected mount.
+Color = 200, 255, 255, 255
+DrawLine = -40, 0, -8, 0
+DrawLine = 8, 0, 40, 0
+DrawLine = 0, -30, 0, -8
+DrawLine = 0, 8, 0, 30
+Color = 255, 230, 225, 190
+DrawGraduationYaw = yaw, 0, -104
+DrawString = -160, -40, "SPD %.1f kt", speed_kbh / 1.852
+DrawString = -160, -30, "THR %.0f%%", throttle * 100
+DrawLine = -60, 100, 60, 100
+DrawRect = gun_yaw / 3 - 1, 95, 3, 10
+DrawCenteredString = 0, 108, "BRG %.0f", gun_yaw
+
+; --- status block (bottom right) ---
+Color = 255, 230, 225, 190
+DrawString = 92, 52, "HP   %.0f%%", hp_per
+DrawRect = 92, 62, 60, 3
+Color = 255, 200, 60, 40
+DrawRect = 92, 62, hp_rto * 60, 3
+Color = 255, 230, 225, 190
+DrawString = 92, 68, "FUEL %.0f%%", fuel * 100
+If = low_fuel == 1
+  Color = 255, 255, 90, 50
+  DrawCenteredString = 0, 58, "LOW FUEL",
+  Color = 255, 230, 225, 190
+EndIf
+; --- weapon block (bottom left) ---
+DrawString = -160, 52, "%s", wpn_name
+DrawString = -160, 62, "%d / %d", wpn_ammo, wpn_rm_ammo
+If = reloading == 1
+  Color = 255, 255, 170, 60
+  DrawString = -160, 72, "RELOAD %.1f s", reload_time / 20
+  Color = 255, 230, 225, 190
+EndIf
+If = has_mortar_distance == 1
+  DrawString = -160, 82, "RANGE %s", mortar_distance_str
+EndIf

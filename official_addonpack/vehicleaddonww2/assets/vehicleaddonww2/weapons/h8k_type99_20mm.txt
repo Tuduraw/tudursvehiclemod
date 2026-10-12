@@ -1,0 +1,24 @@
+; bow / dorsal turrets, side blisters and tail - drum-fed
+DisplayName = Type 99 Mk 1 20mm Cannon (flexible)
+Type = MachineGun2
+Power = 130
+Acceleration = 30.0
+Gravity = -0.0245
+Accuracy = 2.0
+Delay = 3
+Round = 240
+ReloadTime = 400
+MaxAmmo = 240
+SuppliedNum = 240
+Item = 1, iron_ingot
+Item = 1, gunpowder
+Explosion = 1.0
+ExplosionBlock = 0
+TimeFuse = 80
+BulletColor = 255, 255, 200, 90
+ModelBullet = shell_20mm
+Sound = ww2_cannon_20mm
+SoundVolume = 2.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.08
+AddMuzzleFlash = 0.6, 0.25, 1, 200, 254, 219, 184

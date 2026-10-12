@@ -1,0 +1,35 @@
+; ww2p_gunner_hud - flexible gun / turret ring sight.
+Color = 210, 255, 210, 120
+DrawLine = 26.0, 0.0, 25.3, 5.8, 23.4, 11.3, 20.3, 16.2, 16.2, 20.3, 11.3, 23.4, 5.8, 25.3, 0.0, 26.0, -5.8, 25.3, -11.3, 23.4, -16.2, 20.3, -20.3, 16.2, -23.4, 11.3, -25.3, 5.8, -26.0, 0.0, -25.3, -5.8, -23.4, -11.3, -20.3, -16.2, -16.2, -20.3, -11.3, -23.4, -5.8, -25.3, -0.0, -26.0, 5.8, -25.3, 11.3, -23.4, 16.2, -20.3, 20.3, -16.2, 23.4, -11.3, 25.3, -5.8, 26.0, -0.0
+DrawLine = 13.0, 0.0, 12.4, 4.0, 10.5, 7.6, 7.6, 10.5, 4.0, 12.4, 0.0, 13.0, -4.0, 12.4, -7.6, 10.5, -10.5, 7.6, -12.4, 4.0, -13.0, 0.0, -12.4, -4.0, -10.5, -7.6, -7.6, -10.5, -4.0, -12.4, -0.0, -13.0, 4.0, -12.4, 7.6, -10.5, 10.5, -7.6, 12.4, -4.0, 13.0, -0.0
+DrawLine = -32, 0, 32, 0
+DrawLine = 0, -32, 0, 32
+Color = 255, 230, 225, 190
+DrawLine = -60, 100, 60, 100
+DrawRect = gun_yaw / 3 - 1, 96, 2, 8
+DrawCenteredString = 0, 108, "BRG %.0f", gun_yaw
+
+; --- status block (bottom right) ---
+Color = 255, 230, 225, 190
+DrawString = 92, 52, "HP   %.0f%%", hp_per
+DrawRect = 92, 62, 60, 3
+Color = 255, 200, 60, 40
+DrawRect = 92, 62, hp_rto * 60, 3
+Color = 255, 230, 225, 190
+DrawString = 92, 68, "FUEL %.0f%%", fuel * 100
+If = low_fuel == 1
+  Color = 255, 255, 90, 50
+  DrawCenteredString = 0, 58, "LOW FUEL",
+  Color = 255, 230, 225, 190
+EndIf
+; --- weapon block (bottom left) ---
+DrawString = -160, 52, "%s", wpn_name
+DrawString = -160, 62, "%d / %d", wpn_ammo, wpn_rm_ammo
+If = reloading == 1
+  Color = 255, 255, 170, 60
+  DrawString = -160, 72, "RELOAD %.1f s", reload_time / 20
+  Color = 255, 230, 225, 190
+EndIf
+If = has_mortar_distance == 1
+  DrawString = -160, 82, "RANGE %s", mortar_distance_str
+EndIf

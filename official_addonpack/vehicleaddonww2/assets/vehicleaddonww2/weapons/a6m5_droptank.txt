@@ -1,0 +1,8 @@
+; 320L Drop Tank
+DisplayName = 320L Drop Tank
+Type = DropTank
+Round = 1
+MaxAmmo = 1
+FuelPerAmmo = 340.0
+Gravity = -0.05
+ModelBullet = droptank

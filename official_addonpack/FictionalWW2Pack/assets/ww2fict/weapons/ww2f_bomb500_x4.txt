@@ -1,0 +1,18 @@
+; 4 x 500kg bombs (heavy bombers). Selecting it opens the bomb bay doors.
+DisplayName = 500kg Bomb x4
+Type = Bomb
+Power = 110
+Gravity = -0.05
+Round = 4
+ReloadTime = 2000
+Delay = 10
+MaxAmmo = 12
+SuppliedNum = 4
+Item = 12, iron_ingot
+Item = 10, gunpowder
+Explosion = 7
+ExplosionBlock = 7
+ModelBullet = bomb500
+DisplayMortarDistance = true
+Sound = ww2f_release
+SoundVolume = 1.2

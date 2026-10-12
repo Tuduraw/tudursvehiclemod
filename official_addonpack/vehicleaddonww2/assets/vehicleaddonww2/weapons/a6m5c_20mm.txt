@@ -1,0 +1,24 @@
+; A6M5c belt-fed wing cannon, 125 rpg
+DisplayName = Type 99-2 Mk4 20mm Cannon x2
+Type = MachineGun1
+Power = 130
+Acceleration = 37.5
+Gravity = -0.0245
+Accuracy = 1.8
+Delay = 3
+Round = 250
+ReloadTime = 440
+MaxAmmo = 250
+SuppliedNum = 250
+Item = 1, iron_ingot
+Item = 1, gunpowder
+Explosion = 1.0
+ExplosionBlock = 0
+TimeFuse = 80
+BulletColor = 255, 255, 200, 90
+ModelBullet = shell_20mm
+Sound = ww2_cannon_20mm
+SoundVolume = 2.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.08
+AddMuzzleFlash = 0.6, 0.25, 1, 200, 254, 219, 184

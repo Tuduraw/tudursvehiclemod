@@ -1,0 +1,23 @@
+; aerial torpedo - release level and low over water
+DisplayName = Aerial Torpedo
+Type = Torpedo
+Power = 150
+Acceleration = 1.2
+Gravity = -0.04
+GravityInWater = 0.0
+AccelerationInWater = 2.0
+VelocityInWater = 0.25
+TargetDepth = 2.0
+GuidedTorpedo = false
+Round = 1
+ReloadTime = 1600
+Delay = 20
+MaxAmmo = 2
+SuppliedNum = 1
+Item = 10, iron_ingot
+Item = 8, gunpowder
+Explosion = 5
+ExplosionInWater = 9
+ModelBullet = torpedo
+Sound = ww2f_release
+SoundVolume = 1.0

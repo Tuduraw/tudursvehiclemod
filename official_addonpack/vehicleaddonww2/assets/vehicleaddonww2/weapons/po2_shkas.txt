@@ -1,0 +1,22 @@
+; rear cockpit ring mount
+DisplayName = ShKAS 7.62mm (flexible)
+Type = MachineGun2
+Power = 20
+Acceleration = 41.25
+Gravity = -0.0245
+Accuracy = 1.9
+Delay = 1
+Round = 750
+ReloadTime = 300
+MaxAmmo = 750
+SuppliedNum = 750
+Item = 1, iron_ingot
+Item = 1, gunpowder
+TimeFuse = 80
+BulletColor = 255, 255, 230, 140
+ModelBullet = shell_small
+Sound = ww2_mg_light
+SoundVolume = 2.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.08
+AddMuzzleFlash = 0.6, 0.25, 1, 200, 254, 219, 184

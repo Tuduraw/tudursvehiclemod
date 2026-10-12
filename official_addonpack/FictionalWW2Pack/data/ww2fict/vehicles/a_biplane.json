@@ -1,0 +1,139 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "ww2fict:models/obj/a_biplane.obj",
+  "texture": "ww2fict:textures/vehicle/a_biplane.png",
+  "display_name": "AB-1 Kestrel",
+  "scale": 1.0,
+  "width": 3.0,
+  "height": 3.2,
+  "max_speed": 1.1,
+  "acceleration": 0.04,
+  "turn_speed": 4.0,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 11.5,
+  "reverse_throttle": 0.0,
+  "stall_speed": 0.28,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2f_engine",
+  "engine_sound_volume": 3.0,
+  "max_health": 50.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 500.0,
+  "fuel_consumption": 0.4,
+  "inventory_size": 0,
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.85,
+    "entity_height": 0.85
+  },
+  "force_bounding_box": false,
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.45,
+      "offset_z": -1.392,
+      "driver": true,
+      "enable_parachuting": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.35,
+          "z": -1.365
+        },
+        {
+          "x": 0.0,
+          "y": 4.84,
+          "z": -16.12,
+          "force_camera": true
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2f_mg_light",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.14,
+          "y": 2.18,
+          "z": 1.57
+        },
+        {
+          "x": -0.14,
+          "y": 2.18,
+          "z": 1.57
+        }
+      ]
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller",
+      "pivot_x": 0.0,
+      "pivot_y": 1.6,
+      "pivot_z": 2.12,
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "speed": 45.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$aileron_l",
+      "pivot_x": 2.6,
+      "pivot_y": 3.0269,
+      "pivot_z": -0.4695,
+      "axis_x": 1.0,
+      "axis_y": -0.0004,
+      "axis_z": 0.0017,
+      "max_angle": 20.0
+    },
+    {
+      "part": "$aileron_r",
+      "pivot_x": -2.6,
+      "pivot_y": 3.0269,
+      "pivot_z": -0.4695,
+      "axis_x": 1.0,
+      "axis_y": 0.0004,
+      "axis_z": -0.0017,
+      "max_angle": -20.0
+    },
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0048,
+      "pivot_y": 1.85,
+      "pivot_z": -5.0709,
+      "axis_x": -0.0018,
+      "axis_y": 0.9941,
+      "axis_z": -0.1084,
+      "max_angle": -25.0
+    }
+  ],
+  "wheel_parts": [
+    {
+      "part": "$wheel_l",
+      "pivot_x": 0.95,
+      "pivot_y": 0.38,
+      "pivot_z": -0.0
+    },
+    {
+      "part": "$wheel_r",
+      "pivot_x": -0.95,
+      "pivot_y": 0.38,
+      "pivot_z": -0.0
+    }
+  ],
+  "wheel_rotation_speed": 40.0,
+  "spawn_item": {
+    "display_name": "AB-1 Kestrel (Aurelia)",
+    "tier": 1
+  }
+}

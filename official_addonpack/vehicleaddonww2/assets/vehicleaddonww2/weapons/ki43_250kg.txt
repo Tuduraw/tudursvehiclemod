@@ -1,0 +1,18 @@
+; Ki-43-II underwing racks, one 250 kg bomb each
+DisplayName = Army Type 92 250kg Bomb
+Type = Bomb
+Power = 150000
+Gravity = -0.05
+Delay = 10
+Round = 2
+ReloadTime = 1000
+MaxAmmo = 2
+SuppliedNum = 2
+Item = 4, iron_ingot
+Item = 4, gunpowder
+Explosion = 5.0
+ExplosionBlock = 4
+ModelBullet = bomb_large
+Sound = ww2_bomb_release
+SoundVolume = 1.5
+DisplayMortarDistance = true

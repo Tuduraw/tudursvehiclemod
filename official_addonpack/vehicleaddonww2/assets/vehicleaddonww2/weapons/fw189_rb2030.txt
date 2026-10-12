@@ -1,0 +1,15 @@
+; Rb 20/30 or Rb 50/30 in the gondola floor; spots vehicles in the observer's line of sight (pilot can use it when flying alone)
+DisplayName = Rb 20/30 Reconnaissance Camera
+Type = TargetingPod
+Target = planes/helicopters/vehicles/players/monsters
+Length = 220
+Radius = 26
+MarkTime = 30
+Delay = 30
+Round = 30
+ReloadTime = 500
+MaxAmmo = 30
+SuppliedNum = 30
+Item = 1, redstone
+Sound = ww2_camera
+SoundVolume = 1.2

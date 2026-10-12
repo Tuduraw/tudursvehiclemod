@@ -1,0 +1,1649 @@
+{
+  "entity_type": "tudursvehiclemod:ship",
+  "model": "vehicleaddonww2:models/obj/uk/light_cruiser/belfast.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/uk/light_cruiser/belfast.png",
+  "display_name": "UK) Light Cruiser Belfast",
+  "scale": 1.0,
+  "width": 21.0,
+  "height": 40.0,
+  "max_speed": 0.78,
+  "acceleration": 0.0048,
+  "turn_speed": 0.56,
+  "step_height": 0.0,
+  "gravity": -0.04,
+  "reverse_throttle": -0.25,
+  "weight_type": "tank",
+  "throttle_up_down": 0.6,
+  "throttle_switch_hold_ticks": 90,
+  "engine_sound": "ww2_ship_turbine",
+  "engine_sound_volume": 3.5,
+  "max_health": 480000.0,
+  "armor_damage_factor": 0.55,
+  "armor_min_damage": 210.0,
+  "armor_max_damage": 480000.0,
+  "damage_factor": 0.14,
+  "max_fuel": 16000.0,
+  "fuel_consumption": 1.5,
+  "inventory_size": 36,
+  "submerged_damage_height": 6.0,
+  "wake_trail_duration_ticks": 450,
+  "hud": "ww2_ship_hud",
+  "passenger_display": {
+    "hide_entity": false
+  },
+  "runways": [
+    {
+      "width": 17.5,
+      "center_x": 0.0,
+      "height_y": 6.97,
+      "start_z": -55.38,
+      "end_z": 33.25
+    },
+    {
+      "width": 17.1,
+      "center_x": 0.0,
+      "height_y": 7.47,
+      "start_z": 33.25,
+      "end_z": 51.5
+    },
+    {
+      "width": 15.9,
+      "center_x": 0.0,
+      "height_y": 4.97,
+      "start_z": -66.5,
+      "end_z": -56.12
+    },
+    {
+      "width": 14.9,
+      "center_x": 0.0,
+      "height_y": 7.97,
+      "start_z": 53.5,
+      "end_z": 61.75
+    },
+    {
+      "width": 16.7,
+      "center_x": 0.0,
+      "height_y": 7.47,
+      "start_z": 47.5,
+      "end_z": 53.5
+    },
+    {
+      "width": 14.3,
+      "center_x": 0.0,
+      "height_y": 4.97,
+      "start_z": -73.0,
+      "end_z": -66.5
+    },
+    {
+      "width": 13.3,
+      "center_x": 0.0,
+      "height_y": 4.97,
+      "start_z": -76.0,
+      "end_z": -70.0
+    },
+    {
+      "width": 13.3,
+      "center_x": 0.0,
+      "height_y": 7.97,
+      "start_z": 61.5,
+      "end_z": 67.5
+    },
+    {
+      "width": 12.9,
+      "center_x": 0.0,
+      "height_y": 7.97,
+      "start_z": 63.0,
+      "end_z": 69.0
+    },
+    {
+      "width": 11.1,
+      "center_x": 0.0,
+      "height_y": 5.47,
+      "start_z": -82.0,
+      "end_z": -76.0
+    },
+    {
+      "width": 10.9,
+      "center_x": 0.0,
+      "height_y": 5.47,
+      "start_z": -82.75,
+      "end_z": -76.75
+    },
+    {
+      "width": 10.7,
+      "center_x": 0.0,
+      "height_y": 8.47,
+      "start_z": 69.0,
+      "end_z": 75.0
+    },
+    {
+      "width": 10.3,
+      "center_x": 0.0,
+      "height_y": 8.47,
+      "start_z": 70.5,
+      "end_z": 76.5
+    },
+    {
+      "width": 9.7,
+      "center_x": 0.0,
+      "height_y": 5.47,
+      "start_z": -85.5,
+      "end_z": -79.5
+    },
+    {
+      "width": 9.1,
+      "center_x": 0.0,
+      "height_y": 8.47,
+      "start_z": 73.75,
+      "end_z": 79.75
+    },
+    {
+      "width": 8.7,
+      "center_x": 0.0,
+      "height_y": 5.47,
+      "start_z": -87.5,
+      "end_z": -81.5
+    },
+    {
+      "width": 7.9,
+      "center_x": 0.0,
+      "height_y": 8.47,
+      "start_z": 76.5,
+      "end_z": 82.5
+    },
+    {
+      "width": 7.7,
+      "center_x": 0.0,
+      "height_y": 5.47,
+      "start_z": -88.75,
+      "end_z": -82.75
+    },
+    {
+      "width": 6.9,
+      "center_x": 0.0,
+      "height_y": 5.47,
+      "start_z": -89.75,
+      "end_z": -83.75
+    },
+    {
+      "width": 6.1,
+      "center_x": 0.0,
+      "height_y": 5.47,
+      "start_z": -90.75,
+      "end_z": -84.75
+    },
+    {
+      "width": 5.9,
+      "center_x": 0.0,
+      "height_y": 8.97,
+      "start_z": 82.5,
+      "end_z": 84.25
+    },
+    {
+      "width": 5.9,
+      "center_x": 0.0,
+      "height_y": 8.97,
+      "start_z": 84.25,
+      "end_z": 86.0
+    },
+    {
+      "width": 5.5,
+      "center_x": 0.0,
+      "height_y": 8.97,
+      "start_z": 86.0,
+      "end_z": 87.25
+    },
+    {
+      "width": 3.3,
+      "center_x": 0.0,
+      "height_y": 5.47,
+      "start_z": -92.75,
+      "end_z": -90.75
+    },
+    {
+      "width": 4.9,
+      "center_x": 0.0,
+      "height_y": 8.97,
+      "start_z": 87.25,
+      "end_z": 88.5
+    },
+    {
+      "width": 3.9,
+      "center_x": 0.0,
+      "height_y": 8.97,
+      "start_z": 88.5,
+      "end_z": 90.0
+    },
+    {
+      "width": 3.1,
+      "center_x": 0.0,
+      "height_y": 9.47,
+      "start_z": 90.0,
+      "end_z": 91.0
+    }
+  ],
+  "seats": [
+    {
+      "name": "captain",
+      "offset_x": 0.0,
+      "offset_y": 19.028,
+      "offset_z": 42.5,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 21.5,
+          "z": 42.9
+        },
+        {
+          "x": 0.0,
+          "y": 50.0,
+          "z": -160.0,
+          "force_camera": true,
+          "fixed_pitch": 15.0
+        }
+      ]
+    },
+    {
+      "name": "main_battery_fwd",
+      "offset_x": 1.8,
+      "offset_y": 24.278,
+      "offset_z": 35.6,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 26.8,
+          "z": 37.4
+        },
+        {
+          "x": 0.0,
+          "y": 40.0,
+          "z": -50.0,
+          "force_camera": true
+        }
+      ]
+    },
+    {
+      "name": "main_battery_aft",
+      "offset_x": 0.0,
+      "offset_y": 17.178,
+      "offset_z": -41.6,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 19.6,
+          "z": -42.2
+        },
+        {
+          "x": 0.0,
+          "y": 36.0,
+          "z": 90.0,
+          "force_camera": true,
+          "fixed_yaw": 180.0
+        }
+      ]
+    },
+    {
+      "name": "secondary_battery",
+      "offset_x": 3.2,
+      "offset_y": 21.428,
+      "offset_z": 30.3,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 3.2,
+          "y": 23.85,
+          "z": 31.0
+        }
+      ]
+    },
+    {
+      "name": "aa_control",
+      "offset_x": -3.2,
+      "offset_y": 21.428,
+      "offset_z": 30.3,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": -3.2,
+          "y": 23.85,
+          "z": 31.0
+        }
+      ]
+    },
+    {
+      "name": "torpedo_officer",
+      "offset_x": 3.8,
+      "offset_y": 19.028,
+      "offset_z": 36.0,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 3.8,
+          "y": 21.5,
+          "z": 36.4
+        }
+      ]
+    },
+    {
+      "name": "aviation_officer",
+      "offset_x": 0.0,
+      "offset_y": 11.978,
+      "offset_z": 18.0,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 14.6,
+          "z": 17.6
+        },
+        {
+          "x": 0.0,
+          "y": 48.0,
+          "z": -80.0,
+          "force_camera": true,
+          "fixed_pitch": 18.0
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 1,
+      "weapon_name": "belfast_6in_fwd",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": -1.75,
+          "y": 9.95,
+          "z": 72.9,
+          "linked_part": "$a_gun"
+        },
+        {
+          "x": 0.0,
+          "y": 9.95,
+          "z": 72.9,
+          "linked_part": "$a_gun"
+        },
+        {
+          "x": 1.75,
+          "y": 9.95,
+          "z": 72.9,
+          "linked_part": "$a_gun"
+        },
+        {
+          "x": -1.75,
+          "y": 12.65,
+          "z": 63.0,
+          "linked_part": "$b_gun"
+        },
+        {
+          "x": 0.0,
+          "y": 12.65,
+          "z": 63.0,
+          "linked_part": "$b_gun"
+        },
+        {
+          "x": 1.75,
+          "y": 12.65,
+          "z": 63.0,
+          "linked_part": "$b_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -45.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -142.5,
+            "max_pitch": -45.0
+          },
+          {
+            "from_yaw": -142.5,
+            "to_yaw": -141.5,
+            "max_pitch": -19.0
+          },
+          {
+            "from_yaw": -141.5,
+            "to_yaw": -137.5,
+            "max_pitch": -12.0
+          },
+          {
+            "from_yaw": 137.5,
+            "to_yaw": 141.5,
+            "max_pitch": -12.0
+          },
+          {
+            "from_yaw": 141.5,
+            "to_yaw": 142.5,
+            "max_pitch": -19.0
+          },
+          {
+            "from_yaw": 142.5,
+            "to_yaw": 150.0,
+            "max_pitch": -45.0
+          }
+        ]
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 8.0
+    },
+    {
+      "seat_index": 2,
+      "weapon_name": "belfast_6in_aft",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 1.75,
+          "y": 11.75,
+          "z": -60.7,
+          "linked_part": "$x_gun"
+        },
+        {
+          "x": 0.0,
+          "y": 11.75,
+          "z": -60.7,
+          "linked_part": "$x_gun"
+        },
+        {
+          "x": -1.75,
+          "y": 11.75,
+          "z": -60.7,
+          "linked_part": "$x_gun"
+        },
+        {
+          "x": 1.75,
+          "y": 8.25,
+          "z": -70.6,
+          "linked_part": "$y_gun"
+        },
+        {
+          "x": 0.0,
+          "y": 8.25,
+          "z": -70.6,
+          "linked_part": "$y_gun"
+        },
+        {
+          "x": -1.75,
+          "y": 8.25,
+          "z": -70.6,
+          "linked_part": "$y_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -45.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -100.5,
+            "max_pitch": -45.0
+          },
+          {
+            "from_yaw": 100.5,
+            "to_yaw": 150.0,
+            "max_pitch": -45.0
+          }
+        ]
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 8.0
+    },
+    {
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_port",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 13.95,
+          "y": 8.775,
+          "z": 17.875,
+          "linked_part": "$h1p_gun"
+        },
+        {
+          "x": 13.95,
+          "y": 8.775,
+          "z": 17.125,
+          "linked_part": "$h1p_gun"
+        },
+        {
+          "x": 13.95,
+          "y": 8.65,
+          "z": -14.625,
+          "linked_part": "$h2p_gun"
+        },
+        {
+          "x": 13.95,
+          "y": 8.65,
+          "z": -15.375,
+          "linked_part": "$h2p_gun"
+        },
+        {
+          "x": 13.95,
+          "y": 8.651,
+          "z": -30.125,
+          "linked_part": "$h3p_gun"
+        },
+        {
+          "x": 13.95,
+          "y": 8.651,
+          "z": -30.875,
+          "linked_part": "$h3p_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": -90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -85.0,
+            "to_yaw": -83.5,
+            "min_pitch": -52.0,
+            "max_pitch": -52.0
+          },
+          {
+            "from_yaw": -83.5,
+            "to_yaw": -75.5,
+            "min_pitch": -27.0
+          }
+        ]
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 14.0
+    },
+    {
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_stbd",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": -13.95,
+          "y": 8.775,
+          "z": 17.125,
+          "linked_part": "$h1s_gun"
+        },
+        {
+          "x": -13.95,
+          "y": 8.775,
+          "z": 17.875,
+          "linked_part": "$h1s_gun"
+        },
+        {
+          "x": -13.95,
+          "y": 8.65,
+          "z": -15.375,
+          "linked_part": "$h2s_gun"
+        },
+        {
+          "x": -13.95,
+          "y": 8.65,
+          "z": -14.625,
+          "linked_part": "$h2s_gun"
+        },
+        {
+          "x": -13.95,
+          "y": 8.651,
+          "z": -30.875,
+          "linked_part": "$h3s_gun"
+        },
+        {
+          "x": -13.95,
+          "y": 8.651,
+          "z": -30.125,
+          "linked_part": "$h3s_gun"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 14.0
+    },
+    {
+      "seat_index": 4,
+      "weapon_name": "ww2_uk_2pdr_pompom",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 7.2,
+          "y": 11.63,
+          "z": -15.91
+        },
+        {
+          "x": 7.2,
+          "y": 11.63,
+          "z": -16.37
+        },
+        {
+          "x": 7.2,
+          "y": 11.63,
+          "z": -16.83
+        },
+        {
+          "x": 7.2,
+          "y": 11.63,
+          "z": -17.29
+        },
+        {
+          "x": 7.2,
+          "y": 12.11,
+          "z": -15.91
+        },
+        {
+          "x": 7.2,
+          "y": 12.11,
+          "z": -16.37
+        },
+        {
+          "x": 7.2,
+          "y": 12.11,
+          "z": -16.83
+        },
+        {
+          "x": 7.2,
+          "y": 12.11,
+          "z": -17.29
+        },
+        {
+          "x": -7.2,
+          "y": 11.63,
+          "z": -17.29
+        },
+        {
+          "x": -7.2,
+          "y": 11.63,
+          "z": -16.83
+        },
+        {
+          "x": -7.2,
+          "y": 11.63,
+          "z": -16.37
+        },
+        {
+          "x": -7.2,
+          "y": 11.63,
+          "z": -15.91
+        },
+        {
+          "x": -7.2,
+          "y": 12.11,
+          "z": -17.29
+        },
+        {
+          "x": -7.2,
+          "y": 12.11,
+          "z": -16.83
+        },
+        {
+          "x": -7.2,
+          "y": 12.11,
+          "z": -16.37
+        },
+        {
+          "x": -7.2,
+          "y": 12.11,
+          "z": -15.91
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0,
+        "min_yaw": -180,
+        "max_yaw": 180,
+        "min_pitch": -85,
+        "max_pitch": 10
+      },
+      "pilot_usable": true
+    },
+    {
+      "seat_index": 4,
+      "weapon_name": "ww2_us_oerlikon20",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 5.472,
+          "y": 20.8,
+          "z": 42.35
+        },
+        {
+          "x": -5.472,
+          "y": 20.8,
+          "z": 42.35
+        },
+        {
+          "x": 6.072,
+          "y": 13.75,
+          "z": 18.85
+        },
+        {
+          "x": -6.072,
+          "y": 13.75,
+          "z": 18.85
+        },
+        {
+          "x": 5.472,
+          "y": 16.75,
+          "z": -45.35
+        },
+        {
+          "x": -5.472,
+          "y": 16.75,
+          "z": -45.35
+        },
+        {
+          "x": 4.05,
+          "y": 6.35,
+          "z": -71.472
+        },
+        {
+          "x": -4.05,
+          "y": 6.35,
+          "z": -71.472
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0,
+        "min_yaw": -180,
+        "max_yaw": 180,
+        "min_pitch": -85,
+        "max_pitch": 10
+      },
+      "pilot_usable": true
+    },
+    {
+      "seat_index": 5,
+      "weapon_name": "belfast_21in",
+      "projectile_item": "minecraft:iron_block",
+      "offsets": [
+        {
+          "x": 11.14,
+          "y": 5.02,
+          "z": -23.2,
+          "linked_part": "$tt1"
+        },
+        {
+          "x": 11.14,
+          "y": 5.02,
+          "z": -24.0,
+          "linked_part": "$tt1"
+        },
+        {
+          "x": 11.14,
+          "y": 5.02,
+          "z": -24.8,
+          "linked_part": "$tt1"
+        },
+        {
+          "x": -11.14,
+          "y": 5.02,
+          "z": -24.8,
+          "linked_part": "$tt2"
+        },
+        {
+          "x": -11.14,
+          "y": 5.02,
+          "z": -24.0,
+          "linked_part": "$tt2"
+        },
+        {
+          "x": -11.14,
+          "y": 5.02,
+          "z": -23.2,
+          "linked_part": "$tt2"
+        }
+      ],
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -180.0,
+        "max_yaw": 180.0,
+        "min_pitch": -5.0,
+        "max_pitch": 5.0
+      },
+      "pilot_usable": true,
+      "turret_rotation_speed": 10.0
+    },
+    {
+      "seat_index": 5,
+      "weapon_name": "belfast_dc",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 4.6,
+          "z": -93.9,
+          "mount_yaw": 180.0
+        }
+      ],
+      "pilot_usable": true
+    },
+    {
+      "seat_index": 6,
+      "weapon_name": "ww2_cat_belfast_walrus",
+      "projectile_item": "minecraft:iron_ingot",
+      "offsets": [
+        {
+          "x": -8.6,
+          "y": 9.3,
+          "z": 7.5,
+          "mount_yaw": 90.0
+        }
+      ],
+      "pilot_usable": true
+    }
+  ],
+  "weapon_parts": [
+    {
+      "part": "$a",
+      "seat_index": 1,
+      "weapon_name": "belfast_6in_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 8.6,
+      "pivot_z": 63.0,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -45.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -142.5,
+            "max_pitch": -45.0
+          },
+          {
+            "from_yaw": -142.5,
+            "to_yaw": -141.5,
+            "max_pitch": -19.0
+          },
+          {
+            "from_yaw": -141.5,
+            "to_yaw": -137.5,
+            "max_pitch": -12.0
+          },
+          {
+            "from_yaw": 137.5,
+            "to_yaw": 141.5,
+            "max_pitch": -12.0
+          },
+          {
+            "from_yaw": 141.5,
+            "to_yaw": 142.5,
+            "max_pitch": -19.0
+          },
+          {
+            "from_yaw": 142.5,
+            "to_yaw": 150.0,
+            "max_pitch": -45.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$a_gun",
+      "seat_index": 1,
+      "weapon_name": "belfast_6in_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 9.95,
+      "pivot_z": 64.6,
+      "recoil_distance": 0.6,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 8.6,
+        "parent_pivot_z": 63.0
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -45.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -142.5,
+            "max_pitch": -45.0
+          },
+          {
+            "from_yaw": -142.5,
+            "to_yaw": -141.5,
+            "max_pitch": -19.0
+          },
+          {
+            "from_yaw": -141.5,
+            "to_yaw": -137.5,
+            "max_pitch": -12.0
+          },
+          {
+            "from_yaw": 137.5,
+            "to_yaw": 141.5,
+            "max_pitch": -12.0
+          },
+          {
+            "from_yaw": 141.5,
+            "to_yaw": 142.5,
+            "max_pitch": -19.0
+          },
+          {
+            "from_yaw": 142.5,
+            "to_yaw": 150.0,
+            "max_pitch": -45.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$b",
+      "seat_index": 1,
+      "weapon_name": "belfast_6in_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 11.3,
+      "pivot_z": 53.1,
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -45.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -142.5,
+            "max_pitch": -45.0
+          },
+          {
+            "from_yaw": -142.5,
+            "to_yaw": -141.5,
+            "max_pitch": -19.0
+          },
+          {
+            "from_yaw": -141.5,
+            "to_yaw": -137.5,
+            "max_pitch": -12.0
+          },
+          {
+            "from_yaw": 137.5,
+            "to_yaw": 141.5,
+            "max_pitch": -12.0
+          },
+          {
+            "from_yaw": 141.5,
+            "to_yaw": 142.5,
+            "max_pitch": -19.0
+          },
+          {
+            "from_yaw": 142.5,
+            "to_yaw": 150.0,
+            "max_pitch": -45.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$b_gun",
+      "seat_index": 1,
+      "weapon_name": "belfast_6in_fwd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 12.65,
+      "pivot_z": 54.7,
+      "recoil_distance": 0.6,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 11.3,
+        "parent_pivot_z": 53.1
+      },
+      "aim_range": {
+        "default_yaw": 0.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -45.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -142.5,
+            "max_pitch": -45.0
+          },
+          {
+            "from_yaw": -142.5,
+            "to_yaw": -141.5,
+            "max_pitch": -19.0
+          },
+          {
+            "from_yaw": -141.5,
+            "to_yaw": -137.5,
+            "max_pitch": -12.0
+          },
+          {
+            "from_yaw": 137.5,
+            "to_yaw": 141.5,
+            "max_pitch": -12.0
+          },
+          {
+            "from_yaw": 141.5,
+            "to_yaw": 142.5,
+            "max_pitch": -19.0
+          },
+          {
+            "from_yaw": 142.5,
+            "to_yaw": 150.0,
+            "max_pitch": -45.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$x",
+      "seat_index": 2,
+      "weapon_name": "belfast_6in_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 10.4,
+      "pivot_z": -50.8,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -45.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -100.5,
+            "max_pitch": -45.0
+          },
+          {
+            "from_yaw": 100.5,
+            "to_yaw": 150.0,
+            "max_pitch": -45.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$x_gun",
+      "seat_index": 2,
+      "weapon_name": "belfast_6in_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 11.75,
+      "pivot_z": -52.4,
+      "recoil_distance": 0.6,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 10.4,
+        "parent_pivot_z": -50.8
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -45.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -100.5,
+            "max_pitch": -45.0
+          },
+          {
+            "from_yaw": 100.5,
+            "to_yaw": 150.0,
+            "max_pitch": -45.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$y",
+      "seat_index": 2,
+      "weapon_name": "belfast_6in_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 0.0,
+      "pivot_y": 6.9,
+      "pivot_z": -60.7,
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -45.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -100.5,
+            "max_pitch": -45.0
+          },
+          {
+            "from_yaw": 100.5,
+            "to_yaw": 150.0,
+            "max_pitch": -45.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$y_gun",
+      "seat_index": 2,
+      "weapon_name": "belfast_6in_aft",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 0.0,
+      "pivot_y": 8.25,
+      "pivot_z": -62.3,
+      "recoil_distance": 0.6,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 0.0,
+        "parent_pivot_y": 6.9,
+        "parent_pivot_z": -60.7
+      },
+      "aim_range": {
+        "default_yaw": 180.0,
+        "min_yaw": -150.0,
+        "max_yaw": 150.0,
+        "min_pitch": -45.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -150.0,
+            "to_yaw": -100.5,
+            "max_pitch": -45.0
+          },
+          {
+            "from_yaw": 100.5,
+            "to_yaw": 150.0,
+            "max_pitch": -45.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$h1p",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_port",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 8.6,
+      "pivot_y": 7.575,
+      "pivot_z": 17.5,
+      "aim_range": {
+        "default_yaw": -90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -85.0,
+            "to_yaw": -83.5,
+            "min_pitch": -52.0,
+            "max_pitch": -52.0
+          },
+          {
+            "from_yaw": -83.5,
+            "to_yaw": -75.5,
+            "min_pitch": -27.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$h1p_gun",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_port",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 8.85,
+      "pivot_y": 8.775,
+      "pivot_z": 17.5,
+      "recoil_distance": 0.3,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 8.6,
+        "parent_pivot_y": 7.575,
+        "parent_pivot_z": 17.5
+      },
+      "aim_range": {
+        "default_yaw": -90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -85.0,
+            "to_yaw": -83.5,
+            "min_pitch": -52.0,
+            "max_pitch": -52.0
+          },
+          {
+            "from_yaw": -83.5,
+            "to_yaw": -75.5,
+            "min_pitch": -27.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$h2p",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_port",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 8.6,
+      "pivot_y": 7.45,
+      "pivot_z": -15.0,
+      "aim_range": {
+        "default_yaw": -90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -85.0,
+            "to_yaw": -83.5,
+            "min_pitch": -52.0,
+            "max_pitch": -52.0
+          },
+          {
+            "from_yaw": -83.5,
+            "to_yaw": -75.5,
+            "min_pitch": -27.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$h2p_gun",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_port",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 8.85,
+      "pivot_y": 8.65,
+      "pivot_z": -15.0,
+      "recoil_distance": 0.3,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 8.6,
+        "parent_pivot_y": 7.45,
+        "parent_pivot_z": -15.0
+      },
+      "aim_range": {
+        "default_yaw": -90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -85.0,
+            "to_yaw": -83.5,
+            "min_pitch": -52.0,
+            "max_pitch": -52.0
+          },
+          {
+            "from_yaw": -83.5,
+            "to_yaw": -75.5,
+            "min_pitch": -27.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$h3p",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_port",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 8.6,
+      "pivot_y": 7.451,
+      "pivot_z": -30.5,
+      "aim_range": {
+        "default_yaw": -90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -85.0,
+            "to_yaw": -83.5,
+            "min_pitch": -52.0,
+            "max_pitch": -52.0
+          },
+          {
+            "from_yaw": -83.5,
+            "to_yaw": -75.5,
+            "min_pitch": -27.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$h3p_gun",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_port",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": 8.85,
+      "pivot_y": 8.651,
+      "pivot_z": -30.5,
+      "recoil_distance": 0.3,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": 8.6,
+        "parent_pivot_y": 7.451,
+        "parent_pivot_z": -30.5
+      },
+      "aim_range": {
+        "default_yaw": -90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0,
+        "pitch_zones": [
+          {
+            "from_yaw": -85.0,
+            "to_yaw": -83.5,
+            "min_pitch": -52.0,
+            "max_pitch": -52.0
+          },
+          {
+            "from_yaw": -83.5,
+            "to_yaw": -75.5,
+            "min_pitch": -27.0
+          }
+        ]
+      }
+    },
+    {
+      "part": "$h1s",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_stbd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": -8.6,
+      "pivot_y": 7.575,
+      "pivot_z": 17.5,
+      "aim_range": {
+        "default_yaw": 90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$h1s_gun",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_stbd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": -8.85,
+      "pivot_y": 8.775,
+      "pivot_z": 17.5,
+      "recoil_distance": 0.3,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": -8.6,
+        "parent_pivot_y": 7.575,
+        "parent_pivot_z": 17.5
+      },
+      "aim_range": {
+        "default_yaw": 90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$h2s",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_stbd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": -8.6,
+      "pivot_y": 7.45,
+      "pivot_z": -15.0,
+      "aim_range": {
+        "default_yaw": 90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$h2s_gun",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_stbd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": -8.85,
+      "pivot_y": 8.65,
+      "pivot_z": -15.0,
+      "recoil_distance": 0.3,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": -8.6,
+        "parent_pivot_y": 7.45,
+        "parent_pivot_z": -15.0
+      },
+      "aim_range": {
+        "default_yaw": 90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$h3s",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_stbd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": -8.6,
+      "pivot_y": 7.451,
+      "pivot_z": -30.5,
+      "aim_range": {
+        "default_yaw": 90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$h3s_gun",
+      "seat_index": 3,
+      "weapon_name": "belfast_4in_stbd",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": false,
+      "pitch_follow": true,
+      "pivot_x": -8.85,
+      "pivot_y": 8.651,
+      "pivot_z": -30.5,
+      "recoil_distance": 0.3,
+      "child_info": {
+        "parent_yaw_follow": true,
+        "parent_pitch_follow": false,
+        "parent_pivot_x": -8.6,
+        "parent_pivot_y": 7.451,
+        "parent_pivot_z": -30.5
+      },
+      "aim_range": {
+        "default_yaw": 90.0,
+        "min_yaw": -85.0,
+        "max_yaw": 85.0,
+        "min_pitch": -80.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$tt1",
+      "seat_index": 5,
+      "weapon_name": "belfast_21in",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": 6.6,
+      "pivot_y": 4.3,
+      "pivot_z": -24.0,
+      "aim_range": {
+        "default_yaw": -90.0,
+        "min_yaw": -30.0,
+        "max_yaw": 30.0,
+        "min_pitch": -5.0,
+        "max_pitch": 5.0
+      }
+    },
+    {
+      "part": "$tt2",
+      "seat_index": 5,
+      "weapon_name": "belfast_21in",
+      "pilot_fallback": true,
+      "hide_for_gunner": false,
+      "yaw_follow": true,
+      "pitch_follow": false,
+      "pivot_x": -6.6,
+      "pivot_y": 4.3,
+      "pivot_z": -24.0,
+      "aim_range": {
+        "default_yaw": 90.0,
+        "min_yaw": -30.0,
+        "max_yaw": 30.0,
+        "min_pitch": -5.0,
+        "max_pitch": 5.0
+      }
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$screw_ol",
+      "pivot_x": 5.6,
+      "pivot_y": -4.9,
+      "pivot_z": -68.0,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 16.0
+    },
+    {
+      "part": "$screw_or",
+      "pivot_x": -5.6,
+      "pivot_y": -4.9,
+      "pivot_z": -68.0,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": -16.0
+    },
+    {
+      "part": "$screw_il",
+      "pivot_x": 2.4,
+      "pivot_y": -4.9,
+      "pivot_z": -75.0,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 16.0
+    },
+    {
+      "part": "$screw_ir",
+      "pivot_x": -2.4,
+      "pivot_y": -4.9,
+      "pivot_z": -75.0,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": -16.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "UK) Light Cruiser Belfast",
+    "tier": 4
+  }
+}

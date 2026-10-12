@@ -1,0 +1,26 @@
+; 14 cm/50 singles on the boat deck either side of the catapult, stowed facing forward
+DisplayName = 14cm/50 3rd Year Type (guns 5-6)
+Type = MachineGun2
+Power = 6600
+Acceleration = 42.5
+Gravity = -0.0245
+Accuracy = 0.6
+Delay = 12
+Round = 4
+ReloadTime = 160
+MaxAmmo = 480
+SuppliedNum = 5
+Item = 2, iron_ingot
+Item = 2, gunpowder
+Explosion = 3.0
+ExplosionBlock = 2
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_naval
+Sound = ww2_naval_gun_small
+SoundVolume = 5.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.05
+AddMuzzleFlash = 2.0, 0.8, 1, 200, 254, 210, 160
+AddMuzzleFlashSmoke = 2.5, 3, 5.0, 2.0, 30, 180, 200, 200, 200
+DisplayMortarDistance = true

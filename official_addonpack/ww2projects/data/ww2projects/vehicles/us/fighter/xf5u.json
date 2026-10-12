@@ -1,0 +1,195 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "ww2projects:models/obj/us/fighter/xf5u.obj",
+  "texture": "ww2projects:textures/vehicle/us/fighter/xf5u.png",
+  "display_name": "US) XF5U-1 Flying Flapjack",
+  "scale": 1.0,
+  "width": 9.91,
+  "height": 4.65,
+  "max_speed": 5.396,
+  "acceleration": 0.05,
+  "turn_speed": 0.278,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 18.7,
+  "stall_speed": 0.2,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2p_radial_large",
+  "engine_sound_volume": 3.2,
+  "max_health": 70.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 1100.0,
+  "fuel_consumption": 0.8,
+  "hud": "ww2p_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 2.198,
+      "offset_z": 1.5,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 3.305,
+          "z": 1.55
+        },
+        {
+          "x": 0,
+          "y": 5.0,
+          "z": -13.0,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2p_us_m2_x6",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 0.75,
+          "y": 2.5,
+          "z": 1.381
+        },
+        {
+          "x": 0.89,
+          "y": 2.5,
+          "z": 1.353
+        },
+        {
+          "x": 1.03,
+          "y": 2.5,
+          "z": 1.319
+        },
+        {
+          "x": -0.75,
+          "y": 2.5,
+          "z": 1.381
+        },
+        {
+          "x": -0.89,
+          "y": 2.5,
+          "z": 1.353
+        },
+        {
+          "x": -1.03,
+          "y": 2.5,
+          "z": 1.319
+        }
+      ]
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_l",
+      "pivot_x": 3.15,
+      "pivot_y": 2.55,
+      "pivot_z": 1.55,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 55.0
+    },
+    {
+      "part": "$propeller_r",
+      "pivot_x": -3.15,
+      "pivot_y": 2.55,
+      "pivot_z": 1.55,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": -55.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 3.35,
+      "pivot_z": 1.55,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.05,
+      "offset_z": -0.5,
+      "trigger": "key",
+      "speed": 6.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 2.45,
+      "pivot_y": 2.5,
+      "pivot_z": 0.25,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": -1.0,
+      "max_angle": 90.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -2.45,
+      "pivot_y": 2.5,
+      "pivot_z": 0.25,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "max_angle": 90.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_t",
+      "pivot_x": 0.0,
+      "pivot_y": 2.55,
+      "pivot_z": -4.15,
+      "mode": "rotate",
+      "axis_x": -1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 111.91486632719173,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder_l",
+      "pivot_x": 1.3,
+      "pivot_y": 2.85,
+      "pivot_z": -4.5276,
+      "axis_x": -0.0,
+      "axis_y": -0.96975,
+      "axis_z": 0.24412,
+      "max_angle": 25.0
+    },
+    {
+      "part": "$rudder_r",
+      "pivot_x": -1.3,
+      "pivot_y": 2.85,
+      "pivot_z": -4.5276,
+      "axis_x": -0.0,
+      "axis_y": -0.96975,
+      "axis_z": 0.24412,
+      "max_angle": 25.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "US) XF5U-1 Flying Flapjack",
+    "tier": 4
+  }
+}

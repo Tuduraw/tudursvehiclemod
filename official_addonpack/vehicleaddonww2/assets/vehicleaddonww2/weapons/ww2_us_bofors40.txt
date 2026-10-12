@@ -1,0 +1,23 @@
+; 40mm Bofors (twin)
+DisplayName = 40mm Bofors (twin)
+Type = MachineGun2
+Power = 540
+Acceleration = 44.05
+Gravity = -0.0245
+Accuracy = 1.2
+Delay = 3
+Round = 40
+ReloadTime = 100
+MaxAmmo = 400
+SuppliedNum = 40
+Item = 1, iron_ingot
+Item = 1, gunpowder
+Explosion = 1.5
+ExplosionBlock = 0
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_20mm
+Sound = ww2_aa_gun
+SoundVolume = 3.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.05

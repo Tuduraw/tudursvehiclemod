@@ -1,0 +1,26 @@
+; two forward triple 6 in Mk XXIII turrets
+DisplayName = BL 6in Mk XXIII (A, B turrets)
+Type = MachineGun2
+Power = 7800
+Acceleration = 44.9
+Gravity = -0.0245
+Accuracy = 0.55
+Delay = 7
+Round = 6
+ReloadTime = 210
+MaxAmmo = 600
+SuppliedNum = 6
+Item = 3, iron_ingot
+Item = 3, gunpowder
+Explosion = 4.0
+ExplosionBlock = 2
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_naval
+Sound = ww2_naval_gun_big
+SoundVolume = 6.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.05
+AddMuzzleFlash = 2.0, 0.8, 1, 200, 254, 210, 160
+AddMuzzleFlashSmoke = 2.5, 3, 5.0, 2.0, 30, 180, 200, 200, 200
+DisplayMortarDistance = true

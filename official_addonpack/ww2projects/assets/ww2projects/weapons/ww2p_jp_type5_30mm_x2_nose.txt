@@ -1,0 +1,24 @@
+; Kikka nose cannon, 50 rpg (pack addition for game play)
+DisplayName = Type 5 30mm Cannon x2
+Type = MachineGun1
+Power = 15
+Acceleration = 37.5
+Gravity = -0.0245
+Accuracy = 2.0
+Delay = 3
+Round = 100
+ReloadTime = 500
+MaxAmmo = 100
+SuppliedNum = 100
+Item = 1, iron_ingot
+Item = 1, gunpowder
+Explosion = 1.5
+ExplosionBlock = 0
+TimeFuse = 80
+BulletColor = 255, 255, 200, 90
+ModelBullet = shell_20mm
+Sound = ww2p_cannon_30mm
+SoundVolume = 2.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.08
+AddMuzzleFlash = 0.6, 0.25, 1, 200, 254, 219, 184

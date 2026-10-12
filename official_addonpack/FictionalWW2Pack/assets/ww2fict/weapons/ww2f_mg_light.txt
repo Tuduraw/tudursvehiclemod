@@ -1,0 +1,21 @@
+; 7.7mm class fixed machine gun (fuselage / cowl / wing)
+DisplayName = 7.7mm MG
+Type = MachineGun1
+Power = 4
+Acceleration = 7.0
+Gravity = -0.01
+Accuracy = 1.0
+Delay = 2
+Round = 500
+ReloadTime = 120
+MaxAmmo = 2000
+SuppliedNum = 500
+Item = 1, iron_ingot
+Item = 1, gunpowder
+TimeFuse = 50
+ModelBullet = tracer
+BulletColor = 255, 255, 230, 140
+Sound = ww2f_mg
+SoundVolume = 1.5
+SoundPitchRandom = 0.1
+AddMuzzleFlash = 0.6, 0.2, 1, 200, 254, 219, 184

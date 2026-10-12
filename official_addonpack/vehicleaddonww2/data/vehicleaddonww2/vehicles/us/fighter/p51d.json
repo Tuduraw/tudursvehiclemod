@@ -1,0 +1,234 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/us/fighter/p51d.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/us/fighter/p51d.png",
+  "display_name": "US) P-51D Mustang",
+  "scale": 1.0,
+  "width": 11.28,
+  "height": 4.08,
+  "max_speed": 4.71,
+  "acceleration": 0.045,
+  "turn_speed": 0.236,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 12.24,
+  "stall_speed": 0.29,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_inline_v12",
+  "engine_sound_volume": 3.0,
+  "max_health": 550.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 900.0,
+  "fuel_consumption": 0.55,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.452,
+      "offset_z": -1.45,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.62,
+          "z": -1.4
+        },
+        {
+          "x": 0.0,
+          "y": 4.4,
+          "z": -14.5,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2_us_m2_x6",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 2.35,
+          "y": 1.476,
+          "z": 0.1
+        },
+        {
+          "x": 2.55,
+          "y": 1.493,
+          "z": 0.1
+        },
+        {
+          "x": 2.75,
+          "y": 1.511,
+          "z": 0.1
+        },
+        {
+          "x": -2.35,
+          "y": 1.476,
+          "z": 0.1
+        },
+        {
+          "x": -2.55,
+          "y": 1.493,
+          "z": 0.1
+        },
+        {
+          "x": -2.75,
+          "y": 1.511,
+          "z": 0.1
+        }
+      ]
+    },
+    {
+      "seat_index": 0,
+      "weapon_name": "p51d_droptank",
+      "projectile_item": "minecraft:bucket",
+      "offsets": [
+        {
+          "x": 2.1,
+          "y": 0.6,
+          "z": -0.5,
+          "linked_part": "$drop_tank_l"
+        },
+        {
+          "x": -2.1,
+          "y": 0.6,
+          "z": -0.5,
+          "linked_part": "$drop_tank_r"
+        }
+      ]
+    }
+  ],
+  "ammo_parts": [
+    {
+      "part": "$drop_tank_l",
+      "weapon_name": "p51d_droptank",
+      "slot_index": 1,
+      "display_penalty": "5, 3"
+    },
+    {
+      "part": "$drop_tank_r",
+      "weapon_name": "p51d_droptank",
+      "slot_index": 0,
+      "display_penalty": "5, 3"
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 0.0,
+      "pivot_y": 1.925,
+      "pivot_z": 2.22,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 66.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 1.95,
+      "pivot_z": -6.7968,
+      "axis_x": -0.0,
+      "axis_y": -0.99323,
+      "axis_z": -0.1162,
+      "max_angle": 25.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.55,
+      "pivot_y": 1.2715,
+      "pivot_z": -2.1131,
+      "mode": "rotate",
+      "axis_x": -0.98809,
+      "axis_y": -0.09926,
+      "axis_z": -0.11756,
+      "max_angle": 47.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -3.05,
+      "pivot_y": 1.5227,
+      "pivot_z": -1.8156,
+      "mode": "rotate",
+      "axis_x": -0.98809,
+      "axis_y": 0.09926,
+      "axis_z": 0.11756,
+      "max_angle": 47.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 2.4403,
+      "pivot_z": -1.83,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.03,
+      "offset_z": -0.62,
+      "trigger": "key",
+      "speed": 6.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 1.8,
+      "pivot_y": 1.46,
+      "pivot_z": -0.55,
+      "mode": "rotate",
+      "axis_x": 0.06739,
+      "axis_y": -0.44074,
+      "axis_z": -0.8951,
+      "max_angle": 87.463,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -1.8,
+      "pivot_y": 1.46,
+      "pivot_z": -0.55,
+      "mode": "rotate",
+      "axis_x": 0.06739,
+      "axis_y": 0.44074,
+      "axis_z": 0.8951,
+      "max_angle": 87.463,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_tail",
+      "pivot_x": 0.0,
+      "pivot_y": 1.62,
+      "pivot_z": -4.97,
+      "mode": "rotate",
+      "axis_x": -1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 105.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "US) P-51D Mustang",
+    "tier": 3
+  }
+}

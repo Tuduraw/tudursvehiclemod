@@ -1,0 +1,216 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "vehicleaddonww2:models/obj/uk/recon/mosquito.obj",
+  "texture": "vehicleaddonww2:textures/vehicle/uk/recon/mosquito.png",
+  "display_name": "UK) Mosquito PR Mk.XVI",
+  "scale": 1.0,
+  "width": 16.51,
+  "height": 4.65,
+  "max_speed": 4.44,
+  "acceleration": 0.04,
+  "turn_speed": 0.194,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 9.85,
+  "stall_speed": 0.26,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2_inline_v12",
+  "engine_sound_volume": 3.2,
+  "max_health": 700.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 2200.0,
+  "fuel_consumption": 0.9,
+  "hud": "ww2_fighter_hud",
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.7,
+    "entity_height": 0.7
+  },
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.26,
+      "offset_y": 2.072,
+      "offset_z": 0.3,
+      "driver": true,
+      "camera_positions": [
+        {
+          "x": 0.26,
+          "y": 3.24,
+          "z": 0.35
+        },
+        {
+          "x": 0.0,
+          "y": 5.0,
+          "z": -20.0,
+          "force_camera": true
+        }
+      ],
+      "enable_parachuting": true
+    },
+    {
+      "name": "navigator",
+      "offset_x": -0.26,
+      "offset_y": 2.052,
+      "offset_z": -0.05,
+      "driver": false,
+      "camera_positions": [
+        {
+          "x": -0.26,
+          "y": 3.22,
+          "z": 0.0
+        }
+      ],
+      "enable_parachuting": true
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 1,
+      "weapon_name": "mosquito_f52",
+      "projectile_item": "minecraft:paper",
+      "offsets": [
+        {
+          "x": 0.0,
+          "y": 1.62,
+          "z": -4.4
+        }
+      ],
+      "pilot_usable": true
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller_blade",
+      "pivot_x": 2.53,
+      "pivot_y": 2.4,
+      "pivot_z": 1.95,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 60.0
+    },
+    {
+      "part": "$propeller_blade2",
+      "pivot_x": -2.53,
+      "pivot_y": 2.4,
+      "pivot_z": 1.95,
+      "axis_x": 0,
+      "axis_y": 0,
+      "axis_z": 1,
+      "speed": 60.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0,
+      "pivot_y": 2.55,
+      "pivot_z": -8.2005,
+      "axis_x": -0.0,
+      "axis_y": -0.99194,
+      "axis_z": 0.12673,
+      "max_angle": 22.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 0.72,
+      "pivot_y": 2.4293,
+      "pivot_z": -2.7032,
+      "mode": "rotate",
+      "axis_x": -0.97119,
+      "axis_y": -0.04175,
+      "axis_z": -0.23464,
+      "max_angle": 45.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -1.9,
+      "pivot_y": 2.48,
+      "pivot_z": -2.4182,
+      "mode": "rotate",
+      "axis_x": -0.97119,
+      "axis_y": 0.04175,
+      "axis_z": 0.23464,
+      "max_angle": 45.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap2_l",
+      "pivot_x": 3.18,
+      "pivot_y": 2.549,
+      "pivot_z": -2.2154,
+      "mode": "rotate",
+      "axis_x": -0.97293,
+      "axis_y": -0.04522,
+      "axis_z": -0.22664,
+      "max_angle": 45.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$flap2_r",
+      "pivot_x": -4.9,
+      "pivot_y": 2.6289,
+      "pivot_z": -1.8147,
+      "mode": "rotate",
+      "axis_x": -0.97293,
+      "axis_y": 0.04522,
+      "axis_z": 0.22664,
+      "max_angle": 45.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    },
+    {
+      "part": "$gear_l",
+      "pivot_x": 2.53,
+      "pivot_y": 2.15,
+      "pivot_z": 0.1,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 81.266,
+      "trigger": "landing_gear",
+      "speed": 2.8
+    },
+    {
+      "part": "$gear_r",
+      "pivot_x": -2.53,
+      "pivot_y": 2.15,
+      "pivot_z": 0.1,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 81.266,
+      "trigger": "landing_gear",
+      "speed": 2.8
+    },
+    {
+      "part": "$gear_tail",
+      "pivot_x": 0.0,
+      "pivot_y": 2.3,
+      "pivot_z": -8.39,
+      "mode": "rotate",
+      "axis_x": -1.0,
+      "axis_y": 0.0,
+      "axis_z": 0.0,
+      "max_angle": 130.0,
+      "trigger": "landing_gear",
+      "speed": 2.8
+    }
+  ],
+  "spawn_item": {
+    "display_name": "UK) Mosquito PR Mk.XVI",
+    "tier": 3
+  }
+}

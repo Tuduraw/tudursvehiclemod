@@ -1,0 +1,26 @@
+; two 3 in/50 dual-purpose guns on the forecastle
+DisplayName = 3"/50 Mk 22 (forecastle)
+Type = MachineGun2
+Power = 2000
+Acceleration = 41.15
+Gravity = -0.0245
+Accuracy = 0.9
+Delay = 16
+Round = 2
+ReloadTime = 60
+MaxAmmo = 400
+SuppliedNum = 5
+Item = 1, iron_ingot
+Item = 1, gunpowder
+Explosion = 1.6
+ExplosionBlock = 1
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_naval
+Sound = ww2_aa_gun
+SoundVolume = 3.5
+SoundPitch = 1.0
+SoundPitchRandom = 0.05
+AddMuzzleFlash = 2.0, 0.8, 1, 200, 254, 210, 160
+AddMuzzleFlashSmoke = 2.5, 3, 5.0, 2.0, 30, 180, 200, 200, 200
+DisplayMortarDistance = true

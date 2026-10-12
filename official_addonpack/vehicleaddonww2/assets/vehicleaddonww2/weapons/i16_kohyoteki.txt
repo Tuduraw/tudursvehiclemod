@@ -1,0 +1,23 @@
+; Releases the Ko-hyoteki Type A midget (one carried, bow aft on the after casing) as a Midget weapon: she leaves astern submerged, runs in at 4 m, fires her two torpedoes at 3 m while heading for the aimed point from about 350 m out, passes it and returns astern of I-16 to be recovered.
+DisplayName = Launch Ko-hyoteki
+Type = Midget
+MidgetVehicle = kohyoteki
+MidgetWeaponIndex = 0
+MidgetAccuracy = 0.0
+MidgetTimeout = 1200
+MidgetStuckTimeout = 120
+MidgetRecovery = true
+MidgetAttackRange = 300
+MidgetLaunchWaypoint = 0,2,15,40,false
+MidgetLaunchWaypoint = 0,4,50,70,false
+MidgetWaypoint = 0,4,350,80,false
+MidgetWaypoint = 0,3,200,60,true
+MidgetWaypoint = 0,4,-120,70,false
+Delay = 40
+Round = 1
+ReloadTime = 12000
+MaxAmmo = 1
+SuppliedNum = 1
+Item = 12, iron_ingot
+Item = 4, redstone
+DisplayMortarDistance = true

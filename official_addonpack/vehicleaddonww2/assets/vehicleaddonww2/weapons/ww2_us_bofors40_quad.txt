@@ -1,0 +1,23 @@
+; quadruple 40 mm Bofors mounts
+DisplayName = 40mm Bofors (quad)
+Type = MachineGun2
+Power = 540
+Acceleration = 44.05
+Gravity = -0.0245
+Accuracy = 1.2
+Delay = 2
+Round = 80
+ReloadTime = 120
+MaxAmmo = 800
+SuppliedNum = 80
+Item = 1, iron_ingot
+Item = 1, gunpowder
+Explosion = 1.5
+ExplosionBlock = 0
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_20mm
+Sound = ww2_aa_gun
+SoundVolume = 3.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.05

@@ -1,0 +1,11 @@
+; J8M1 take-off dolly: a drop 'weapon' without damage or explosion. The dolly is the ammo part
+; $dolly (shown while the round is loaded, drag while carried); 1 iron ingot re-mounts it on the ground
+DisplayName = Take-off Dolly (drop)
+Type = DropTank
+Round = 1
+MaxAmmo = 1
+SuppliedNum = 1
+Item = 1, iron_ingot
+FuelPerAmmo = 0.0
+Gravity = -0.05
+ModelBullet = ww2p_dolly

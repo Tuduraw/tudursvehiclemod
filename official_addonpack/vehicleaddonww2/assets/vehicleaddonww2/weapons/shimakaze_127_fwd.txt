@@ -1,0 +1,26 @@
+; 12.7 cm/50 twin in the Type D Kai 1 mount (+75 deg), forward
+DisplayName = 12.7cm/50 Type 3 (mount 1)
+Type = MachineGun2
+Power = 5400
+Acceleration = 45.5
+Gravity = -0.0245
+Accuracy = 0.6
+Delay = 14
+Round = 16
+ReloadTime = 180
+MaxAmmo = 320
+SuppliedNum = 16
+Item = 2, iron_ingot
+Item = 2, gunpowder
+Explosion = 3.0
+ExplosionBlock = 2
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_naval
+Sound = ww2_naval_gun_small
+SoundVolume = 5.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.05
+AddMuzzleFlash = 2.0, 0.8, 1, 200, 254, 210, 160
+AddMuzzleFlashSmoke = 2.5, 3, 5.0, 2.0, 30, 180, 200, 200, 200
+DisplayMortarDistance = true

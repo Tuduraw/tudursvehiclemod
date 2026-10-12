@@ -1,0 +1,26 @@
+; dual-purpose 5in/38, after group
+DisplayName = 5"/38 Mk 12 (aft mounts 53-55)
+Type = MachineGun2
+Power = 5400
+Acceleration = 39.6
+Gravity = -0.0245
+Accuracy = 0.6
+Delay = 8
+Round = 30
+ReloadTime = 160
+MaxAmmo = 360
+SuppliedNum = 30
+Item = 2, iron_ingot
+Item = 2, gunpowder
+Explosion = 3.0
+ExplosionBlock = 2
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_naval
+Sound = ww2_naval_gun_small
+SoundVolume = 5.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.05
+AddMuzzleFlash = 2.0, 0.8, 1, 200, 254, 210, 160
+AddMuzzleFlashSmoke = 2.5, 3, 5.0, 2.0, 30, 180, 200, 200, 200
+DisplayMortarDistance = true

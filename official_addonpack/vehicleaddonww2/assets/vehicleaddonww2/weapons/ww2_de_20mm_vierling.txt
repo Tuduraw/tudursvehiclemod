@@ -1,0 +1,24 @@
+; 2 cm Flakvierling 38 quadruple mount, 4 x 20-round magazines
+DisplayName = 2cm Flakvierling 38
+Type = MachineGun2
+Power = 130
+Acceleration = 45.0
+Gravity = -0.0245
+Accuracy = 1.7
+Delay = 1
+Round = 80
+ReloadTime = 160
+MaxAmmo = 320
+SuppliedNum = 80
+Item = 1, iron_ingot
+Item = 1, gunpowder
+Explosion = 0.8
+ExplosionBlock = 0
+TimeFuse = 80
+BulletColor = 255, 255, 230, 140
+ModelBullet = shell_20mm
+Sound = ww2_cannon_20mm
+SoundVolume = 2.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.08
+AddMuzzleFlash = 0.6, 0.25, 1, 200, 254, 219, 184

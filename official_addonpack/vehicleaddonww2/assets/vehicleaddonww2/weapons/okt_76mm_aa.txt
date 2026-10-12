@@ -1,0 +1,23 @@
+; 34-K singles on the roofs of turrets 1 and 4 and two twin 81-K on the quarterdeck
+DisplayName = 76.2mm 34-K / 81-K (AA)
+Type = MachineGun2
+Power = 2000
+Acceleration = 40.05
+Gravity = -0.0245
+Accuracy = 1.0
+Delay = 6
+Round = 10
+ReloadTime = 120
+MaxAmmo = 600
+SuppliedNum = 10
+Item = 1, iron_ingot
+Item = 1, gunpowder
+Explosion = 1.6
+ExplosionBlock = 0
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_20mm
+Sound = ww2_aa_gun
+SoundVolume = 3.5
+SoundPitch = 1.0
+SoundPitchRandom = 0.05

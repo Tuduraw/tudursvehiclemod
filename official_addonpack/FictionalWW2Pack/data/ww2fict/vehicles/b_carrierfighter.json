@@ -1,0 +1,222 @@
+{
+  "entity_type": "tudursvehiclemod:aircraft",
+  "model": "ww2fict:models/obj/b_carrierfighter.obj",
+  "texture": "ww2fict:textures/vehicle/b_carrierfighter.png",
+  "display_name": "BN-6 Chaika",
+  "scale": 1.0,
+  "width": 3.0,
+  "height": 3.0,
+  "max_speed": 1.6,
+  "acceleration": 0.05,
+  "turn_speed": 3.4,
+  "step_height": 0.6,
+  "gravity": -0.04,
+  "on_ground_pitch": 11.62,
+  "reverse_throttle": 0.0,
+  "stall_speed": 0.3,
+  "float_capable": false,
+  "throttle_up_down": 1.0,
+  "engine_sound": "ww2f_engine",
+  "engine_sound_volume": 3.0,
+  "max_health": 80.0,
+  "armor_damage_factor": 1.0,
+  "damage_factor": 0.5,
+  "max_fuel": 750.0,
+  "fuel_consumption": 0.55,
+  "inventory_size": 0,
+  "passenger_display": {
+    "hide_entity": false,
+    "entity_width": 0.85,
+    "entity_height": 0.85
+  },
+  "force_bounding_box": false,
+  "enable_ejection_seat": true,
+  "seats": [
+    {
+      "name": "pilot",
+      "offset_x": 0.0,
+      "offset_y": 1.65,
+      "offset_z": -1.506,
+      "driver": true,
+      "enable_parachuting": true,
+      "camera_positions": [
+        {
+          "x": 0.0,
+          "y": 2.55,
+          "z": -1.455
+        },
+        {
+          "x": 0.0,
+          "y": 4.96,
+          "z": -16.6,
+          "force_camera": true
+        }
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "seat_index": 0,
+      "weapon_name": "ww2f_mg_heavy",
+      "projectile_item": "minecraft:iron_nugget",
+      "offsets": [
+        {
+          "x": 2.1,
+          "y": 1.64,
+          "z": 0.95
+        },
+        {
+          "x": -2.1,
+          "y": 1.64,
+          "z": 0.95
+        }
+      ]
+    }
+  ],
+  "spinning_parts": [
+    {
+      "part": "$propeller",
+      "pivot_x": 0.0,
+      "pivot_y": 1.76,
+      "pivot_z": 1.97,
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "speed": 45.0
+    }
+  ],
+  "toggle_parts": [
+    {
+      "part": "$flap_l",
+      "pivot_x": 1.1,
+      "pivot_y": 1.6543,
+      "pivot_z": -0.7785,
+      "mode": "rotate",
+      "axis_x": -0.9995,
+      "axis_y": -0.0285,
+      "axis_z": -0.011,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 3.0
+    },
+    {
+      "part": "$flap_r",
+      "pivot_x": -1.1,
+      "pivot_y": 1.6543,
+      "pivot_z": -0.7785,
+      "mode": "rotate",
+      "axis_x": -0.9995,
+      "axis_y": 0.0285,
+      "axis_z": 0.011,
+      "max_angle": 30.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 3.0
+    },
+    {
+      "part": "$wingfold_l",
+      "pivot_x": 2.6,
+      "pivot_y": 1.68,
+      "pivot_z": 0.015,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.9119,
+      "axis_z": 0.4104,
+      "max_angle": 95.0,
+      "trigger": "wing_fold",
+      "speed": 3.0
+    },
+    {
+      "part": "$wingfold_r",
+      "pivot_x": -2.6,
+      "pivot_y": 1.68,
+      "pivot_z": 0.015,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": -0.9119,
+      "axis_z": -0.4104,
+      "max_angle": 95.0,
+      "trigger": "wing_fold",
+      "speed": 3.0
+    },
+    {
+      "part": "$canopy",
+      "pivot_x": 0.0,
+      "pivot_y": 0.0,
+      "pivot_z": 0.0,
+      "mode": "slide",
+      "offset_x": 0.0,
+      "offset_y": 0.0,
+      "offset_z": -0.65,
+      "trigger": "key",
+      "speed": 20.0
+    },
+    {
+      "part": "$maingear_l",
+      "pivot_x": 0.95,
+      "pivot_y": 1.5,
+      "pivot_z": -0.0,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": 1.0,
+      "max_angle": 85.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$maingear_r",
+      "pivot_x": -0.95,
+      "pivot_y": 1.5,
+      "pivot_z": -0.0,
+      "mode": "rotate",
+      "axis_x": 0.0,
+      "axis_y": 0.0,
+      "axis_z": -1.0,
+      "max_angle": 85.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$tailgear",
+      "pivot_x": 0.0,
+      "pivot_y": 1.55,
+      "pivot_z": -5.1,
+      "mode": "rotate",
+      "axis_x": 1.0,
+      "axis_y": 0.0,
+      "axis_z": -0.0,
+      "max_angle": 90.0,
+      "trigger": "landing_gear",
+      "speed": 4.0
+    },
+    {
+      "part": "$arrestorhook",
+      "pivot_x": 0.0,
+      "pivot_y": 1.42,
+      "pivot_z": -4.55,
+      "mode": "rotate",
+      "axis_x": -1.0,
+      "axis_y": 0.0,
+      "axis_z": -0.0,
+      "max_angle": 60.0,
+      "trigger": "landing_gear_reversed",
+      "speed": 4.0
+    }
+  ],
+  "steering_wheel_parts": [
+    {
+      "part": "$rudder",
+      "pivot_x": 0.0077,
+      "pivot_y": 1.8,
+      "pivot_z": -5.4229,
+      "axis_x": -0.0027,
+      "axis_y": 0.9979,
+      "axis_z": -0.0644,
+      "max_angle": -25.0
+    }
+  ],
+  "spawn_item": {
+    "display_name": "BN-6 Chaika (Borvia)",
+    "tier": 3
+  }
+}

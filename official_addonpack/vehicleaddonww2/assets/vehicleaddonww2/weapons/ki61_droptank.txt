@@ -1,0 +1,8 @@
+; two underwing 200 l tanks, dropped one at a time
+DisplayName = 200L Drop Tank x2
+Type = DropTank
+Round = 2
+MaxAmmo = 2
+FuelPerAmmo = 200.0
+Gravity = -0.05
+ModelBullet = droptank

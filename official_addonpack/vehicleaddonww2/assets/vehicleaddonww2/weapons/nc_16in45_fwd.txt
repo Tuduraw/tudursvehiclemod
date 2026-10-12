@@ -1,0 +1,26 @@
+; 16 in/45 Mk 6 main battery, forward turrets
+DisplayName = 16"/45 Mk 6 (turrets 1-2)
+Type = MachineGun2
+Power = 56000
+Acceleration = 35.05
+Gravity = -0.0245
+Accuracy = 0.5
+Delay = 10
+Round = 6
+ReloadTime = 620
+MaxAmmo = 780
+SuppliedNum = 6
+Item = 6, iron_ingot
+Item = 6, gunpowder
+Explosion = 8.0
+ExplosionBlock = 4
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_naval
+Sound = ww2_naval_gun_big
+SoundVolume = 8.0
+SoundPitch = 1.0
+SoundPitchRandom = 0.05
+AddMuzzleFlash = 2.0, 0.8, 1, 200, 254, 210, 160
+AddMuzzleFlashSmoke = 2.5, 3, 5.0, 2.0, 30, 180, 200, 200, 200
+DisplayMortarDistance = true

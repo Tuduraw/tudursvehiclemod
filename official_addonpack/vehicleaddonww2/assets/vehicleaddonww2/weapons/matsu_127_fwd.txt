@@ -1,0 +1,26 @@
+; single 12.7 cm/40 Type 89 high-angle gun in the shielded forward mount
+DisplayName = 12.7cm/40 Type 89 (mount 1, single)
+Type = MachineGun2
+Power = 5400
+Acceleration = 36.0
+Gravity = -0.0245
+Accuracy = 0.8
+Delay = 6
+Round = 10
+ReloadTime = 160
+MaxAmmo = 250
+SuppliedNum = 10
+Item = 2, iron_ingot
+Item = 2, gunpowder
+Explosion = 3.0
+ExplosionBlock = 1
+TimeFuse = 160
+BulletColor = 255, 255, 220, 120
+ModelBullet = shell_naval
+Sound = ww2_naval_gun_small
+SoundVolume = 4.5
+SoundPitch = 1.0
+SoundPitchRandom = 0.05
+AddMuzzleFlash = 2.0, 0.8, 1, 200, 254, 210, 160
+AddMuzzleFlashSmoke = 2.5, 3, 5.0, 2.0, 30, 180, 200, 200, 200
+DisplayMortarDistance = true

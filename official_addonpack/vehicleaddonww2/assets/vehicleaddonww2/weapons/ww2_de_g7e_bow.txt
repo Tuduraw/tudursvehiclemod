@@ -1,0 +1,24 @@
+; 4 bow tubes, 8 reloads (G7e electric torpedo)
+DisplayName = G7e 53.3cm Torpedo (bow tubes)
+Type = Torpedo
+Power = 310000
+Acceleration = 1.2
+Gravity = -0.015
+GravityInWater = 0.0
+AccelerationInWater = 0.964
+VelocityInWater = 0.2
+TargetDepth = 3.0
+Delay = 15
+Round = 4
+ReloadTime = 1800
+MaxAmmo = 12
+SuppliedNum = 4
+Item = 6, iron_ingot
+Item = 6, gunpowder
+Explosion = 5.5
+ExplosionInWater = 11.0
+ExplosionBlock = 2
+BulletColorInWater = 255, 30, 40, 60
+ModelBullet = torpedo
+Sound = ww2_torpedo
+SoundVolume = 2.0

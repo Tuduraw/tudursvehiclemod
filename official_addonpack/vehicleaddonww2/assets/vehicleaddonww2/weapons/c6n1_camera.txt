@@ -1,0 +1,15 @@
+; the observer's hand-held and vertical cameras: spots vehicles and ships along the line of sight (the pilot can use it when flying alone)
+DisplayName = Reconnaissance Cameras
+Type = TargetingPod
+Target = planes/helicopters/vehicles/players/monsters
+Length = 320
+Radius = 24
+MarkTime = 40
+Delay = 30
+Round = 24
+ReloadTime = 500
+MaxAmmo = 24
+SuppliedNum = 24
+Item = 1, redstone
+Sound = ww2_camera
+SoundVolume = 1.2
