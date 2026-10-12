@@ -116,6 +116,7 @@ tools/mcheli_convert.py              ← MCヘリ用アドオンパックをこ�
 ### 新しい乗り物を「コードなし」で追加する
 
 見た目だけ違う乗り物(操縦感覚は既存のいずれかと同じでよい場合)は、コード変更ゼロで追加できます。
+**詳細は./docsディレクトリ内のファイルを参照してください。**
 
 1. Blenderなどで `.obj` をエクスポート → `assets/tudursvehiclemod/models/obj/my_vehicle.obj`
 2. テクスチャを `assets/tudursvehiclemod/textures/vehicle/my_vehicle.png`
