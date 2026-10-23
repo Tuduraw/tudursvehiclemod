@@ -19,6 +19,7 @@ public class ModBlocks {
 	public static Block STATION;
 	public static Block DRONE_CENTER;
 	public static Block VEHICLE_CONVERTER;
+	public static Block FIRE_SUPPORT_CENTER;
 
 	public static void register() {
 		RegistryKey<Block> blockKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(VehicleMod.MOD_ID, "fuel_refiner"));
@@ -71,5 +72,18 @@ public class ModBlocks {
 		RegistryKey<Item> vehicleConverterItemKey = RegistryKey.of(RegistryKeys.ITEM, Identifier.of(VehicleMod.MOD_ID, "vehicle_converter"));
 		Registry.register(Registries.ITEM, vehicleConverterItemKey,
 				new BlockItem(VEHICLE_CONVERTER, new Item.Settings().registryKey(vehicleConverterItemKey).useBlockPrefixedTranslationKey()));
+
+		// Lays linked vehicles' guns on a target point - see block.FireSupportCenterBlockEntity's own doc.
+		RegistryKey<Block> fireSupportCenterKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(VehicleMod.MOD_ID, "fire_support_center"));
+		FIRE_SUPPORT_CENTER = Registry.register(Registries.BLOCK, fireSupportCenterKey,
+				new com.example.tudursvehiclemod.block.FireSupportCenterBlock(AbstractBlock.Settings.create()
+						.registryKey(fireSupportCenterKey)
+						.mapColor(MapColor.IRON_GRAY)
+						.strength(4.0f)
+						.requiresTool()));
+
+		RegistryKey<Item> fireSupportCenterItemKey = RegistryKey.of(RegistryKeys.ITEM, Identifier.of(VehicleMod.MOD_ID, "fire_support_center"));
+		Registry.register(Registries.ITEM, fireSupportCenterItemKey,
+				new BlockItem(FIRE_SUPPORT_CENTER, new Item.Settings().registryKey(fireSupportCenterItemKey).useBlockPrefixedTranslationKey()));
 	}
 }

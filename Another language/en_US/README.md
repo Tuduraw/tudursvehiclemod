@@ -622,6 +622,60 @@ detection, chunk force-loading) with the Carrier system described next.
 
 ---
 
+## Fire support (Fire Support Center)
+
+Several vehicles linked to a **Fire Support Center** block fire on a
+target point, unmanned. Elevation is solved from the real trajectory
+(muzzle speed, gravity, air drag, with TimeFuse as the longest flight).
+
+- **Vehicles**: ground vehicles, ships and static emplacements, linked by
+  putting a registered **Drone Control Stick** into one of the 6 unit
+  slots (the same stick a Station or Drone Center takes). Aircraft and
+  helicopters can't be used.
+- **Weapons**: turret-aimed weapons (with an `aim_range`) that fire shells,
+  bullets or rockets (`MachineGun`, `Rocket`, `MkRocket`, `Dispenser`,
+  `Smoke`, `Other`). Bombs, torpedoes, depth charges, CAS/Carrier,
+  targeting pods and drop tanks are excluded.
+- **Weapon choice**: per unit, "Auto" or one weapon. Auto lays each seat
+  for the first of its weapons that reaches the target, and also fires the
+  seat's other weapons that fly the same way (same speed and gravity).
+- **Target** (three ways):
+  - **Relative coordinates**, typed into the screen.
+  - **Waypoint**: put a Drone Route Book in the book slot and pick a
+    waypoint on the screen (the book's offset applies).
+  - **Designator**: mark the block you are looking at from afar with a
+    **Fire Support Designator**.
+  - The aim point is the top centre of the target block.
+- **Trajectory**: flat (low elevation) or high angle. If the chosen one is
+  outside the weapon's arc, the other is tried.
+- **Gunners**: while firing, an unseen gunner sits in each weapon's seat
+  and lays the gun - turret speed, arc limits and waiting until the turret
+  has settled all work as for a player gunner. A seat someone else is in
+  is left alone.
+- **Out of range**: a unit that can't reach the target (out of range) or
+  can't turn to it (out of arc) doesn't fire and is listed in a warning.
+  If no unit can reach it, support can't be turned on and stays off.
+- **On/off**: the screen button; **redstone control** (when on, support is
+  on while powered); **remote control** (when on, the designator can turn
+  it on and off).
+- **Turns itself off** when no unit can fire any more (all out of ammo,
+  the target out of reach, vehicles lost), saying why in the actionbar
+  and chat.
+- **Remote control and chunk loading**: with remote control on, the
+  center's chunk and each linked vehicle's chunk are kept loaded - that
+  is what lets the designator work from anywhere. With it off, nothing is
+  force-loaded and the designator is refused.
+
+**Fire Support Designator**
+
+- Sneak + right-click a Fire Support Center: links to it.
+- Right-click: marks the block you are looking at (up to
+  `fireSupportDesignatorRange` blocks, within loaded chunks) as the
+  target - only when the center is set to designator targeting.
+- Sneak + right-click anywhere else: turns support on or off.
+
+---
+
 ## Carrier system
 
 Lets a vehicle function as a carrier, managing launch, automatic flight,

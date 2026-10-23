@@ -46,6 +46,8 @@ public class ModItemGroups {
 			entries.add(com.example.tudursvehiclemod.registry.ModBlocks.STATION);
 			entries.add(com.example.tudursvehiclemod.registry.ModBlocks.DRONE_CENTER);
 			entries.add(com.example.tudursvehiclemod.registry.ModBlocks.VEHICLE_CONVERTER);
+			entries.add(com.example.tudursvehiclemod.registry.ModBlocks.FIRE_SUPPORT_CENTER);
+			entries.add(ModItems.FIRE_SUPPORT_DESIGNATOR);
 		});
 	}
 }

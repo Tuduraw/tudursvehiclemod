@@ -22,6 +22,7 @@ public class ModItems {
 	public static Item DRONE_CONTROL_STICK;
 	public static Item DRONE_ROUTE_BOOK;
 	public static Item PARACHUTE;
+	public static Item FIRE_SUPPORT_DESIGNATOR;
 
 	public static void register() {
 		RegistryKey<Item> fuelCanKey = RegistryKey.of(RegistryKeys.ITEM, Identifier.of(VehicleMod.MOD_ID, "fuel_can"));
@@ -56,6 +57,13 @@ public class ModItems {
 						.equippable(net.minecraft.entity.EquipmentSlot.CHEST)
 						.component(net.minecraft.component.DataComponentTypes.DYED_COLOR,
 								new net.minecraft.component.type.DyedColorComponent(0xFFFFFF))));
+
+		// Remote handset for a Fire Support Center - see FireSupportDesignatorItem's own doc.
+		RegistryKey<Item> fireSupportDesignatorKey =
+				RegistryKey.of(RegistryKeys.ITEM, Identifier.of(VehicleMod.MOD_ID, "fire_support_designator"));
+		FIRE_SUPPORT_DESIGNATOR = Registry.register(Registries.ITEM, fireSupportDesignatorKey,
+				new com.example.tudursvehiclemod.item.FireSupportDesignatorItem(
+						new Item.Settings().registryKey(fireSupportDesignatorKey).maxCount(1)));
 
 		for (VehicleCategory category : VehicleCategory.values()) {
 			Item[] tiers = new Item[5];

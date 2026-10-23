@@ -18,6 +18,7 @@ public class ModScreenHandlers {
 	public static ScreenHandlerType<com.example.tudursvehiclemod.screen.DroneCenterFormationScreenHandler> DRONE_CENTER_FORMATION;
 	public static ScreenHandlerType<com.example.tudursvehiclemod.screen.StationScreenHandler> STATION;
 	public static ScreenHandlerType<com.example.tudursvehiclemod.screen.VehicleConverterScreenHandler> VEHICLE_CONVERTER;
+	public static ScreenHandlerType<com.example.tudursvehiclemod.screen.FireSupportScreenHandler> FIRE_SUPPORT_CENTER;
 
 	public static void register() {
 		FUEL_REFINER = Registry.register(
@@ -49,5 +50,10 @@ public class ModScreenHandlers {
 				Registries.SCREEN_HANDLER,
 				Identifier.of(VehicleMod.MOD_ID, "vehicle_converter"),
 				new ScreenHandlerType<>(com.example.tudursvehiclemod.screen.VehicleConverterScreenHandler::new, FeatureSet.empty()));
+
+		FIRE_SUPPORT_CENTER = Registry.register(
+				Registries.SCREEN_HANDLER,
+				Identifier.of(VehicleMod.MOD_ID, "fire_support_center"),
+				new ScreenHandlerType<>(com.example.tudursvehiclemod.screen.FireSupportScreenHandler::new, FeatureSet.empty()));
 	}
 }

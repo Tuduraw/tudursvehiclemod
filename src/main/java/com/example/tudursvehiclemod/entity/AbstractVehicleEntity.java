@@ -2651,18 +2651,6 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		return current + Math.copySign(maxStep, diff);
 	}
 
-	/** Whether this part has caught up to target (0.5° tolerance). True if not cached at all (turret_rotation_speed unconfigured, or part unmanned). */
-	private boolean tudursvehiclemod$isWeaponPartSettled(com.example.tudursvehiclemod.asset.WeaponPart part, float[] target) {
-		Float currentYaw = this.weaponPartCurrentYaw.get(part.part());
-		Float currentPitch = this.weaponPartCurrentPitch.get(part.part());
-		if (currentYaw == null || currentPitch == null) {
-			return true;
-		}
-		float settleToleranceDegrees = 0.5f;
-		return Math.abs(MathHelper.wrapDegrees(target[0] - currentYaw)) <= settleToleranceDegrees
-				&& Math.abs(target[1] - currentPitch) <= settleToleranceDegrees;
-	}
-
 	/** The WeaponPart (if any) tracking this weapon by name - shared by tudursvehiclemod$isTurretUnsettled() and tryFireWeapon()'s own aim-direction branch. */
 	private java.util.Optional<com.example.tudursvehiclemod.asset.WeaponPart> tudursvehiclemod$findTrackingPart(
 			com.example.tudursvehiclemod.asset.WeaponDefinition weapon, VehicleDefinition def) {
@@ -2785,13 +2773,20 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			return false;
 		}
 		java.util.Optional<com.example.tudursvehiclemod.asset.WeaponPart> trackingPart = tudursvehiclemod$findTrackingPart(weapon, def);
-		if (trackingPart.isEmpty() || !this.weaponPartCurrentYaw.containsKey(trackingPart.get().part())
-				|| !this.weaponPartCurrentPitch.containsKey(trackingPart.get().part())) {
+		if (trackingPart.isEmpty()) {
+			return false;
+		}
+		// Each axis from whichever of the weapon's parts turns it (tudursvehiclemod$findCachedWeaponAim()). This used to look for both axes on the one part found first, so a split-axis turret - a base that only turns and a barrel that only elevates, the usual layout of a tank or ship turret - never had both, was never held back, and fired along wherever it happened to point while still traversing.
+		Float[] cached = this.tudursvehiclemod$findCachedWeaponAim(weapon);
+		if (cached[0] == null && cached[1] == null) {
 			return false;
 		}
 		float[] target = tudursvehiclemod$computeWeaponPartTarget(trackingPart.get().seatIndex(), trackingPart.get().pilotFallback(),
-				range, trackingPart.get().yawFollow(), trackingPart.get().pitchFollow(), 1.0f);
-		return !tudursvehiclemod$isWeaponPartSettled(trackingPart.get(), target);
+				range, true, true, 1.0f);
+		float settleToleranceDegrees = 0.5f;
+		boolean yawSettled = cached[0] == null || Math.abs(MathHelper.wrapDegrees(target[0] - cached[0])) <= settleToleranceDegrees;
+		boolean pitchSettled = cached[1] == null || Math.abs(target[1] - cached[1]) <= settleToleranceDegrees;
+		return !(yawSettled && pitchSettled);
 	}
 
 	private int tudursvehiclemod$weaponTrackingCacheKey(int seatIndex, boolean pilotFallback) {

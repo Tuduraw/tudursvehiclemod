@@ -75,6 +75,12 @@ public final class VehicleModServerConfig {
 	/** How many vehicle definitions' hit-detection meshes may be built at the same time, in the background (entity.HitMeshPreloader - the meshes are built as soon as a vehicle of that definition is in a world, not on its first hit). -1 (the default) means no limit: the shared fork-join pool, one build per core. A positive number gives a pool of that many low-priority threads - 1 builds one model at a time, the gentlest on a busy server. Read once, when the first build is queued. */
 	public int hitMeshBuildMaxConcurrent = -1;
 
+	/** Fire Support Center (block.FireSupportCenterBlockEntity): how far (blocks) a Fire Support Designator reaches when a player marks a target with it. The point has to be in a loaded chunk - the server traces the player's line of sight through the world as it is loaded. Defaults to 512. */
+	public int fireSupportDesignatorRange = 512;
+
+	/** Fire Support Center: the largest relative coordinate (blocks, each axis) the center's screen accepts for a target. Defaults to 4096. */
+	public int fireSupportMaxDistance = 4096;
+
 	/** Exposed so VehicleMod's own startup log can state exactly where this file actually lives - the resolved path isn't necessarily obvious. */
 	public static Path getConfigPath() {
 		return CONFIG_PATH;

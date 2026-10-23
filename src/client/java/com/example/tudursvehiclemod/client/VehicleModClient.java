@@ -228,6 +228,9 @@ public class VehicleModClient implements ClientModInitializer {
 		com.example.tudursvehiclemod.client.render.DummyPilotModelLayers.register();
 		EntityRendererRegistry.register(ModEntityTypes.DUMMY_PILOT,
 				com.example.tudursvehiclemod.client.render.DummyPilotEntityRenderer::new);
+		FireSupportClient.register();
+		EntityRendererRegistry.register(ModEntityTypes.FIRE_SUPPORT_GUNNER,
+				com.example.tudursvehiclemod.client.render.FireSupportGunnerEntityRenderer::new);
 		// Every registered EntityType needs a client-side renderer, even one with genuinely nothing to draw (this entity is always invisible) - omitting this entirely crashed the client the instant it tried to render one.
 		EntityRendererRegistry.register(ModEntityTypes.CARRIER_RUNWAY_PLATFORM,
 				com.example.tudursvehiclemod.client.render.CarrierRunwayPlatformEntityRenderer::new);

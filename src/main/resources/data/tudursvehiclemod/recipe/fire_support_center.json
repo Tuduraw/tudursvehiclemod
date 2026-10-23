@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "I": "minecraft:iron_block",
+    "T": "minecraft:target",
+    "D": "minecraft:dispenser",
+    "S": "tudursvehiclemod:drone_control_stick"
+  },
+  "pattern": [
+    "ITI",
+    "DSD",
+    "I I"
+  ],
+  "result": {
+    "id": "tudursvehiclemod:fire_support_center",
+    "count": 1
+  }
+}

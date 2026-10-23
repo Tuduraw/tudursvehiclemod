@@ -38,6 +38,13 @@ public class ModComponents {
 			Identifier.of(VehicleMod.MOD_ID, "drone_route_offset"),
 			ComponentType.<String>builder().codec(Codec.STRING).build());
 
+	/** The Fire Support Center a FireSupportDesignatorItem is linked to (dimension and position) - absent until linked. */
+	public static final ComponentType<net.minecraft.util.math.GlobalPos> FIRE_SUPPORT_LINK = Registry.register(
+			Registries.DATA_COMPONENT_TYPE,
+			Identifier.of(VehicleMod.MOD_ID, "fire_support_link"),
+			ComponentType.<net.minecraft.util.math.GlobalPos>builder().codec(net.minecraft.util.math.GlobalPos.CODEC)
+					.packetCodec(net.minecraft.util.math.GlobalPos.PACKET_CODEC).build());
+
 	public static void register() {
 		// Referencing FUEL_AMOUNT above is enough to trigger its own static init/registration.
 	}

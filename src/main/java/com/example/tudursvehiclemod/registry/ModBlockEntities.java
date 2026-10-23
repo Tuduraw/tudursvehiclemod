@@ -14,6 +14,7 @@ public class ModBlockEntities {
 	public static BlockEntityType<com.example.tudursvehiclemod.block.StationBlockEntity> STATION;
 	public static BlockEntityType<com.example.tudursvehiclemod.block.DroneCenterBlockEntity> DRONE_CENTER;
 	public static BlockEntityType<com.example.tudursvehiclemod.block.VehicleConverterBlockEntity> VEHICLE_CONVERTER;
+	public static BlockEntityType<com.example.tudursvehiclemod.block.FireSupportCenterBlockEntity> FIRE_SUPPORT_CENTER;
 
 	public static void register() {
 		FUEL_REFINER = Registry.register(
@@ -35,5 +36,10 @@ public class ModBlockEntities {
 				Registries.BLOCK_ENTITY_TYPE,
 				Identifier.of(VehicleMod.MOD_ID, "vehicle_converter"),
 				FabricBlockEntityTypeBuilder.create(com.example.tudursvehiclemod.block.VehicleConverterBlockEntity::new, ModBlocks.VEHICLE_CONVERTER).build());
+
+		FIRE_SUPPORT_CENTER = Registry.register(
+				Registries.BLOCK_ENTITY_TYPE,
+				Identifier.of(VehicleMod.MOD_ID, "fire_support_center"),
+				FabricBlockEntityTypeBuilder.create(com.example.tudursvehiclemod.block.FireSupportCenterBlockEntity::new, ModBlocks.FIRE_SUPPORT_CENTER).build());
 	}
 }

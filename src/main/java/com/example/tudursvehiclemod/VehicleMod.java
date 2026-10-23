@@ -66,6 +66,8 @@ public class VehicleMod implements ModInitializer {
 		// Another LivingEntity subclass, so it needs its own default attributes here too, for exactly the reason noted above.
 		net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry.register(
 				ModEntityTypes.DUMMY_PILOT, com.example.tudursvehiclemod.entity.DummyPilotEntity.createAttributes());
+		net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry.register(
+				ModEntityTypes.FIRE_SUPPORT_GUNNER, com.example.tudursvehiclemod.entity.FireSupportGunnerEntity.createAttributes());
 		com.example.tudursvehiclemod.registry.ModParticleTypes.register();		ModItems.register();
 		// Built-in converter targets, registered before any addon's own initializer can add to the list - see item.VehicleConverterTargets' own ordering doc.
 		com.example.tudursvehiclemod.item.VehicleConverterTargets.registerBuiltIn();
@@ -75,6 +77,7 @@ public class VehicleMod implements ModInitializer {
 		com.example.tudursvehiclemod.registry.ModScreenHandlers.register();
 		ModItemGroups.register();
 		ModNetworking.register();
+		com.example.tudursvehiclemod.network.FireSupportNetworking.register();
 		com.example.tudursvehiclemod.block.DroneCenterBlock.tudursvehiclemod$registerUseBlockCallback();
 		com.example.tudursvehiclemod.block.StationBlock.tudursvehiclemod$registerUseBlockCallback();
 		com.example.tudursvehiclemod.entity.AbstractVehicleEntity.tudursvehiclemod$registerUseItemCallback();
@@ -209,6 +212,15 @@ public class VehicleMod implements ModInitializer {
 				ServerTickTasks.schedule(server -> {
 					if (!station.isRemoved()) {
 						station.tudursvehiclemod$updateChunkForceLoading(true);
+					}
+					return true;
+				});
+			} else if (blockEntity instanceof com.example.tudursvehiclemod.block.FireSupportCenterBlockEntity fireSupportCenter
+					&& world instanceof net.minecraft.server.world.ServerWorld fireSupportWorld) {
+				// Its own chunk while remote control is on - the same re-request after a reload as the Station and the Drone Center below.
+				ServerTickTasks.schedule(server -> {
+					if (!fireSupportCenter.isRemoved()) {
+						fireSupportCenter.tudursvehiclemod$updateOwnChunk(fireSupportWorld);
 					}
 					return true;
 				});

@@ -296,6 +296,19 @@ screen, so changing them requires editing the file directly.
   so on) and reads the OBJ files again. The track roller disk cache
   (`.track-roller-bounds.txt`) doesn't notice a changed OBJ - delete it by
   hand after editing a model.
+
+### `fireSupportDesignatorRange` (server settings)
+
+- Default: `512`
+- How far (blocks) a Fire Support Designator can mark a target. The
+  point has to be within loaded chunks.
+
+### `fireSupportMaxDistance` (server settings)
+
+- Default: `4096`
+- The largest relative coordinate (blocks, each axis) the Fire Support
+  Center's screen accepts.
+
 ---
 
 ## 5. Resetting force-loaded chunks (`/tvm unloadchunks`)

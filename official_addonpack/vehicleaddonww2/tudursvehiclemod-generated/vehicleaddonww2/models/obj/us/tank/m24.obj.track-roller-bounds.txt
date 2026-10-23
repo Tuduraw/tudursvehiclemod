@@ -1,7 +1,0 @@
-1
-$roller_r1 1.1486022
-$roller_r2 1.1486022
-$roller_r3 1.1486022
-$roller_l1 1.1486022
-$roller_l2 1.1486022
-$roller_l3 1.1486022

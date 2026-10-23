@@ -35,6 +35,8 @@ public class ModEntityTypes {
 	public static EntityType<com.example.tudursvehiclemod.entity.CarrierRunwayPlatformEntity> CARRIER_RUNWAY_BORDER_PLATFORM;
 	/** "Dummy pilot" option on the Drone Center - see DummyPilotEntity's own doc. Sized to match a vanilla player (0.6 x 1.8), since it renders with that same model and sits in seats laid out for players. */
 	public static EntityType<com.example.tudursvehiclemod.entity.DummyPilotEntity> DUMMY_PILOT;
+	/** The unseen gun crew of a Fire Support Center - see FireSupportGunnerEntity's own doc. */
+	public static EntityType<com.example.tudursvehiclemod.entity.FireSupportGunnerEntity> FIRE_SUPPORT_GUNNER;
 
 	/** Since EntityType dimensions are fixed once at registration (LivingEntity's own getDimensions() is confirmed final - see CarrierRunwayPlatformEntity's own doc), no single entity TYPE can adapt to a runway it hasn't been told about yet. Registering several DISCRETE size variants instead lets tudursvehiclemod$selectCarrierRunwayTileType() (AbstractVehicleEntity) choose, per runway, whichever registered size best fits THAT runway's own width - a coarser approximation of "size follows width" than truly continuous scaling, but a close one in practice.
 	 *
@@ -57,6 +59,7 @@ public class ModEntityTypes {
 		// See entity.ParachuteEntity's own doc.
 		PARACHUTE = register("parachute", com.example.tudursvehiclemod.entity.ParachuteEntity::new, 0.6f, 0.6f, 1);
 		DUMMY_PILOT = register("dummy_pilot", com.example.tudursvehiclemod.entity.DummyPilotEntity::new, 0.6f, 1.8f, 1);
+		FIRE_SUPPORT_GUNNER = register("fire_support_gunner", com.example.tudursvehiclemod.entity.FireSupportGunnerEntity::new, 0.5f, 0.5f, 1);
 		// Torpedoes (and other VehicleProjectileEntity
 		// instances) moving choppily/stutteringly on the client: the default
 		// trackingTickInterval (unset here otherwise, so it falls back to

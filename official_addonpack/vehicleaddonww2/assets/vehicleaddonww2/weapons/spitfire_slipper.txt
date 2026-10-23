@@ -1,8 +1,0 @@
-; 90 gal Slipper Tank
-DisplayName = 90 gal Slipper Tank
-Type = DropTank
-Round = 1
-MaxAmmo = 1
-FuelPerAmmo = 330.0
-Gravity = -0.05
-ModelBullet = droptank
