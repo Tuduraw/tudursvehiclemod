@@ -43,6 +43,8 @@ public final class HitMeshPreloader {
 			}
 			// The whole-model mesh: the hit search box is sized from it (AbstractVehicleEntity.tudursvehiclemod$updateCustomHitDetection()).
 			ServerObjModelHitboxes.getMesh(def.model());
+			// The solid-cell grid contact detection uses (VehicleContacts) - only ever built here.
+			VehicleContacts.tudursvehiclemod$buildVoxels(def);
 		} catch (RuntimeException e) {
 			org.slf4j.LoggerFactory.getLogger("tudursvehiclemod").warn("Building the hit meshes for {} in the background failed - they'll be built on first use", def.model(), e);
 		}

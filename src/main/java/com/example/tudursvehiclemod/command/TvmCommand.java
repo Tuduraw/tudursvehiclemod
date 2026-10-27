@@ -42,7 +42,18 @@ public final class TvmCommand {
 								.then(CommandManager.literal("--all")
 										.executes(ctx -> cleanAllPersistedVehicleData(ctx.getSource())))))
 				.then(CommandManager.literal("unloadchunks")
-						.executes(ctx -> unloadChunks(ctx.getSource()))));
+						.executes(ctx -> unloadChunks(ctx.getSource())))
+				.then(CommandManager.literal("debug")
+						.then(CommandManager.literal("contacts")
+								.executes(ctx -> toggleContactDisplay(ctx.getSource())))));
+	}
+
+	/** "/tvm debug contacts": shows every contact entity.VehicleContacts finds, as particles at the contact points (red: vehicle against vehicle, yellow: vehicle against a living entity), for everyone - see VehicleContacts.tudursvehiclemod$tickDebugDisplay(). Toggles. Reports how many shape grids are built and how much memory they hold. */
+	private static int toggleContactDisplay(ServerCommandSource source) {
+		boolean enabled = com.example.tudursvehiclemod.entity.VehicleContacts.tudursvehiclemod$toggleDebugDisplay();
+		String stats = com.example.tudursvehiclemod.entity.VehicleContacts.tudursvehiclemod$describeVoxelStats();
+		source.sendFeedback(() -> Text.literal("[tvm] Contact display " + (enabled ? "ON" : "OFF") + " - " + stats), true);
+		return 1;
 	}
 
 	/** "/tvm unloadchunks": resets every dimension's force-loaded chunks to exactly the ones this mod is still using - see ChunkForceTracker.resetForcedChunks()'s own doc. Releases the leftovers (from before removal cleanup was fixed, from earlier sessions - force-loading is saved with the world - and any made with vanilla /forceload or by other mods); keeps whatever an aircraft in flight, an active Drone Center, a Station or a projectile still needs, so they carry on uninterrupted. Everything else is then loaded around players as usual. */

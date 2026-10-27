@@ -29,6 +29,7 @@ dedicated server can't be changed directly from this screen.
 3. Server settings (`tudursvehiclemod-server.json`)
 4. Settings that don't appear on the settings screen
 5. Resetting force-loaded chunks (`/tvm unloadchunks`)
+6. Showing contacts (`/tvm debug contacts`)
 
 ---
 
@@ -345,3 +346,16 @@ so it's covered here.
   `destroy`), `/fill`, `/clone` and the like skips that cleanup, as
   vanilla does for every block entity. Any force-loading left behind
   that way is released by this command.
+
+## 6. Showing contacts (`/tvm debug contacts`)
+
+- **Permission**: operator (permission level 2 or higher)
+- **What it does**: shows the contacts found by shape-based contact
+  detection (see "Contact detection by vehicle shape" in the README) as
+  particles. Each run toggles it on or off. Everyone can see them.
+  - Red: vehicle against vehicle
+  - Yellow: vehicle against a living entity (player, mob)
+- **Output**: how many shape grids are built, how many solid cells they
+  have, and the memory they take.
+- **Note**: while it's on, every loaded vehicle's contacts are worked out
+  several times a second. Turn it off when you're done.

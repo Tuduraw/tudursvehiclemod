@@ -21,7 +21,6 @@ public class VehicleMod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTED.register(started -> server = started);
-		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(com.example.tudursvehiclemod.entity.HitDiagnostics::onServerTick); // HITDIAG
 
 		// WEAPON_AMMO_SYNC (the client-visible synced string) is only ever rewritten on specific events (fire, reload-tick completion,..), never automatically just because the weapon *definitions* themselves got reloaded. Forces every currently-loaded vehicle to re-sync its own (unchanged, still-correct) ammo state to the client right here instead, so the HUD/AmmoPart visibility catch up immediately rather than waiting on the next such event.
 		Runnable resyncAllVehicleAmmo = () -> {
@@ -148,6 +147,10 @@ public class VehicleMod implements ModInitializer {
 		// See entity.LoadedProjectiles's own doc - lets a vehicle skip its per-tick projectile hit query while its world has no projectile loaded at all.
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_LOAD.register(com.example.tudursvehiclemod.entity.LoadedProjectiles::onLoad);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_UNLOAD.register(com.example.tudursvehiclemod.entity.LoadedProjectiles::onUnload);
+		// The loaded vehicles, for contact detection - see entity.VehicleContacts.
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_LOAD.register(com.example.tudursvehiclemod.entity.VehicleContacts::onLoad);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_UNLOAD.register(com.example.tudursvehiclemod.entity.VehicleContacts::onUnload);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_WORLD_TICK.register(com.example.tudursvehiclemod.entity.VehicleContacts::tudursvehiclemod$tickDebugDisplay);
 		// Records projectile paths, and checks the end of a finished projectile's flight against vehicles once more - see LoadedProjectiles.onEndWorldTick().
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_WORLD_TICK.register(com.example.tudursvehiclemod.entity.LoadedProjectiles::onEndWorldTick);
 		// Nothing scheduled by a previous session (singleplayer: the same JVM) may run against the new one.
@@ -174,6 +177,7 @@ public class VehicleMod implements ModInitializer {
 			ChunkForceTracker.clear();
 			com.example.tudursvehiclemod.entity.projectile.ProjectileChunkLoadTracker.clear();
 			com.example.tudursvehiclemod.entity.LoadedProjectiles.clear();
+			com.example.tudursvehiclemod.entity.VehicleContacts.clear();
 		});
 
 		// Chunk force-loading "didn't seem to

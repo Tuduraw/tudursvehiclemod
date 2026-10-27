@@ -48,7 +48,7 @@ import java.util.UUID;
  *
  * <p><b>Laying the guns.</b> For each weapon the firing elevation is solved with the projectile's real flight (Ballistics.solveElevation(): its speed, gravity and air drag, and its TimeFuse as the longest flight it gets), from the weapon's muzzle, flat or lobbed (highArc). The direction is turned into the vehicle's own frame (so a ship's roll and pitch are allowed for) and checked against the weapon's aim range: a target the weapon can't reach - too far, or outside the arc its turret can turn through - is out of range, and that unit doesn't fire. The weapon's seat gets an unseen gunner (FireSupportGunnerEntity) turned to face the solution: the turret follows it exactly as it would a player gunner (turret speed, limits, waiting until settled), and the gun is fired through AbstractVehicleEntity.tryFireWeapon() as an unmanned weapon - ammunition, magazine, reload and cooldown all as usual. A seat someone else is in (a player, another center's gunner) is left alone.
  *
- * <p><b>Weapons.</b> Per unit, one chosen weapon, or "auto": every usable weapon of the vehicle, one direction per seat (a seat's guns all follow the one gunner), each seat laid for the first of its weapons that can reach the target and also firing any other weapon in that seat that flies the same way (same speed and gravity) and can reach it from there. Usable: a turret-aimed weapon (it has an aim range) that fires shells, bullets or rockets - not bombs, torpedoes, depth charges, carrier/CAS launches, targeting pods or drop tanks.
+ * <p><b>Weapons.</b> Per unit, one chosen weapon, or "auto": every usable weapon of the vehicle, one direction per seat (a seat's guns all follow the one gunner), each seat laid for the first of its weapons that can reach the target and also firing any other weapon in that seat that flies the same way (same speed and gravity) and can reach it from there. Usable: a turret-aimed weapon (it has an aim range) that fires shells, bullets or rockets - not bombs, torpedoes, depth charges, targeting pods or drop tanks. A CAS strike or Carrier launch can be chosen for a unit too (never by "auto"): it is sent at the target point - see tudursvehiclemod$isPointWeapon().
  *
  * <p><b>On and off.</b> From the screen, by redstone (when redstone control is on: powered means on), or from afar with the designator (when remote control is on). Turning on with no unit able to reach the target leaves it off, with a warning saying why for each unit; with only some able to, those fire and the others are listed. It stays on until turned off, or until nothing can fire any more - every reachable weapon out of ammunition, or no unit left that can reach the target (the target moved out of range, the vehicles were lost) - and goes off by itself then, saying so.
  *
@@ -124,6 +124,8 @@ public class FireSupportCenterBlockEntity extends BlockEntity implements NamedSc
 	private final ChunkPos[] forcedUnitChunk = new ChunkPos[UNIT_SLOTS];
 	private boolean ownChunkForced;
 	private int ticksUntilResolve;
+	/** The target point as of the last evaluation - what CAS/Carrier weapons are sent at. */
+	private Vec3d currentTarget;
 	/** The last notice, shown at the foot of the screen: a translation key and its arguments. */
 	private String lastMessageKey = "";
 	private List<String> lastMessageArgs = List.of();
@@ -242,7 +244,7 @@ public class FireSupportCenterBlockEntity extends BlockEntity implements NamedSc
 		}
 		List<WeaponDefinition> weapons = vehicle.getDefinition().weapons();
 		for (int index = this.weaponChoice[unit] + 1; index < weapons.size(); index++) {
-			if (tudursvehiclemod$isUsableWeapon(vehicle, weapons.get(index))) {
+			if (tudursvehiclemod$isUsableWeapon(vehicle, weapons.get(index)) || tudursvehiclemod$isPointWeapon(vehicle, weapons.get(index))) {
 				return index;
 			}
 		}
@@ -434,6 +436,7 @@ public class FireSupportCenterBlockEntity extends BlockEntity implements NamedSc
 	/** Works out every unit's status and firing plan against the current target. */
 	private void tudursvehiclemod$evaluateAll(ServerWorld world) {
 		Vec3d target = this.tudursvehiclemod$resolveTarget();
+		this.currentTarget = target;
 		for (int unit = 0; unit < UNIT_SLOTS; unit++) {
 			List<SeatPlan> plans = new ArrayList<>();
 			this.unitStatus[unit] = this.tudursvehiclemod$evaluateUnit(world, unit, target, plans);
@@ -457,9 +460,20 @@ public class FireSupportCenterBlockEntity extends BlockEntity implements NamedSc
 			return UnitStatus.DESTROYED;
 		}
 		List<WeaponDefinition> weapons = vehicle.getDefinition().weapons();
+		int choice = this.weaponChoice[unit];
+		// A CAS strike or Carrier launch, chosen for this unit: sent at the target point itself, no laying needed - see tudursvehiclemod$isPointWeapon().
+		if (choice >= 0 && choice < weapons.size() && tudursvehiclemod$isPointWeapon(vehicle, weapons.get(choice))) {
+			if (target == null) {
+				return UnitStatus.NO_TARGET;
+			}
+			if (!vehicle.tudursvehiclemod$hasShotsLeft(choice)) {
+				return UnitStatus.NO_AMMO;
+			}
+			plansOut.add(new SeatPlan(POINT_WEAPON_SEAT, 0f, 0f, new int[]{choice}));
+			return this.active ? UnitStatus.ENGAGING : UnitStatus.READY;
+		}
 		// Usable weapons by seat, in definition order.
 		Map<Integer, List<Integer>> bySeat = new LinkedHashMap<>();
-		int choice = this.weaponChoice[unit];
 		for (int index = 0; index < weapons.size(); index++) {
 			if ((choice < 0 || choice == index) && tudursvehiclemod$isUsableWeapon(vehicle, weapons.get(index))) {
 				bySeat.computeIfAbsent(weapons.get(index).seatIndex(), seat -> new ArrayList<>()).add(index);
@@ -514,6 +528,18 @@ public class FireSupportCenterBlockEntity extends BlockEntity implements NamedSc
 	private static UnitStatus tudursvehiclemod$moreTelling(UnitStatus current, UnitStatus candidate) {
 		java.util.List<UnitStatus> order = java.util.List.of(UnitStatus.OUT_OF_RANGE, UnitStatus.OUT_OF_ARC, UnitStatus.NO_AMMO, UnitStatus.SEAT_OCCUPIED);
 		return order.indexOf(candidate) > order.indexOf(current) ? candidate : current;
+	}
+
+	/** SeatPlan.seat() of a CAS/Carrier plan: no gunner, the weapon is sent at the target point (AbstractVehicleEntity.tudursvehiclemod$tryFireWeaponAt()). */
+	private static final int POINT_WEAPON_SEAT = -1;
+
+	/** A CAS strike or a Carrier launch: given the target point as its own target point (the centre of its route), in place of the one a player marks by aiming. Never chosen by "auto" - a unit fires one only when it is chosen for that unit, since it sends aircraft rather than shells. No range limit: the aircraft fly there. */
+	public static boolean tudursvehiclemod$isPointWeapon(AbstractVehicleEntity vehicle, WeaponDefinition weapon) {
+		if (vehicle instanceof com.example.tudursvehiclemod.entity.AircraftEntity
+				|| vehicle instanceof com.example.tudursvehiclemod.entity.HelicopterEntity) {
+			return false;
+		}
+		return weapon.weaponType() == WeaponType.CAS || weapon.weaponType() == WeaponType.CARRIER;
 	}
 
 	/** Usable for fire support - see this class's doc. Aircraft can't hold a gun on a point. */
@@ -617,6 +643,14 @@ public class FireSupportCenterBlockEntity extends BlockEntity implements NamedSc
 		}
 		java.util.Set<Integer> seatsInUse = new java.util.HashSet<>();
 		for (SeatPlan plan : plans) {
+			if (plan.seat() == POINT_WEAPON_SEAT) {
+				if (this.currentTarget != null) {
+					for (int index : plan.weaponIndices()) {
+						vehicle.tudursvehiclemod$tryFireWeaponAt(index, this.currentTarget);
+					}
+				}
+				continue;
+			}
 			FireSupportGunnerEntity gunner = this.tudursvehiclemod$gunnerFor(world, vehicle, plan.seat());
 			if (gunner == null) {
 				continue;

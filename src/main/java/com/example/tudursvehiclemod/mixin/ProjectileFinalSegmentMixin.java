@@ -28,7 +28,6 @@ public abstract class ProjectileFinalSegmentMixin {
 		// Where the projectile was when this tick began - see AbstractVehicleEntity.tudursvehiclemod$lastMove().
 		Vec3d from = AbstractVehicleEntity.tudursvehiclemod$lastMove(self)[0];
 		boolean vehicleHit = AbstractVehicleEntity.tudursvehiclemod$tryHitOnFinalSegment(world, self, from, hitResult.getPos());
-		if (hitResult.getType() == HitResult.Type.BLOCK) com.example.tudursvehiclemod.entity.HitDiagnostics.onBlockImpact(world, self, from, hitResult.getPos(), vehicleHit); // HITDIAG
 		if (vehicleHit) {
 			cir.setReturnValue(ProjectileDeflection.NONE);
 		}

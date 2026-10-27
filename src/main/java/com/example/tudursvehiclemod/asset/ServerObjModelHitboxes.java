@@ -705,17 +705,9 @@ public final class ServerObjModelHitboxes {
 		return t > 0f ? t : -1f;
 	}
 
-	/** HITDIAG: distance (model units) from (x, y, z) to the nearest triangle of the mesh, by testing every triangle - for diagnostics only. */
-	public static double nearestSurfaceDistance(Mesh mesh, float x, float y, float z) { // HITDIAG
-		float best = Float.MAX_VALUE; // HITDIAG
-		for (float[] tri : mesh.triangles()) { // HITDIAG
-			best = Math.min(best, tudursvehiclemod$distanceSquaredToTriangle(x, y, z, tri)); // HITDIAG
-		} // HITDIAG
-		return Math.sqrt(best); // HITDIAG
-	} // HITDIAG
 
 	/** Closest-point-on-triangle (standard Voronoi-region algorithm - see e.g. Ericson's "Real-Time Collision Detection"), returning the SQUARED distance from (px,py,pz) to that closest point, for a plain surface-proximity test rather than any kind of inside/outside volumetric test. tri is {ax,ay,az, bx,by,bz, cx,cy,cz}. */
-	private static float tudursvehiclemod$distanceSquaredToTriangle(float px, float py, float pz, float[] tri) {
+	static float tudursvehiclemod$distanceSquaredToTriangle(float px, float py, float pz, float[] tri) {
 		float ax = tri[0], ay = tri[1], az = tri[2];
 		float bx = tri[3], by = tri[4], bz = tri[5];
 		float cx = tri[6], cy = tri[7], cz = tri[8];
@@ -998,10 +990,6 @@ public final class ServerObjModelHitboxes {
 	 * WHY THESE HAVE TO BE SEPARATE FILES: the offline optimiser (tools/optimize_model.py) merges adjacent coplanar quads, and that is fundamentally incompatible with an atlas-mapped model. Every face in a converted model maps to exactly one 16x16 tile of its own atlas (verified on the sample: all 108,509 faces, across 355 distinct tiles). Merging two such quads - even two using the SAME tile - produces one larger quad that would need its own UVs to REPEAT across that tile, and an atlas cannot repeat: anything past a tile's own bounds samples whichever neighbouring tile happens to sit there. So an optimised mesh can never be rendered correctly, no matter how the UVs are assigned.
 	 *
 	 * THE CONVENTION: a display model's own path normally contains a "models" directory segment somewhere along it (mcheli_convert.py's own output convention is "…/models/obj/{type}/{name}.obj" - see that module's own doc). If it does, hit detection first looks for the SAME relative path with that ONE segment swapped for HIT_DETECTION_MODEL_DIR ("models_hitbox") - so "…/models/obj/aircraft/foo.obj" maps to "…/models_hitbox/obj/aircraft/foo.obj", mirroring the same subtree one level over rather than mixing hitbox files in among the display models. Nothing else changes - the vehicle still RENDERS from the original file with its own atlas UVs completely intact, because rendering never comes through this class at all. Deliberately convention-based rather than a new definition field, so an optimised mesh is adopted by simply dropping it into that mirrored folder: no JSON edit, no definition change, and no effect at all on any pack that doesn't have one. A model whose own path has no "models" segment at all (a non-standard layout) has no established mirror location, so this simply falls through to the display file as before. */
-	/** HITDIAG: the file the hit mesh for modelId is read from. */
-	public static Path diagResolvedModelPath(Identifier modelId) { // HITDIAG
-		return tudursvehiclemod$resolveModelPath(modelId); // HITDIAG
-	} // HITDIAG
 
 	private static Path tudursvehiclemod$resolveModelPath(Identifier modelId) {
 		String displayPath = "assets/" + modelId.getNamespace() + "/" + modelId.getPath();

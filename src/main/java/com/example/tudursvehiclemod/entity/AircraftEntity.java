@@ -3207,7 +3207,11 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		}
 	}
 
-	/** Damage to BOTH this aircraft and whatever it hit, on a high-speed collision with another entity. uses the SAME real-mesh-surface test as projectile hit detection (see AbstractVehicleEntity's own tudursvehiclemod$isPointNearMeshSurface() doc) for vehicle-vs-vehicle collisions specifically, rather than trusting the crude bounding-box overlap that found the candidate in the first place (that overlap is still used as a cheap first-pass search filter below, exactly like projectile hit detection's own search box). */
+	/** Damage to BOTH this aircraft and whatever it hit, on a high-speed collision with another entity.
+	 *
+	 * <p>Found by the two shapes (VehicleContacts - this aircraft's model as solid cells against the other vehicle's, or against a living entity's box). This used to look for candidates by this aircraft's entity bounding box - a fixed small box at its centre - so another vehicle was found only when that box happened to overlap its own small box: an aircraft flying into a ship's side or a carrier's island hit nothing. Until this aircraft's shape grid has been built (a moment after its type first appears) the old corner test below stands in.
+	 *
+	 * <p>Against a vehicle, the speed that counts is the two vehicles' relative speed, and a contact low on this aircraft's own shape (its lowest LANDING_CONTACT_HEIGHT_FRACTION - the wheels, the belly) is taken as it resting on or landing on the other (a carrier's deck), not as a collision. */
 	protected void tudursvehiclemod$checkEntityCrashDamage(double preMoveSpeed) {
 		if (!(this.getEntityWorld() instanceof ServerWorld serverWorld)) {
 			return;
@@ -3215,33 +3219,49 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		if (preMoveSpeed < ENTITY_CRASH_MIN_SPEED) {
 			return;
 		}
+		if (VehicleContacts.tudursvehiclemod$voxels(this.getDefinition()).isEmpty()) {
+			this.tudursvehiclemod$checkEntityCrashDamageByCorners(serverWorld, preMoveSpeed);
+			return;
+		}
+		for (VehicleContacts.Contact contact : VehicleContacts.contactsFor(this)) {
+			Entity other = contact.other();
+			if (!other.isAlive() || this.hasPassenger(other) || this.tudursvehiclemod$isRecentlyDismounted(other)) {
+				continue;
+			}
+			double speed = preMoveSpeed;
+			if (other instanceof AbstractVehicleEntity) {
+				if (VehicleContacts.tudursvehiclemod$heightFraction(this, contact.point()) < LANDING_CONTACT_HEIGHT_FRACTION) {
+					continue;
+				}
+				speed = this.getVelocity().subtract(other.getVelocity()).length();
+				if (speed < ENTITY_CRASH_MIN_SPEED) {
+					continue;
+				}
+			}
+			float damage = (float) (speed * ENTITY_CRASH_DAMAGE_PER_SPEED);
+			other.damage(serverWorld, this.getDamageSources().flyIntoWall(), damage);
+			this.damage(serverWorld, this.getDamageSources().flyIntoWall(), damage);
+		}
+	}
+
+	/** See tudursvehiclemod$checkEntityCrashDamage(). */
+	protected static final double LANDING_CONTACT_HEIGHT_FRACTION = 0.2;
+
+	/** The pre-shape-grid collision test, kept for the moment before this aircraft's grid exists (see tudursvehiclemod$checkEntityCrashDamage()). */
+	private void tudursvehiclemod$checkEntityCrashDamageByCorners(ServerWorld serverWorld, double preMoveSpeed) {
 		float damage = (float) (preMoveSpeed * ENTITY_CRASH_DAMAGE_PER_SPEED);
 		java.util.List<Entity> candidates = this.getEntityWorld().getOtherEntities(this, this.getBoundingBox().expand(0.1),
 				e -> (e instanceof LivingEntity || e instanceof AbstractVehicleEntity)
 						&& !(e instanceof com.example.tudursvehiclemod.entity.CarrierRunwayPlatformEntity)
 						&& e.isAlive() && !this.hasPassenger(e) && !this.tudursvehiclemod$isRecentlyDismounted(e));
-		if (candidates.isEmpty()) {
-			return;
-		}
-		// Sequential rather than parallel: candidate sets here are typically 0-3 entities, where
-		// candidate sets here are typically 0-3 entities, where
-		// parallelStream()'s own fork/join dispatch overhead exceeds
-		// whatever it could possibly save - a plain sequential stream is
-		// both simpler and actually cheaper at this scale.
-		java.util.List<Entity> actuallyTouching = candidates.stream()
-				.filter(other -> {
-					if (other instanceof AbstractVehicleEntity otherVehicle) {
-						// Checks BOTH directions (the other vehicle's own corners against this aircraft's own mesh, and this aircraft's own corners against the other vehicle's own mesh) since either one's own surface could be the one actually making contact.
-						return tudursvehiclemod$anyCornerNearMesh(otherVehicle, this)
-								|| tudursvehiclemod$anyCornerNearMesh(this, otherVehicle);
-					}
-					// A living entity has no mesh of its own to sample corners from - just tests its own position directly against this aircraft's own mesh.
-					return this.tudursvehiclemod$isPointNearMeshSurface(other.getEntityPos());
-				})
-				.collect(java.util.stream.Collectors.toList());
-		for (Entity other : actuallyTouching) {
-			other.damage(serverWorld, this.getDamageSources().flyIntoWall(), damage);
-			this.damage(serverWorld, this.getDamageSources().flyIntoWall(), damage);
+		for (Entity other : candidates) {
+			boolean touching = other instanceof AbstractVehicleEntity otherVehicle
+					? tudursvehiclemod$anyCornerNearMesh(otherVehicle, this) || tudursvehiclemod$anyCornerNearMesh(this, otherVehicle)
+					: this.tudursvehiclemod$isPointNearMeshSurface(other.getEntityPos());
+			if (touching) {
+				other.damage(serverWorld, this.getDamageSources().flyIntoWall(), damage);
+				this.damage(serverWorld, this.getDamageSources().flyIntoWall(), damage);
+			}
 		}
 	}
 

@@ -32,7 +32,6 @@ public class DebugMenuScreen extends Screen {
 				button -> {
 					com.example.tudursvehiclemod.client.debug.HitDetectionMeshDebugRenderer.enabled =
 							!com.example.tudursvehiclemod.client.debug.HitDetectionMeshDebugRenderer.enabled;
-					com.example.tudursvehiclemod.client.debug.HitDiagClient.logSnapshot(com.example.tudursvehiclemod.client.debug.HitDetectionMeshDebugRenderer.enabled); // HITDIAG
 					button.setMessage(tudursvehiclemod$hitboxMeshButtonText());
 				}
 		).dimensions(centerX - 100, startY + 24, 200, 20).build());

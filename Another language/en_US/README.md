@@ -634,8 +634,14 @@ target point, unmanned. Elevation is solved from the real trajectory
   helicopters can't be used.
 - **Weapons**: turret-aimed weapons (with an `aim_range`) that fire shells,
   bullets or rockets (`MachineGun`, `Rocket`, `MkRocket`, `Dispenser`,
-  `Smoke`, `Other`). Bombs, torpedoes, depth charges, CAS/Carrier,
-  targeting pods and drop tanks are excluded.
+  `Smoke`, `Other`). Bombs, torpedoes, depth charges, targeting pods and
+  drop tanks are excluded.
+- **CAS and Carrier weapons**: when chosen as a unit's weapon, the
+  support target point is used as the weapon's target point (the centre
+  of its route) - the support aircraft fly the strike, or the carrier
+  aircraft launch, with the route turned to face the point from the
+  vehicle. No range limit. "Auto" never picks them - they are used only
+  when chosen.
 - **Weapon choice**: per unit, "Auto" or one weapon. Auto lays each seat
   for the first of its weapons that reaches the target, and also fires the
   seat's other weapons that fly the same way (same speed and gravity).
@@ -673,6 +679,32 @@ target point, unmanned. Elevation is solved from the real trajectory
   `fireSupportDesignatorRange` blocks, within loaded chunks) as the
   target - only when the center is set to designator targeting.
 - Sneak + right-click anywhere else: turns support on or off.
+
+---
+
+## Contact detection by vehicle shape
+
+Contacts between vehicles, and between a vehicle and living entities
+(players, mobs), are found by the vehicles' model shapes. A vehicle's
+entity bounding box is a small fixed box with nothing to do with its
+size, so contact with a large vehicle was hardly ever found before.
+
+- The model is divided into a 0.5-block grid. Every cell its surface
+  passes through, and every cell its surface encloses, is solid. A
+  270-block battleship gets slightly coarser cells (about 0.55 blocks).
+- The grid is built once per vehicle type, in the background, when a
+  vehicle of that type is loaded (together with the hit meshes).
+- Contacts are worked out only when something asks. For now that is an
+  aircraft's collision damage at speed:
+  - Between two vehicles, damage is worked out from their relative speed.
+  - A contact on the lowest 20% of the aircraft's height (the wheels, the
+    belly) is taken as landing on or resting on a deck, not a collision.
+- Nothing is pushed apart: vehicles and living entities still pass
+  through each other as before. Moving parts (rotors, gear and the like)
+  are left out, and turrets are taken at their rest position.
+- `/tvm debug contacts` shows the contacts found as particles (red:
+  vehicle against vehicle, yellow: vehicle against a living entity). See
+  [Readme_cfg.md](Readme_cfg.md).
 
 ---
 

@@ -26,17 +26,14 @@ public final class LoadedProjectiles {
 	/** How many end-of-tick positions are kept per projectile: with the position it was removed at, its last PATH_TICKS moves. Two - the move it ended on and the one before it - covers what the checks made while it flew can have left out (see onEndWorldTick()); further back, the vehicles may have turned too far since for the check to mean much. */
 	private static final int PATH_TICKS = 2;
 
-	/** HITDIAG: how many end-of-tick positions are kept for the diagnostics' look at the whole of a finished flight (HitDiagnostics.onProjectileGone()). */
-	private static final int DIAG_PATH_TICKS = 20; // HITDIAG
-
-	/** End-of-tick positions, oldest first, at most Math.max(PATH_TICKS, DIAG_PATH_TICKS). */
+	/** End-of-tick positions, oldest first, at most PATH_TICKS. */
 	private static final Map<ProjectileEntity, ArrayList<Vec3d>> PATHS = new IdentityHashMap<>();
 
 	/** Projectiles a vehicle has already taken (AbstractVehicleEntity.tudursvehiclemod$applyProjectileHits()) - not looked at again when they go. */
 	private static final Set<ProjectileEntity> VEHICLE_HIT = Collections.newSetFromMap(new IdentityHashMap<>());
 
 	/** A projectile that has just gone, with the end of its flight - checked at the end of the world's tick. */
-	private record LateCheck(ProjectileEntity projectile, List<Vec3d> path, List<Vec3d> diagPath, String reason) {
+	private record LateCheck(ProjectileEntity projectile, List<Vec3d> path) {
 	}
 
 	private static final Map<ServerWorld, List<LateCheck>> LATE_CHECKS = new HashMap<>();
@@ -81,9 +78,7 @@ public final class LoadedProjectiles {
 			return;
 		}
 		// Not right here: this runs in the middle of the entity's removal, and a hit can destroy the vehicle (removing and spawning entities of its own).
-		List<Vec3d> diagPath = new ArrayList<>(recorded != null ? recorded : List.of()); // HITDIAG
-		diagPath.add(end); // HITDIAG
-		LATE_CHECKS.computeIfAbsent(world, w -> new ArrayList<>()).add(new LateCheck(projectile, path, diagPath, reason.name()));
+		LATE_CHECKS.computeIfAbsent(world, w -> new ArrayList<>()).add(new LateCheck(projectile, path));
 	}
 
 	/** Where the projectile was at the end of the tick before the one it ended at from (its last recorded position, if that is from - the start of the move it is making now), or null if that isn't known. */
@@ -107,8 +102,7 @@ public final class LoadedProjectiles {
 		List<LateCheck> checks = LATE_CHECKS.remove(world);
 		if (checks != null) {
 			for (LateCheck check : checks) {
-				AbstractVehicleEntity vehicle = AbstractVehicleEntity.tudursvehiclemod$tryLateHitOnPath(world, check.projectile(), check.path());
-				HitDiagnostics.onProjectileGone(world, check.projectile(), vehicle != null ? check.path() : check.diagPath(), check.reason(), vehicle); // HITDIAG
+				AbstractVehicleEntity.tudursvehiclemod$tryLateHitOnPath(world, check.projectile(), check.path());
 			}
 		}
 		Set<ProjectileEntity> loaded = LOADED.get(world);
@@ -123,7 +117,7 @@ public final class LoadedProjectiles {
 				continue;
 			}
 			path.add(position);
-			while (path.size() > Math.max(PATH_TICKS, DIAG_PATH_TICKS)) {
+			while (path.size() > PATH_TICKS) {
 				path.remove(0);
 			}
 		}

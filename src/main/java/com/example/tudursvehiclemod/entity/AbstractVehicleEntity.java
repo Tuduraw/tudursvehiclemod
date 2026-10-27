@@ -2070,6 +2070,9 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		}
 
 		tudursvehiclemod$updateCustomHitDetection(getDefinition());
+		if (this.getEntityWorld() instanceof ServerWorld contactWorld) {
+			VehicleContacts.tudursvehiclemod$markTicking(this, contactWorld);
+		}
 
 		// Even though that code only ever RAN server-side, the resulting zeroed velocity was still the server's own AUTHORITATIVE value, broadcast to every observing client via Minecraft's own normal entity-velocity sync (separate from position sync) - so observing clients still received "velocity=0" while the entity's own position kept changing via periodic position sync, reproducing the same interpolation mismatch/jitter through a different path than the original client-side DataTracker sync did. Removed entirely: RUNWAY_CARRY_WHEEL_SYNC (see its own doc, just below) directly fixes the actual root cause of the wheel-spin/crawler-track bug (independently-tracked lastTickX/lastTickZ/lastYaw, unrelated to velocity), so this mechanism no longer serves any purpose at all.
 		if (this.dataTracker.get(RUNWAY_CARRY_WHEEL_SYNC)) {
@@ -5441,6 +5444,34 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		return this.tryFireWeapon(weaponIndex, shooter, null);
 	}
 
+	/** Set only for the length of a tudursvehiclemod$tryFireWeaponAt() call: the point an unmanned CAS strike or Carrier launch is sent at. */
+	private Vec3d tudursvehiclemod$unmannedTargetPoint;
+
+	/**
+	 * Fires weaponIndex unmanned (as tryFireWeapon(weaponIndex, null)) with targetPoint as its target point: a CAS strike or a Carrier launch, which a player aims by marking a point (tudursvehiclemod$computeCasCarrierTargetPoint()), takes this point as the centre of its route instead, its route turned to face it from this vehicle. Unmanned, those two used to spend their ammunition and cooldown and launch nothing. Every other weapon fires exactly as tryFireWeapon(weaponIndex, null). Used by the Fire Support Center (block.FireSupportCenterBlockEntity).
+	 */
+	public boolean tudursvehiclemod$tryFireWeaponAt(int weaponIndex, Vec3d targetPoint) {
+		this.tudursvehiclemod$unmannedTargetPoint = targetPoint;
+		try {
+			return this.tryFireWeapon(weaponIndex, null, null);
+		} finally {
+			this.tudursvehiclemod$unmannedTargetPoint = null;
+		}
+	}
+
+	/** {x, z} of the horizontal direction from this vehicle to point (this vehicle's own heading if the point is straight above or below it) - the "forward" an unmanned CAS/Carrier route is turned to. */
+	private double[] tudursvehiclemod$horizontalDirectionTo(Vec3d point) {
+		double dx = point.x - this.getX();
+		double dz = point.z - this.getZ();
+		double length = Math.sqrt(dx * dx + dz * dz);
+		if (length < 1.0e-3) {
+			Vec3d heading = this.getRotationVector();
+			double headingLength = Math.max(1.0e-6, Math.sqrt(heading.x * heading.x + heading.z * heading.z));
+			return new double[]{heading.x / headingLength, heading.z / headingLength};
+		}
+		return new double[]{dx / length, dz / length};
+	}
+
 	/**
 	 * As tryFireWeapon(int, ServerPlayerEntity), for an AI firing at an entity it is attacking: aiGuidanceTarget is that entity
 	 * (a wingman's, Carrier aircraft's or dummy pilot's own current target), or null when there is none. Only a
@@ -5568,6 +5599,12 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 				&& this.carrierPendingLaunches.containsKey(weaponIndex)) {
 			return false;
 		}
+		// Unmanned with no point to go to, a CAS strike or Carrier launch has nothing to do (see the launch below) - refused before anything is spent, rather than using up a round for nothing.
+		if (shooter == null && this.tudursvehiclemod$unmannedTargetPoint == null
+				&& (weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CAS
+						|| weapon.weaponType() == com.example.tudursvehiclemod.asset.WeaponType.CARRIER)) {
+			return false;
+		}
 		if (shooter != null && this.tudursvehiclemod$isLockDesignatedLaunch(weaponIndex)
 				&& this.tudursvehiclemod$findCarrierLaunchTarget(shooter) == null) {
 			return false;
@@ -5690,6 +5727,9 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 						if (shooter != null) {
 							Vec3d shooterViewDir = shooter.getRotationVec(1.0f);
 							tudursvehiclemod$fireCasStrike(weapon, serverWorld, tudursvehiclemod$computeCasCarrierTargetPoint(shooter, weapon), shooterViewDir.x, shooterViewDir.z, actualFormationSize, shooter, weaponIndex);
+						} else if (this.tudursvehiclemod$unmannedTargetPoint != null) {
+							double[] forward = this.tudursvehiclemod$horizontalDirectionTo(this.tudursvehiclemod$unmannedTargetPoint);
+							tudursvehiclemod$fireCasStrike(weapon, serverWorld, this.tudursvehiclemod$unmannedTargetPoint, forward[0], forward[1], actualFormationSize, null, weaponIndex);
 						}
 					}
 					// Unlike CAS, spawns at THIS weapon's own AddWeapon mount position (noProjectileSpawnPos, already computed above) rather than a distant marked point - the ballistic target point still serves as the route's own relative-coordinate center, exactly like CAS's own target point does. See tudursvehiclemod$fireCarrierLaunch()'s own doc.
@@ -5697,6 +5737,9 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 						if (shooter != null) {
 							Vec3d shooterViewDir = shooter.getRotationVec(1.0f);
 							tudursvehiclemod$fireCarrierLaunch(weapon, serverWorld, noProjectileSpawnPos, tudursvehiclemod$computeCasCarrierTargetPoint(shooter, weapon), shooterViewDir.x, shooterViewDir.z, shooter, weaponIndex, actualFormationSize);
+						} else if (this.tudursvehiclemod$unmannedTargetPoint != null) {
+							double[] forward = this.tudursvehiclemod$horizontalDirectionTo(this.tudursvehiclemod$unmannedTargetPoint);
+							tudursvehiclemod$fireCarrierLaunch(weapon, serverWorld, noProjectileSpawnPos, this.tudursvehiclemod$unmannedTargetPoint, forward[0], forward[1], null, weaponIndex, actualFormationSize);
 						}
 					}
 					// A midget submarine, launched the same way as Carrier (from THIS weapon's own mount position) but flown and recovered entirely differently - see tudursvehiclemod$fireMidgetLaunch()'s own doc.
@@ -8767,6 +8810,7 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	public static void tudursvehiclemod$clearDefinitionCaches() {
 		STATIC_BODY_MESH_CACHE.clear();
 		ANIMATED_PART_NAMES_CACHE.clear();
+		VehicleContacts.tudursvehiclemod$clearVoxels();
 		HitMeshPreloader.clear();
 	}
 
@@ -9359,14 +9403,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		// counts this mod's own, so vanilla arrows and tridents - which can't hit a vehicle
 		// any other way (see mixin.ProjectileVehicleHitMixin) - went straight through
 		// whenever none of this mod's own were in flight.
-		this.tudursvehiclemod$diagLastCheckTime = serverWorld.getTime(); // HITDIAG
 		if (!LoadedProjectiles.any(serverWorld)) {
-			this.tudursvehiclemod$diagLastCheckReason = "noProjectilesInWorld"; // HITDIAG
 			return;
 		}
 		var wholeMeshOpt = com.example.tudursvehiclemod.asset.ServerObjModelHitboxes.getMesh(def.model());
 		if (wholeMeshOpt.isEmpty()) {
-			this.tudursvehiclemod$diagLastCheckReason = "noMesh"; // HITDIAG
 			return;
 		}
 		// This used to derive the search
@@ -9405,10 +9446,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 			}
 		}
 		if (candidates.isEmpty()) {
-			this.tudursvehiclemod$diagLastCheckReason = "noCandidates"; // HITDIAG
 			return;
 		}
-		this.tudursvehiclemod$diagLastCheckReason = "checked" + candidates.size(); // HITDIAG
 
 		// When the opt-in cross-vehicle parallel
 		// path is enabled (see VehicleModServerConfig's own
@@ -9471,29 +9510,8 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 	}
 
 	/** The actual side effects (damage + discard) for a resolved set of hits - extracted so HitDetectionCoordinator (see that class's own doc) can apply its own batch's results through the exact same path, rather than duplicating this logic. ALWAYS called on the server thread, never from inside a parallel phase. */
-	// HITDIAG: temporary diagnostics state - see HitDiagnostics.
-	public long tudursvehiclemod$diagLastCheckTime = -1; // HITDIAG
-	public String tudursvehiclemod$diagLastCheckReason = "none"; // HITDIAG
-	boolean tudursvehiclemod$diagWasFiredBy(net.minecraft.entity.projectile.ProjectileEntity projectile) { // HITDIAG
-		return this.tudursvehiclemod$wasFiredByThisVehicle(projectile); // HITDIAG
-	} // HITDIAG
-	String tudursvehiclemod$diagDefinitionId() { // HITDIAG
-		return this.dataTracker.get(VEHICLE_ID); // HITDIAG
-	} // HITDIAG
-	/** HITDIAG: {distance in blocks to the nearest static-body triangle, body-local x, y, z} for a world point, or null without a mesh. */
-	double[] tudursvehiclemod$diagNearestBodySurface(Vec3d worldPoint) { // HITDIAG
-		VehicleDefinition def = this.getDefinition(); // HITDIAG
-		var staticMeshOpt = tudursvehiclemod$getStaticBodyMesh(def); // HITDIAG
-		if (staticMeshOpt.isEmpty()) return null; // HITDIAG
-		org.joml.Vector3f local = new org.joml.Vector3f((float) (worldPoint.x - this.getX()), (float) (worldPoint.y - this.getY()), (float) (worldPoint.z - this.getZ())); // HITDIAG
-		this.getSeatRotationCurrent().conjugate().transform(local); // HITDIAG
-		if (def.scale() > 0f) local.div(def.scale()); // HITDIAG
-		double distance = com.example.tudursvehiclemod.asset.ServerObjModelHitboxes.nearestSurfaceDistance(staticMeshOpt.get(), local.x, local.y, local.z) * def.scale(); // HITDIAG
-		return new double[]{distance, local.x, local.y, local.z}; // HITDIAG
-	} // HITDIAG
 
 	void tudursvehiclemod$applyProjectileHits(net.minecraft.server.world.ServerWorld serverWorld, List<ProjectileHit> hits) {
-		HitDiagnostics.countTickHits(hits.size()); // HITDIAG
 		for (ProjectileHit hit : hits) {
 			net.minecraft.entity.projectile.ProjectileEntity projectile = hit.projectile();
 			// Back to where it touched the mesh. The checks look at a move the projectile has already made, so by now it is at the far end of it - a fast shell up to its whole tick's travel (30-40 blocks) beyond the vehicle - and its explosion, and the client's last sight of it, used to be out there instead of on the hull.
