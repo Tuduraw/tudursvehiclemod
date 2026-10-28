@@ -24,7 +24,8 @@ mixins into it are needed.
 8. Firing weapons from outside a vehicle
 9. Adding variables to the HUD
 10. Cleanup on removal and chunk force-loading
-11. Limitations
+11. Controlling position and attitude from outside
+12. Limitations
 
 ---
 
@@ -43,6 +44,7 @@ All of the following are genuinely extensible.
 | Add your own weapons | Bundle `assets/<namespace>/weapons/<weapon_name>.txt` in your jar |
 | Fire weapons from outside a vehicle (handheld equipment, etc.) | Create projectiles with `WeaponProjectileFactory` and aim or lock on with `WeaponTargeting` |
 | Add your own variables to HUD scripts | Register a listener with `HudVariableProvider.EVENT` |
+| Control a vehicle's position and attitude directly | Set a controller with `tudursvehiclemod$setExternalMotionController()` |
 
 The shared parts - model display, mesh hit detection, durability/destruction
 handling, seats, weapons, the HUD, and translucent rendering - are inherited
@@ -700,7 +702,41 @@ public void onBlockReplaced(BlockPos pos, BlockState oldState) {
 
 ---
 
-## 11. Limitations
+## 11. Controlling position and attitude from outside
+
+Setting an `AbstractVehicleEntity.ExternalMotionController` on a vehicle makes the addon's code run
+every tick in place of that vehicle's own physics (`updateVehicleMovement()`) - for example to move it
+precisely along keyframes. No subclass is needed; it is set on an existing vehicle instance.
+
+```java
+vehicle.tudursvehiclemod$setExternalMotionController(v -> {
+    Vec3d pos = ...;              // position for this tick
+    Quaternionf attitude = ...;   // attitude for this tick
+    v.tudursvehiclemod$applyExternalPose(pos, attitude);
+    return true;                  // false = use the normal physics for this tick
+});
+// when done
+vehicle.tudursvehiclemod$setExternalMotionController(null);
+```
+
+- The attitude is a quaternion in the same convention as `tudursvehiclemod$getBodyOrientation()`
+  (`Ry(-yaw)·Rx(pitch)·Rz(roll)`). `AircraftEntity` (VTOLs included) sets its attitude quaternion
+  directly, so loops and large pitch while rolled are kept as they are. Other vehicles split it into
+  yaw, pitch and roll (yaw and roll are kept continuous with their previous values, without ±180° jumps)
+- `applyExternalPose()` moves without collision. The velocity is set to the distance moved and the fall
+  distance is reset
+- A controller runs **only on the side it was set on**. Set only on the server, clients show the vehicle
+  through the normal position sync; for smooth motion, set a controller computing the same motion on the
+  clients too. While one is set on a client, position packets from the server are not applied
+  (`getInterpolator()` absorbs them)
+- `VehicleMoveC2SPacket`s from a player riding a controlled vehicle are dropped (the server decides the position)
+- Not saved: a reloaded vehicle (a new instance) needs the controller set again
+- Interaction with other behaviour, such as a destroyed vehicle sinking, is up to the addon
+  (for example, return `false` while `tudursvehiclemod$isDestroyed()`)
+
+---
+
+## 12. Limitations
 
 ### Version matching
 

@@ -24,7 +24,8 @@
 8. 車両以外から武器を発射する
 9. HUDに変数を追加する
 10. 削除時の後始末とチャンクの強制ロード
-11. 制限事項
+11. 外部から位置と姿勢を制御する
+12. 制限事項
 
 ---
 
@@ -43,6 +44,7 @@
 | 独自の武器を追加 | `assets/<namespace>/weapons/<weapon_name>.txt`をjarに同梱 |
 | 車両以外(携帯装備など)から武器を発射 | `WeaponProjectileFactory`で弾体を生成し、`WeaponTargeting`で照準・ロックオンを行う |
 | HUDスクリプトに独自の変数を追加 | `HudVariableProvider.EVENT`にリスナーを登録する |
+| 機体の位置・姿勢を外部から直接制御 | `tudursvehiclemod$setExternalMotionController()`でコントローラーを設定 |
 
 モデル表示・メッシュ命中判定・耐久値/破壊処理・座席・武装・HUD・半透明
 描画といった共通部分は、いずれの場合も`AbstractVehicleEntity`から
@@ -688,7 +690,44 @@ public void onBlockReplaced(BlockPos pos, BlockState oldState) {
 
 ---
 
-## 11. 制限事項
+## 11. 外部から位置と姿勢を制御する
+
+`AbstractVehicleEntity.ExternalMotionController`を機体に設定すると、その機体の
+物理演算(`updateVehicleMovement()`)の代わりにアドオン側の処理が毎tick呼ばれます。
+キーフレームに沿って機体を正確に動かす、といった用途に使えます。継承は不要で、
+既存の機体インスタンスにそのまま設定できます。
+
+```java
+vehicle.tudursvehiclemod$setExternalMotionController(v -> {
+    Vec3d pos = ...;              // このtickの位置
+    Quaternionf attitude = ...;   // このtickの姿勢
+    v.tudursvehiclemod$applyExternalPose(pos, attitude);
+    return true;                  // falseを返すと、このtickは通常の物理演算を使う
+});
+// 終了時
+vehicle.tudursvehiclemod$setExternalMotionController(null);
+```
+
+- 姿勢は`tudursvehiclemod$getBodyOrientation()`と同じ規約(`Ry(-yaw)・Rx(pitch)・Rz(roll)`)
+  のクォータニオンです。`AircraftEntity`(VTOLを含む)は姿勢クォータニオンを直接設定する
+  ため、宙返りやロール中の大きなピッチもそのまま表現できます。その他の機体は
+  ヨー・ピッチ・ロールに分解して設定します(ヨーとロールは前回値から連続するように
+  ±180°の飛びを補正します)
+- `applyExternalPose()`は衝突判定なしで移動します。速度は移動量に設定され、落下距離は
+  リセットされます
+- コントローラーは**設定した側でのみ**動きます。サーバーだけに設定すると、クライアントでは
+  通常の位置同期で表示されます。滑らかに表示するには、クライアントにも同じ動きを計算する
+  コントローラーを設定してください。クライアントで設定されている間は、サーバーからの
+  位置パケットは適用されません(`getInterpolator()`が受け流します)
+- コントローラーが設定された機体に乗っているプレイヤーの`VehicleMoveC2SPacket`は破棄されます
+  (位置はサーバーが決めるため)
+- 保存されません。再読み込みされた機体(別のインスタンス)には設定し直す必要があります
+- 破壊された機体の沈没など、他の処理との兼ね合いはアドオン側で判断してください
+  (`tudursvehiclemod$isDestroyed()`のときに`false`を返す、など)
+
+---
+
+## 12. 制限事項
 
 ### バージョンの一致
 

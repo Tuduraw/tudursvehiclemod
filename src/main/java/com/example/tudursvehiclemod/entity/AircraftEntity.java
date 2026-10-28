@@ -322,6 +322,26 @@ public class AircraftEntity extends AbstractVehicleEntity implements FreeCameraV
 		return new Quaternionf(this.prevOrientation).slerp(this.orientation, tickDelta);
 	}
 
+	/** Sets the attitude quaternion itself (rather than going through yaw/pitch/roll, which can't hold every attitude without gimbal effects), keeping prevOrientation one tick behind so rendering slerps between them. Also refreshes the synced angles, so once the controller is removed observers ease on from where the aircraft really is. */
+	@Override
+	public void tudursvehiclemod$applyExternalPose(Vec3d pos, Quaternionf newOrientation) {
+		Vec3d previous = this.getEntityPos();
+		this.prevOrientation.set(this.orientation);
+		this.orientation.set(newOrientation).normalize();
+		float[] angles = extractYawPitchRoll(this.orientation);
+		// The plain Entity yaw/pitch fields, without this class's setYaw()/setPitch() rebuilding the quaternion from Euler angles.
+		super.setYaw(angles[0]);
+		super.setPitch(angles[1]);
+		this.setPosition(pos.x, pos.y, pos.z);
+		this.setVelocity(pos.subtract(previous));
+		this.fallDistance = 0;
+		if (!this.getEntityWorld().isClient()) {
+			this.dataTracker.set(SYNCED_YAW, angles[0]);
+			this.dataTracker.set(SYNCED_PITCH, angles[1]);
+			this.dataTracker.set(SYNCED_ROLL, angles[2]);
+		}
+	}
+
 	@Override
 	protected void onPilotMounted() {
 		super.onPilotMounted();

@@ -1866,6 +1866,65 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		return this.remoteControlStationPos;
 	}
 
+	/** Lets an addon drive a vehicle's position and attitude directly - for example along a keyframed camera path - instead of its own physics. Installed per vehicle instance with tudursvehiclemod$setExternalMotionController(), separately on each side that should run it (server, and the clients that should show the same motion smoothly). Not saved: a reloaded vehicle comes back under its own physics. */
+	public interface ExternalMotionController {
+		/** Called once per tick, in place of updateVehicleMovement(), at the point where the vehicle's own movement normally runs. Typically calls vehicle.tudursvehiclemod$applyExternalPose(). Return false to let the vehicle's own physics run for this tick instead (for example once the controller has finished). */
+		boolean tudursvehiclemod$tickMotion(AbstractVehicleEntity vehicle);
+	}
+
+	/** See ExternalMotionController. Null (the default) = the vehicle's own physics. */
+	private ExternalMotionController externalMotionController;
+	/** Handed to vanilla while an external controller is installed on the client, so the server's position packets are stored there and never applied: the client computes the same pose itself, and snapping to the (one network delay older) server position every few ticks would make the motion jerk. */
+	private net.minecraft.entity.PositionInterpolator externalMotionPacketSink;
+
+	/** Installs (or with null removes) the external movement controller - see ExternalMotionController. */
+	public void tudursvehiclemod$setExternalMotionController(ExternalMotionController controller) {
+		this.externalMotionController = controller;
+		if (controller == null) {
+			this.externalMotionPacketSink = null;
+		}
+	}
+
+	public ExternalMotionController tudursvehiclemod$getExternalMotionController() {
+		return this.externalMotionController;
+	}
+
+	@Override
+	public net.minecraft.entity.PositionInterpolator getInterpolator() {
+		if (this.externalMotionController != null && this.getEntityWorld().isClient()) {
+			if (this.externalMotionPacketSink == null) {
+				this.externalMotionPacketSink = new net.minecraft.entity.PositionInterpolator(this);
+			}
+			return this.externalMotionPacketSink;
+		}
+		return super.getInterpolator();
+	}
+
+	/** Places this vehicle exactly at pos with the given body attitude (the same Ry(-yaw)*Rx(pitch)*Rz(roll) convention as tudursvehiclemod$getBodyOrientation()), for an ExternalMotionController. Moves without collision; the velocity is set to the distance moved so anything reading it (sounds, effects, a rider's view) sees the real speed. Yaw and roll are kept continuous with their previous values (no jump from 180 to -180), so render interpolation stays smooth. AircraftEntity overrides this to set its attitude quaternion directly. */
+	public void tudursvehiclemod$applyExternalPose(Vec3d pos, Quaternionf orientation) {
+		float[] angles = tudursvehiclemod$yawPitchRollOf(orientation);
+		Vec3d previous = this.getEntityPos();
+		this.prevRoll = this.roll;
+		this.setPosition(pos.x, pos.y, pos.z);
+		this.setYaw(this.getYaw() + MathHelper.wrapDegrees(angles[0] - this.getYaw()));
+		this.setPitch(angles[1]);
+		this.roll = this.roll + MathHelper.wrapDegrees(angles[2] - this.roll);
+		this.setVelocity(pos.subtract(previous));
+		this.fallDistance = 0;
+	}
+
+	/** Decomposes a body attitude quaternion (Ry(-yaw)*Rx(pitch)*Rz(roll)) into {yaw, pitch, roll} degrees. */
+	public static float[] tudursvehiclemod$yawPitchRollOf(Quaternionf q) {
+		float x = q.x;
+		float y = q.y;
+		float z = q.z;
+		float w = q.w;
+		float pitch = (float) Math.toDegrees(Math.asin(MathHelper.clamp(2f * (x * w - y * z), -1f, 1f)));
+		float yaw = -(float) Math.toDegrees(Math.atan2(2f * (x * z + y * w), 1f - 2f * (x * x + y * y)));
+		float roll = (float) Math.toDegrees(Math.atan2(2f * (x * y + z * w), 1f - 2f * (x * x + z * z)));
+		return new float[]{yaw, pitch, roll};
+	}
+
 	private VehicleDefinition fallbackDefinition(Identifier id) {
 		VehicleMod_LoggerHolder.LOGGER.warn(
 				"No vehicle definition '{}' is loaded (missing data/{}/vehicles/{}.json?) - using a 1x1 placeholder",
@@ -2091,7 +2150,11 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		this.lastRenderX = this.getX();
 		this.lastRenderY = this.getY();
 		this.lastRenderZ = this.getZ();
-		updateVehicleMovement(getDefinition());
+		// An addon's external controller (see ExternalMotionController) replaces this vehicle's own movement entirely while installed; it can hand a tick back to the normal physics by returning false.
+		ExternalMotionController motionController = this.externalMotionController;
+		if (motionController == null || !motionController.tudursvehiclemod$tickMotion(this)) {
+			updateVehicleMovement(getDefinition());
+		}
 		// This runway's own hatch progress (see updateRunwayHatchProgress()'s own doc) needs to be up to date for THIS tick before tudursvehiclemod$updateCarrierRunwayPlatform() below reads it to place tiles - moved ahead of it (was previously called much later, alongside updateToggleParts()/updateSpinningParts()) specifically so tile placement never reads a one-tick-stale progress value. Runs unconditionally (both sides) regardless of this ordering change - see that method's own doc for why running it here changes nothing else about its own behavior.
 		updateRunwayHatchProgress();
 		if (!this.getEntityWorld().isClient()) {

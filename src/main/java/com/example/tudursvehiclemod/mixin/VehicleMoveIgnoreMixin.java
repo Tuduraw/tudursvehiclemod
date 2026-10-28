@@ -150,6 +150,12 @@ public abstract class VehicleMoveIgnoreMixin {
 	@Inject(method = "onVehicleMove", at = @At("HEAD"), cancellable = true)
 	private void tudursvehiclemod$interceptVehicleMove(VehicleMoveC2SPacket packet, CallbackInfo ci) {
 		Entity vehicle = this.player.getVehicle();
+		// Under an addon's external controller (AbstractVehicleEntity.ExternalMotionController) the server alone decides where the vehicle is, and the rider's client computes the same pose itself - a report from that client is at best one network delay old, so it's dropped without a resync.
+		if (vehicle instanceof com.example.tudursvehiclemod.entity.AbstractVehicleEntity controlledVehicle
+				&& controlledVehicle.tudursvehiclemod$getExternalMotionController() != null) {
+			ci.cancel();
+			return;
+		}
 		if (vehicle instanceof SubmarineEntity submarine) {
 			this.tudursvehiclemod$capturedVehicle = submarine;
 			this.tudursvehiclemod$preX = vehicle.getX();
