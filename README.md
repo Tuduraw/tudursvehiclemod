@@ -27,7 +27,8 @@ MCヘリコプターやFlan's Modのような「乗り物MOD」を、**JSON定�
 | 【※】 Tudur's Guns(銃などを追加するアドオンMod) | https://github.com/Tuduraw/TudursGuns |
 | 【※】 Mechframe Addon(アセン機能も含むロボ系アドオンMod) | https://github.com/Tuduraw/mechframe-addon |
 | 【※】Railway Addon(鉄道システムを追加するアドオンMod)  | https://github.com/Tuduraw/railwayvehicleaddon |
-| 【※】Construction Machinery Addon(実際に機能する重機を追加するアドオン) | https://github.com/Tuduraw/constructionaddon |
+| 【※】Construction Machinery Addon(実際に機能する重機を追加するアドオンMod) | https://github.com/Tuduraw/constructionaddon |
+| CameraPathAddon(カメラ系modのような機能を追加するアドオンMod) | https://github.com/Tuduraw/camerapathaddon |
 |---|---|
 | **公式アドオンパック** | |
 |---|---|
