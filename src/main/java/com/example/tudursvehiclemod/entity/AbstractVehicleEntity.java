@@ -1001,6 +1001,13 @@ public abstract class AbstractVehicleEntity extends Entity implements MeshedEnti
 		builder.add(SEAT_ASSIGNMENTS, "");
 	}
 
+	/** Drops this entity's cached definition so the next getDefinition() looks it up in VehicleRegistry again, and re-applies the hitbox.
+	 * For a vehicle that resolved its definition before VehicleRegistry was (re)filled - see client.ClientDefinitions. */
+	public void tudursvehiclemod$refreshDefinition() {
+		this.definition = null;
+		refreshDimensionsFromDefinition();
+	}
+
 	/** Hitbox refresh hooked here (not setVehicleDefinitionId(), server-only) so it fires consistently on both client and server. */
 	@Override
 	public void onTrackedDataSet(net.minecraft.entity.data.TrackedData<?> data) {

@@ -147,7 +147,20 @@ public final class WeaponStatsLoader {
 				loaded.size(), fromResourcePacks, addonDirs.size());
 	}
 
-	/** Kept for any caller that has no ResourceManager to hand - scans the loose addons folder only. */
+	/** Every weapon currently loaded, keyed by lower-case name (read-only snapshot). Used for the client/server definition check - see DefinitionFingerprint. */
+	public static Map<String, WeaponStats> getAll() {
+		return loaded;
+	}
+
+	/** Replaces every loaded weapon at once (client side: see client.ClientDefinitions, which reads the packs itself and lets addons adjust the result before it is put into use). */
+	public static void setAll(Map<String, WeaponStats> weapons) {
+		Map<String, WeaponStats> lowerCased = new HashMap<>();
+		weapons.forEach((name, stats) -> lowerCased.put(name.toLowerCase(Locale.ROOT), stats));
+		loaded = Map.copyOf(lowerCased);
+		loggedFallbacks.clear();
+	}
+
+	/** Kept for any caller that has no ResourceManager to hand - scans mod jars and the loose addons folder (no data packs). */
 	public static void reload() {
 		reload(null);
 	}

@@ -170,6 +170,18 @@ Every key inside a vehicle JSON (`entity_type`, `model`, etc.) is always
   (`weapons/*.txt`) takes effect immediately even while still riding the
   existing vehicle
 
+### Playing on a server
+
+- Vehicle definitions and weapon configs are not sent by the server. On a dedicated server or someone else's LAN
+  game, each player's game reads them from the addon packs installed on their own machine (mod jars and
+  `tudursvehiclemod-addons/`). **Install the same packs as the server.**
+- On joining and after `/reload`, the game checks that they match the server and shows a warning in chat if they
+  don't (every differing name is written to the log). With different packs, vehicles can look or behave differently
+  from the server.
+- Vehicles and weapons placed only in the server world's `datapacks/` can't be read by clients; the warning shows
+  for them too.
+- Singleplayer and the LAN host load them when the world loads, as before.
+
 ---
 
 ## 6. Converting from an existing MC Heli addon

@@ -196,6 +196,8 @@ public class VehicleModClient implements ClientModInitializer {
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> tudursvehiclemod$resetSessionState());
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> tudursvehiclemod$resetSessionState());
 		config = VehicleModConfig.load();
+		// Definitions on a remote server: read from this client's own packs, checked against the server's hash - see ClientDefinitions.
+		ClientDefinitions.register();
 
 		// Lets the common (main-sourceSet) TieredVehicleSpawnerItem open this client-only screen without a compile-time dependency on client code.
 		TieredVehicleSpawnerItem.screenOpener = (category, tier) ->

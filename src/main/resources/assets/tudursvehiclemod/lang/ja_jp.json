@@ -353,5 +353,7 @@
   "message.tudursvehiclemod.fire_support.remote_disabled": "連携先の管制装置で遠隔操作がOFFです",
   "message.tudursvehiclemod.fire_support.not_designator_mode": "管制装置の目標指定が「指示器」になっていません",
   "message.tudursvehiclemod.fire_support.no_block": "指示できるブロックが見当たりません",
-  "message.tudursvehiclemod.fire_support.designated": "目標を指示しました: %s, %s, %s(管制装置から%sブロック)"
+  "message.tudursvehiclemod.fire_support.designated": "目標を指示しました: %s, %s, %s(管制装置から%sブロック)",
+  "message.tudursvehiclemod.definition_mismatch": "機体・武器の定義がサーバーと一致しません(機体 %s 件、武器 %s 件)。サーバーと同じアドオンパックを使ってください。見た目や動きがサーバーと食い違うことがあります。",
+  "message.tudursvehiclemod.definition_mismatch_detail": "違いのある定義: %s(全件はログに出力)"
 }

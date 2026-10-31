@@ -63,6 +63,49 @@ public class VehicleDefinitionReloadListener implements SimpleSynchronousResourc
 				loaded.size(), fromAddonsFolder, addonPackCount);
 	}
 
+	/** The same definitions this listener builds, but without a server ResourceManager: data/&lt;namespace&gt;/vehicles/ inside every
+	 * loaded mod (this mod's own built-ins and addon mods' jars), then the loose tudursvehiclemod-addons/ folder on top, the same
+	 * override order as reload(). World and server data packs are not visible this way.
+	 *
+	 * Used by a client connected to a remote server (dedicated, or someone else's LAN game): the server never sends its definitions,
+	 * so the client reads its own copy of the packs - see client.ClientDefinitions. Never throws. */
+	public static Map<Identifier, VehicleDefinition> loadWithoutResourceManager() {
+		Map<Identifier, VehicleDefinition> loaded = new HashMap<>();
+		for (var mod : net.fabricmc.loader.api.FabricLoader.getInstance().getAllMods()) {
+			for (Path modRoot : mod.getRootPaths()) {
+				for (Path namespaceDir : AddonPaths.listSubdirectories(modRoot.resolve("data"))) {
+					loadVehiclesDir(namespaceDir.getFileName().toString(), namespaceDir.resolve(DIRECTORY), loaded);
+				}
+			}
+		}
+		new VehicleDefinitionReloadListener().loadFromAddonsFolder(loaded);
+		return loaded;
+	}
+
+	/** Reads data/&lt;namespace&gt;/vehicles/**.json from a plain directory (a mod root or an addon folder). Never throws. */
+	private static void loadVehiclesDir(String namespace, Path vehiclesDir, Map<Identifier, VehicleDefinition> loaded) {
+		if (!Files.isDirectory(vehiclesDir)) {
+			return;
+		}
+		try (var files = Files.walk(vehiclesDir)) {
+			for (Path jsonFile : (Iterable<Path>) files.filter(p -> p.toString().endsWith(SUFFIX))::iterator) {
+				String relative = vehiclesDir.relativize(jsonFile).toString().replace('\\', '/');
+				String path = relative.substring(0, relative.length() - SUFFIX.length());
+				try (BufferedReader reader = Files.newBufferedReader(jsonFile, StandardCharsets.UTF_8)) {
+					Identifier vehicleId = Identifier.of(namespace, path);
+					var json = VehicleJsonCompat.upgrade(JsonParser.parseReader(reader));
+					VehicleDefinition.CODEC.parse(JsonOps.INSTANCE, json)
+							.resultOrPartial(error -> LOGGER.error("Failed to parse vehicle '{}' ({}): {}", vehicleId, jsonFile, error))
+							.ifPresent(def -> loaded.put(vehicleId, def));
+				} catch (Exception e) {
+					LOGGER.error("Failed to read vehicle definition {}", jsonFile, e);
+				}
+			}
+		} catch (Exception e) {
+			LOGGER.error("Failed to scan {}", vehiclesDir, e);
+		}
+	}
+
 	/** See AddonPaths for the expected folder layout. Never throws. */
 	private void loadFromAddonsFolder(Map<Identifier, VehicleDefinition> loaded) {
 		for (Path addonDir : AddonPaths.listSubdirectories(AddonPaths.getAddonsRoot())) {

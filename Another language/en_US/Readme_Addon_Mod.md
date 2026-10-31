@@ -25,7 +25,8 @@ mixins into it are needed.
 9. Adding variables to the HUD
 10. Cleanup on removal and chunk force-loading
 11. Controlling position and attitude from outside
-12. Limitations
+12. Taking part in loading definitions on a server
+13. Limitations
 
 ---
 
@@ -45,6 +46,7 @@ All of the following are genuinely extensible.
 | Fire weapons from outside a vehicle (handheld equipment, etc.) | Create projectiles with `WeaponProjectileFactory` and aim or lock on with `WeaponTargeting` |
 | Add your own variables to HUD scripts | Register a listener with `HudVariableProvider.EVENT` |
 | Control a vehicle's position and attitude directly | Set a controller with `tudursvehiclemod$setExternalMotionController()` |
+| Take part in loading definitions on a server (pack sync, etc.) | Register listeners on `ClientDefinitionEvents.LOAD`/`MISMATCH` |
 
 The shared parts - model display, mesh hit detection, durability/destruction
 handling, seats, weapons, the HUD, and translucent rendering - are inherited
@@ -736,7 +738,42 @@ vehicle.tudursvehiclemod$setExternalMotionController(null);
 
 ---
 
-## 12. Limitations
+## 12. Taking part in loading definitions on a server
+
+A client connected to a dedicated server or someone else's LAN game does not receive vehicle definitions and weapon
+configs from the server; it reads them from the packs on its own machine (mod jars and `tudursvehiclemod-addons/`).
+What it read is checked against a short hash the server sends, and a warning is shown if they differ
+(`client.ClientDefinitions`). Neither happens in singleplayer or on the LAN host.
+
+An addon mod can take part through `client.ClientDefinitionEvents` (Fabric API events) - a pack-sync addon, for example.
+
+| Event | When | What you can do |
+|---|---|---|
+| `LOAD` | Right after the client has read its own packs, before it starts using them | Add, replace or remove entries in `context.vehicles()`/`context.weapons()` (mutable maps). `context.server()` is the server being joined |
+| `MISMATCH` | When the server's hash differs (a vehicle or weapon is missing on the client, or different) | Return `true` to suppress the default chat warning. `report` lists the differing names |
+
+```java
+ClientDefinitionEvents.LOAD.register(context -> {
+    // e.g. add vehicle definitions from your own folder
+    context.vehicles().putAll(MySync.loadVehicles());
+});
+ClientDefinitionEvents.MISMATCH.register(report -> {
+    MySync.requestFromServer(report);   // e.g. fetch the missing files from the server
+    return true;                        // no default warning
+});
+// once the files are in place, load and check again
+ClientDefinitions.reload();
+```
+
+- `ClientDefinitions.getServerFingerprint()` returns the hashes the server sent (name -> hash). On the server,
+  `DefinitionFingerprintPayload.current()` gives the current values.
+- Hashes are computed from the loaded values, so file formatting, comments and key order don't matter.
+- `report.vehiclesExtra()`/`weaponsExtra()` exist only on the client and don't cause a warning on their own.
+- Listeners run on the client's main thread. An exception is caught and logged, and later listeners still run.
+
+---
+
+## 13. Limitations
 
 ### Version matching
 

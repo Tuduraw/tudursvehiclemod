@@ -25,7 +25,8 @@
 9. HUDに変数を追加する
 10. 削除時の後始末とチャンクの強制ロード
 11. 外部から位置と姿勢を制御する
-12. 制限事項
+12. サーバー接続時の定義の読み込みに関わる
+13. 制限事項
 
 ---
 
@@ -45,6 +46,7 @@
 | 車両以外(携帯装備など)から武器を発射 | `WeaponProjectileFactory`で弾体を生成し、`WeaponTargeting`で照準・ロックオンを行う |
 | HUDスクリプトに独自の変数を追加 | `HudVariableProvider.EVENT`にリスナーを登録する |
 | 機体の位置・姿勢を外部から直接制御 | `tudursvehiclemod$setExternalMotionController()`でコントローラーを設定 |
+| サーバー接続時の定義の読み込みに関わる(パック同期など) | `ClientDefinitionEvents.LOAD`/`MISMATCH`にリスナーを登録する |
 
 モデル表示・メッシュ命中判定・耐久値/破壊処理・座席・武装・HUD・半透明
 描画といった共通部分は、いずれの場合も`AbstractVehicleEntity`から
@@ -727,7 +729,43 @@ vehicle.tudursvehiclemod$setExternalMotionController(null);
 
 ---
 
-## 12. 制限事項
+## 12. サーバー接続時の定義の読み込みに関わる
+
+専用サーバーや他の人のLANゲームに接続したクライアントは、サーバーから機体定義・武器設定を
+受け取らず、自分の環境のパック(MODのjarと`tudursvehiclemod-addons/`)から読み込みます。
+読み込んだ内容は、サーバーが送る短いハッシュと照合され、違いがあれば警告が出ます
+(`client.ClientDefinitions`)。シングルプレイとLANのホストでは、どちらも行われません。
+
+アドオンMODは`client.ClientDefinitionEvents`(Fabric APIのイベント)で、この流れに関われます。
+パックの同期を行うアドオンなどを想定しています。
+
+| イベント | 呼ばれるとき | できること |
+|---|---|---|
+| `LOAD` | クライアントが自分のパックを読み込んだ直後、使い始める前 | `context.vehicles()`/`context.weapons()`(変更可能なMap)に追加・置き換え・削除。`context.server()`で接続先が分かる |
+| `MISMATCH` | サーバーのハッシュと食い違いがあったとき(機体・武器のどちらかがクライアントにない、または内容が違う) | `true`を返すと標準のチャット警告を出さない。`report`に違いのある名前の一覧 |
+
+```java
+ClientDefinitionEvents.LOAD.register(context -> {
+    // 例: 自分のフォルダにある機体定義を追加する
+    context.vehicles().putAll(MySync.loadVehicles());
+});
+ClientDefinitionEvents.MISMATCH.register(report -> {
+    MySync.requestFromServer(report);   // サーバーから足りないファイルを取得するなど
+    return true;                        // 標準の警告は出さない
+});
+// ファイルを取得し終えたら、読み込みと照合をやり直す
+ClientDefinitions.reload();
+```
+
+- `ClientDefinitions.getServerFingerprint()`で、サーバーが送ったハッシュ(名前→ハッシュの対応)を参照できます。
+  サーバー側の現在値は`DefinitionFingerprintPayload.current()`で取れます
+- ハッシュは読み込み後の値から計算します。ファイルの書式やコメント、キーの順番の違いは影響しません
+- `report`の`vehiclesExtra()`/`weaponsExtra()`はクライアントにだけあるもので、それだけでは警告は出ません
+- リスナーはクライアントのメインスレッドで呼ばれます。例外は捕捉してログに出し、後続のリスナーは実行されます
+
+---
+
+## 13. 制限事項
 
 ### バージョンの一致
 

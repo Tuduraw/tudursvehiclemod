@@ -353,5 +353,7 @@
   "message.tudursvehiclemod.fire_support.remote_disabled": "Remote control is off at the linked center",
   "message.tudursvehiclemod.fire_support.not_designator_mode": "The center is not set to designator targeting",
   "message.tudursvehiclemod.fire_support.no_block": "No block in sight to mark",
-  "message.tudursvehiclemod.fire_support.designated": "Target marked: %s, %s, %s (%s blocks from the center)"
+  "message.tudursvehiclemod.fire_support.designated": "Target marked: %s, %s, %s (%s blocks from the center)",
+  "message.tudursvehiclemod.definition_mismatch": "Vehicle/weapon definitions differ from the server (vehicles: %s, weapons: %s). Use the same addon packs as the server, or vehicles may look or behave differently.",
+  "message.tudursvehiclemod.definition_mismatch_detail": "Differences: %s (full list in the log)"
 }

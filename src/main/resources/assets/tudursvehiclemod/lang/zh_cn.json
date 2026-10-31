@@ -298,5 +298,7 @@
   "item.tudursvehiclemod.vehicle_base_t4": "载具基础件 (IV)",
   "item.tudursvehiclemod.vehicle_base_t5": "载具基础件 (V)",
   "block.tudursvehiclemod.vehicle_converter": "载具转换器",
-  "gui.tudursvehiclemod.vehicle_converter.confirm": "确认"
+  "gui.tudursvehiclemod.vehicle_converter.confirm": "确认",
+  "message.tudursvehiclemod.definition_mismatch": "载具/武器定义与服务器不一致(载具 %s 项,武器 %s 项)。请使用与服务器相同的附加包,否则载具的外观或行为可能与服务器不一致。",
+  "message.tudursvehiclemod.definition_mismatch_detail": "不一致的定义: %s(完整列表见日志)"
 }

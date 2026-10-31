@@ -25,6 +25,22 @@ public class ModNetworking {
 		PayloadTypeRegistry.playC2S().register(SelectWeaponPayload.ID, SelectWeaponPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(RequestSeatResyncPayload.ID, RequestSeatResyncPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(WeaponFireSoundPayload.ID, WeaponFireSoundPayload.CODEC);
+		// Definition check (see DefinitionFingerprintPayload): sent when a player joins and to everyone after /reload. Players
+		// without this payload registered (no mod / older version) simply aren't sent it.
+		PayloadTypeRegistry.playS2C().register(DefinitionFingerprintPayload.ID, DefinitionFingerprintPayload.CODEC);
+		net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			if (ServerPlayNetworking.canSend(handler.player, DefinitionFingerprintPayload.ID)) {
+				ServerPlayNetworking.send(handler.player, DefinitionFingerprintPayload.current());
+			}
+		});
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> {
+			DefinitionFingerprintPayload payload = DefinitionFingerprintPayload.current();
+			for (var player : server.getPlayerManager().getPlayerList()) {
+				if (ServerPlayNetworking.canSend(player, DefinitionFingerprintPayload.ID)) {
+					ServerPlayNetworking.send(player, payload);
+				}
+			}
+		});
 		PayloadTypeRegistry.playS2C().register(
 				com.example.tudursvehiclemod.network.SyncCruiseSpeedPayload.ID,
 				com.example.tudursvehiclemod.network.SyncCruiseSpeedPayload.CODEC);
